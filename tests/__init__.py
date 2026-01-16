@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, TypeAlias
 
 
 from src.scenes import Scene
@@ -6,10 +6,14 @@ from .events import TestEvents
 from .entities import TestEntities
 
 
-TARGET: Literal[
+TargetType: TypeAlias = Literal[
     'events',
     'entities',
-] = 'entities'
+] | None
+
+
+#TARGET: TargetType = 'entities' # Change this to run different test suites.
+TARGET: TargetType = None
 
 
 class Tests:
