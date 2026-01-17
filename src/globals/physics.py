@@ -1,4 +1,4 @@
-from panda3d.bullet import BulletWorld, BulletRigidBodyNode, BulletGhostNode
+from panda3d.bullet import BulletWorld, BulletRigidBodyNode, BulletGhostNode, BulletDebugNode
 from panda3d.core import Vec3
 
 
@@ -18,7 +18,21 @@ class Physics(Global):
         if Physics._world is None:
             Physics._world = BulletWorld()
             Physics._world.setGravity(Vec3(0, 0, -9.81))
+            self._debug()
             self.base.task_mgr.add(self._update_world, "physics_world_updater")
+
+
+    def _debug(self) -> None:
+        '''Set up debug visualization for Bullet Physics bodies and ghosts.'''
+        debug_node = BulletDebugNode('Physics_Debug')
+        debug_node.showWireframe(True)
+        debug_node.showConstraints(True)
+        debug_node.showBoundingBoxes(False)
+        debug_node.showNormals(False)
+        
+        debug_np = self.base.render.attachNewNode(debug_node)
+        debug_np.show()
+        Physics._world.setDebugNode(debug_np.node())
 
 
     def _update_world(self, task):
@@ -34,7 +48,7 @@ class Physics(Global):
 
 
     @classmethod
-    def create_body(cls, name: str, mass: float = 1.0) -> BulletRigidBodyNode:
+    def create_body(cls, name: str, mass: float = 0.0) -> BulletRigidBodyNode:
         '''Create a rigid body, add it to the world, and return it.'''
         node = BulletRigidBodyNode(name)
         node.setMass(mass)
