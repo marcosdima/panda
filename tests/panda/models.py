@@ -1,4 +1,4 @@
-from .__test import Test
+from ..__test import Test
 from src.globals import GlobalLoader
 
 

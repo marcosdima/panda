@@ -2,10 +2,10 @@ from typing import Literal, TypeAlias
 
 
 from src.scenes import Scene
-from .events import TestEvents
-from .entities import TestEntities
-from .physics import TestPhysics
-from .models import TestModels
+from .terminal.events import TestEvents
+from .terminal.entities import TestEntities
+from .panda.physics import TestPhysics
+from .panda.models import TestModels
 
 
 TargetType: TypeAlias = Literal[
