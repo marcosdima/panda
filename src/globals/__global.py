@@ -17,7 +17,7 @@ class Global:
         return cls._instance
     
 
-    def __init__(self) -> None:
+    def __init__(self):
         self.base = base
 
 

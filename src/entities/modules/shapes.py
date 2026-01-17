@@ -9,12 +9,12 @@ from .__module import Module
 class Shapes(Module):
     ''' Module for managing bullet physics shapes. '''
 
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
         self.__shapes: dict[str, BulletShape] = {}
 
 
-    def free(self) -> None:
+    def free(self):
         '''Frees the shapes module and clears all shapes.'''
         self.__shapes.clear()
         super().free()

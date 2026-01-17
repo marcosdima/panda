@@ -7,7 +7,7 @@ class TerminalTest(Test):
         self.run_tests()
 
 
-    def run_tests(self) -> None:
+    def run_tests(self):
         for name in dir(self):
             if name.startswith('test'):
                 attr = getattr(self, name)

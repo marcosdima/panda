@@ -5,7 +5,7 @@ class Scene(ABC):
     __count: int = 0
 
 
-    def __init__(self) -> None:
+    def __init__(self):
         self.id: int = Scene.__count
         Scene.__count += 1
 

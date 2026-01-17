@@ -10,7 +10,7 @@ class Entity(ABC, Joint):
     __count = 0
 
 
-    def __init__(self) -> None:
+    def __init__(self):
         # Id assignment.
         self.id = self.__next.pop()
         self.__count += 1
@@ -20,10 +20,7 @@ class Entity(ABC, Joint):
         
         super().__init__()
 
-        # Set main node.
-        self.node = self.get_node()
-        self.node.setName(self.get_name())
-
+        
 
     def free(self):
         super().free()
@@ -35,14 +32,20 @@ class Entity(ABC, Joint):
         return f'Entity-{self.id}'
     
 
-    def setup(self) -> None:
+    def setup(self):
         ''' Method to setup the entity after all modules are initialized. '''
+        # Set main node.
+        self.node = self._get_node()
+        self.node.setName(self.get_name())
+        self.node.setPythonTag('entity', self)
+
+        # Add shapes to the node.
         for shape in self.get_shapes().values():
             self.node.addShape(shape)
     
 
     @abstractmethod
-    def get_node(self) -> NodePath:
+    def _get_node(self) -> NodePath:
         ''''''
         pass
     

@@ -13,7 +13,7 @@ class Physics(Global):
     _ghosts = {}
 
 
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
         if Physics._world is None:
             Physics._world = BulletWorld()
@@ -22,7 +22,7 @@ class Physics(Global):
             self.base.task_mgr.add(self._update_world, "physics_world_updater")
 
 
-    def _debug(self) -> None:
+    def _debug(self):
         '''Set up debug visualization for Bullet Physics bodies and ghosts.'''
         debug_node = BulletDebugNode('Physics_Debug')
         debug_node.showWireframe(True)

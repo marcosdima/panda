@@ -1,8 +1,9 @@
 from ..handlers.movement import Movement
 from .shapes import Shapes
+from .collision import Collision
 
 
-class Joint(Shapes, Movement):
+class Joint(Shapes, Movement, Collision):
     pass
 
 
