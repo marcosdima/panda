@@ -1,4 +1,4 @@
-from .movement import Movement
+from ..handlers.movement import Movement
 
 
 class Joint(Movement):

@@ -4,16 +4,20 @@ from typing import Literal, TypeAlias
 from src.scenes import Scene
 from .events import TestEvents
 from .entities import TestEntities
+from .physics import TestPhysics
+from .models import TestModels
 
 
 TargetType: TypeAlias = Literal[
     'events',
     'entities',
+    'physics',
+    'models',
 ] | None
 
 
-#TARGET: TargetType = 'entities' # Change this to run different test suites.
-TARGET: TargetType = None
+TARGET: TargetType = 'physics' # Change this to run different test suites.
+#TARGET: TargetType = None
 
 
 class Tests:
@@ -24,6 +28,10 @@ class Tests:
             self.__target = TestEvents()   
         elif TARGET == 'entities':
             self.__target = TestEntities()
+        elif TARGET == 'physics':
+            self.__target = TestPhysics()
+        elif TARGET == 'models':
+            self.__target = TestModels()
 
         
     def get_target(self) -> Scene | None:

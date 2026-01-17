@@ -21,5 +21,6 @@ class Global:
         self.base = base
 
 
-    def _get_instance(self):
-        return self.__class__._instance
+    @classmethod
+    def get_instance(cls):
+        return cls._instance
