@@ -16,7 +16,7 @@ TargetType: TypeAlias = Literal[
 ] | None
 
 
-TARGET: TargetType = 'areas' # Change this to run different test suites.
+TARGET: TargetType = 'models' # Change this to run different test suites.
 #TARGET: TargetType = None
 
 

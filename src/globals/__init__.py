@@ -3,6 +3,7 @@ from .tasks import Tasks
 from .loader import GlobalLoader
 from .physics import Physics
 from .camera import Camera
+from .lights import GlobalLights
 
 
 class Globals:
@@ -12,6 +13,10 @@ class Globals:
         self.global_loader = GlobalLoader()
         self.physics = Physics()
         self.camera = Camera()
+        self.lights = GlobalLights()
+        
+        # Setup default lighting
+        GlobalLights.setup_default_lights()
 
 
 __all__ = [
@@ -22,4 +27,5 @@ __all__ = [
     "GlobalLoader",
     "Camera",
     "Physics",
+    "GlobalLights",
 ]

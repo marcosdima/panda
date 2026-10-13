@@ -4,14 +4,15 @@ from typing import Literal
 
 
 from .__global import Global
+from config import ASSETS_PATH, ANIMATIONS_PATH
+
+
+ModelKey = Literal['box', 'panda', 'environment', 'teapot']
 
 
 class GlobalLoader(Global):
     ''' A singleton class to manage the global loader object. '''
-    _assets_path = 'assets/' # Path to the assets directory.
     __models: dict[str, NodePath] = {} # Cache for loaded models.
-
-    ModelKey = Literal['box', 'panda', 'environment', 'teapot']
 
 
     @classmethod
@@ -24,7 +25,7 @@ class GlobalLoader(Global):
     
 
     @classmethod
-    def __load(cls, asset_path: str) -> NodePath:
+    def load(cls, asset_path: str) -> NodePath:
         '''Internal loader with caching.'''
         if asset_path in cls.__models:
             return cls.__models[asset_path]
@@ -32,12 +33,20 @@ class GlobalLoader(Global):
         model = cls.get_global_loader().loadModel(asset_path)
         cls.__models[asset_path] = model
         return model
+    
+
+    @classmethod
+    def load_from_assets(cls, relative_path: str) -> NodePath:
+        '''Load a model from the assets folder using caching.'''
+        full_path = ASSETS_PATH + relative_path
+        return cls.load(full_path)
 
 
     @classmethod
     def load_panda_asset(cls, model: ModelKey) -> NodePath:
         '''Load a default Panda3D model by key using caching.'''
         default_models = {
+
             'box': 'models/box',
             'panda': 'models/panda',
             'environment': 'models/environment',
@@ -45,5 +54,26 @@ class GlobalLoader(Global):
         }
 
         asset_path = default_models[model]
-        return cls.__load(asset_path)
+        return cls.load(asset_path)
+    
 
+    @classmethod
+    def load_actor(cls, asset_path: str, animations: dict[str, str] | None = None) -> NodePath:
+        '''Load an Actor model from the given asset path using caching.'''
+        from direct.actor.Actor import Actor
+
+        if asset_path in cls.__models:
+            return cls.__models[asset_path]
+
+        full_path = ASSETS_PATH + asset_path
+        
+        # If animations are provided, prepend ASSETS_PATH to each one
+        if animations:
+            full_animations = {name: ASSETS_PATH + path for name, path in animations.items()}
+            actor = Actor(full_path, anims=full_animations)
+        else:
+            # Load without animations - will use embedded animations if present
+            actor = Actor(full_path)
+        
+        cls.__models[asset_path] = actor
+        return actor
