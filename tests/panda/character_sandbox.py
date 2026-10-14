@@ -13,7 +13,7 @@ Provides a physical test course featuring:
 from __future__ import annotations
 
 import math
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from panda3d.bullet import BulletBoxShape, BulletRigidBodyNode
 from panda3d.core import NodePath, Vec3
 
@@ -26,6 +26,7 @@ from src.handlers.physics.character import CharacterControllerHandler
 
 from src.globals.camera import Camera
 from src.globals.clock import GlobalClock
+from src.globals.lights import GlobalLights
 from src.globals.loader import GlobalLoader
 from src.globals.physics import Physics
 from src.globals.tasks import Tasks
@@ -67,11 +68,7 @@ class TestCharacterSandbox(Test):
         self._print_controls_banner()
 
         super().on_start()
-
-        # Camera positioning
-        Camera.set_pos(0, -25, 12)
-        Camera.look_at(0, 0, 2)
-
+        GlobalLights.setup_default_lights()
         # Build test environment (ground, stairs, ramps, elevated platform)
         self._build_environment()
 
@@ -334,9 +331,9 @@ class TestCharacterSandbox(Test):
         self.actor_handler = ActorAnimationHandler(
             model_path="X Bot.glb",
             animations={"Idle": "anims/X Bot@Idle.glb"},
-            scale=1.0,
+            scale=100.0,
             offset=Vec3(0.0, 0.0, -1.0),
-            hpr=Vec3(180.0, 90.0, 0.0),
+            hpr=Vec3(0.0, 0.0, 0.0),
         )
         player.add_handler(self.actor_handler)
 
@@ -377,7 +374,7 @@ class TestCharacterSandbox(Test):
         state = "ENABLED" if active else "DISABLED"
         self.p(f"[Physics Debug] Bullet Wireframe {state}", color="cyan", bold=True)
 
-    def _on_frame_update(self, task) -> int:
+    def _on_frame_update(self, task: Any) -> int:
         """Per-frame update driving scene entity updates and telemetry."""
         dt = GlobalClock.get_dt() if hasattr(GlobalClock, "get_dt") else 0.016
 
@@ -450,6 +447,9 @@ class TestCharacterSandbox(Test):
         self.input_handler = None
         self.camera_handler = None
 
+
+        # 5. Clear global lights to prevent orphaned light nodes
+        GlobalLights.clear_lights()
 
         # 6. Call Scene base stop to free any remaining entities
         super().on_stop()

@@ -11,12 +11,11 @@ import math
 from direct.showbase.ShowBase import ShowBase
 from panda3d.core import Vec3
 
-# Ensure headless ShowBase for Panda3D Loader and Actor support in terminal test
+# Ensure headless ShowBase for Panda3D Loader support in terminal test
 if not hasattr(builtins, "base") or builtins.base is None:
     ShowBase(windowType="none")
 
 from src.entities.entity import Entity
-from src.globals.physics import Physics
 from src.handlers.graphics.actor import ActorAnimationHandler
 from src.handlers.input.base import InputHandler
 from src.handlers.physics.character import CharacterControllerHandler
@@ -25,40 +24,40 @@ from src.handlers.physics.character import CharacterControllerHandler
 class TestActorAnimation(TerminalTest):
     """Terminal test suite for ActorAnimationHandler and drift-free visual pivot integration."""
 
-    def on_start(self):
+    def on_start(self) -> None:
         self.print_title("TestActorAnimation started.", color="cyan")
         super().on_start()
 
-    def test_actor_animation_handler_initialization(self):
+    def test_actor_animation_handler_initialization(self) -> None:
         self.print_subtitle("Testing ActorAnimationHandler default & custom parameters.")
         handler = ActorAnimationHandler()
 
         assert handler.model_path == "X Bot.glb"
         assert handler.animations == {"Idle": "anims/X Bot@Idle.glb"}
-        assert handler.scale == 1.0
+        assert handler.scale == 100.0
         assert handler.offset == Vec3(0.0, 0.0, -1.0)
-        assert handler.hpr == Vec3(180.0, 90.0, 0.0)
+        assert handler.hpr == Vec3(0.0, 0.0, 0.0)
         assert handler.visual_pivot is None
-        assert handler.actor is None
+        assert handler.model_root is None
         assert handler.current_animation is None
 
         # Custom configuration
         custom_handler = ActorAnimationHandler(
             model_path="X Bot.glb",
             animations={"CustomIdle": "anims/X Bot@Idle.glb"},
-            scale=0.5,
+            scale=50.0,
             offset=Vec3(0.0, 0.0, -0.5),
-            hpr=Vec3(0.0, 90.0, 0.0),
+            hpr=Vec3(180.0, 90.0, 0.0),
         )
-        assert custom_handler.scale == 0.5
+        assert custom_handler.scale == 50.0
         assert custom_handler.offset == Vec3(0.0, 0.0, -0.5)
-        assert custom_handler.hpr == Vec3(0.0, 90.0, 0.0)
+        assert custom_handler.hpr == Vec3(180.0, 90.0, 0.0)
         assert custom_handler.animations == {"CustomIdle": "anims/X Bot@Idle.glb"}
 
         self.p("ActorAnimationHandler parameters verified successfully.", color="green")
         self.space_line()
 
-    def test_actor_attachment_and_visual_pivot_standalone(self):
+    def test_actor_attachment_and_visual_pivot_standalone(self) -> None:
         self.print_subtitle("Testing ActorAnimationHandler standalone entity attachment.")
         entity = Entity("StandaloneActorHero")
         handler = ActorAnimationHandler()
@@ -70,18 +69,17 @@ class TestActorAnimation(TerminalTest):
         assert handler.visual_pivot.getParent() == entity.node
         assert handler.visual_pivot.getPos() == Vec3(0.0, 0.0, 0.0)
 
-        # Actor must be created, child of visual_pivot, and properly transformed
-        assert handler.actor is not None
-        assert not handler.actor.isEmpty()
-        assert handler.actor.getParent() == handler.visual_pivot
-        assert handler.actor.getScale() == Vec3(1.0, 1.0, 1.0)
-        assert handler.actor.getPos() == Vec3(0.0, 0.0, -1.0)
-        assert handler.actor.getHpr() == Vec3(180.0, 90.0, 0.0)
+        # Model root must be created, child of visual_pivot, and properly transformed
+        assert handler.model_root is not None
+        assert not handler.model_root.isEmpty()
+        assert handler.model_root.getParent() == handler.visual_pivot
+        assert handler.model_root.getScale() == Vec3(100.0, 100.0, 100.0)
+        assert handler.model_root.getPos() == Vec3(0.0, 0.0, -1.0)
+        assert handler.model_root.getHpr() == Vec3(0.0, 0.0, 0.0)
 
         # Start entity -> should loop Idle animation
         entity.start()
         assert handler.current_animation == "Idle"
-        assert handler.actor.getCurrentAnim() == "Idle"
 
         # Update tick
         entity.update(0.016)
@@ -89,7 +87,7 @@ class TestActorAnimation(TerminalTest):
 
         # Teardown
         entity.stop()
-        assert handler.actor is None
+        assert handler.model_root is None
         assert handler.visual_pivot is None
         assert handler.current_animation is None
 
@@ -98,7 +96,7 @@ class TestActorAnimation(TerminalTest):
         self.p("Standalone actor attachment & transform verified successfully.", color="green")
         self.space_line()
 
-    def test_actor_attachment_with_character_controller_and_pivot_drift(self):
+    def test_actor_attachment_with_character_controller_and_pivot_drift(self) -> None:
         self.print_subtitle("Testing drift-free visual pivot with CharacterControllerHandler.")
         entity = Entity("PhysicsActorHero")
         controller = CharacterControllerHandler()
@@ -136,7 +134,7 @@ class TestActorAnimation(TerminalTest):
         self.p("Drift-free visual pivot verified successfully.", color="green")
         self.space_line()
 
-    def test_actor_rotation_under_controller_movement(self):
+    def test_actor_rotation_under_controller_movement(self) -> None:
         self.print_subtitle("Testing visual pivot rotation driven by CharacterControllerHandler.")
         entity = Entity("MovingActorHero")
         input_handler = InputHandler()
@@ -176,7 +174,7 @@ class TestActorAnimation(TerminalTest):
         self.p("Visual pivot rotation without drift verified successfully.", color="green")
         self.space_line()
 
-    def test_animation_playback_and_locomotion_states(self):
+    def test_animation_playback_and_locomotion_states(self) -> None:
         self.print_subtitle("Testing animation playback and locomotion synchronization.")
         entity = Entity("LocomotionHero")
         input_handler = InputHandler()
@@ -193,7 +191,6 @@ class TestActorAnimation(TerminalTest):
 
         # 1. Idle state on start
         assert anim_handler.current_animation == "Idle"
-        assert anim_handler.actor.getCurrentAnim() == "Idle"
 
         # 2. Moving state
         input_handler.set_move_vector(0.0, 1.0)
@@ -207,7 +204,7 @@ class TestActorAnimation(TerminalTest):
         assert anim_handler.current_animation == "Idle"
 
         # 4. Explicit animation control methods
-        assert anim_handler.play_animation("Idle", loop=True)
+        assert anim_handler.loop_animation("Idle")
         assert anim_handler.current_animation == "Idle"
         assert not anim_handler.play_animation("NonExistentClip")
 
@@ -223,7 +220,7 @@ class TestActorAnimation(TerminalTest):
         self.p("Animation locomotion state management verified successfully.", color="green")
         self.space_line()
 
-    def test_clean_lifecycle_and_memory_leak_prevention(self):
+    def test_clean_lifecycle_and_memory_leak_prevention(self) -> None:
         self.print_subtitle("Testing clean lifecycle, restart symmetry, and leak prevention.")
         entity = Entity("LifecycleActorHero")
         controller = CharacterControllerHandler()
@@ -233,32 +230,32 @@ class TestActorAnimation(TerminalTest):
         entity.add_handler(anim_handler)
 
         assert anim_handler.visual_pivot is not None
-        assert anim_handler.actor is not None
+        assert anim_handler.model_root is not None
         pivot_np = anim_handler.visual_pivot
 
         # Start entity
         entity.start()
         assert anim_handler.current_animation == "Idle"
 
-        # Stop entity -> Actor stopped and cleaned up, nodes removed
+        # Stop entity -> model cleaned up, nodes removed
         entity.stop()
-        assert anim_handler.actor is None
+        assert anim_handler.model_root is None
         assert anim_handler.visual_pivot is None
         assert pivot_np.isEmpty()
         assert controller.visual_node is None
 
-        # Restart entity -> cleanly restores visual pivot and actor
+        # Restart entity -> cleanly restores visual pivot and model
         entity.start()
         assert anim_handler.visual_pivot is not None
         assert not anim_handler.visual_pivot.isEmpty()
-        assert anim_handler.actor is not None
-        assert not anim_handler.actor.isEmpty()
+        assert anim_handler.model_root is not None
+        assert not anim_handler.model_root.isEmpty()
         assert anim_handler.current_animation == "Idle"
         assert controller.visual_node == anim_handler.visual_pivot
 
         # Detach handler cleanly
         entity.remove_handler(anim_handler)
-        assert anim_handler.actor is None
+        assert anim_handler.model_root is None
         assert anim_handler.visual_pivot is None
         assert controller.visual_node is None
 
@@ -270,7 +267,7 @@ class TestActorAnimation(TerminalTest):
         self.p("Lifecycle symmetry and leak prevention verified successfully.", color="green")
         self.space_line()
 
-    def on_stop(self):
+    def on_stop(self) -> None:
         self.print_subtitle("TestActorAnimation completed.")
 
 
