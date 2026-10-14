@@ -4,12 +4,14 @@ from typing import Literal, TypeAlias
 from src.scenes import Scene
 from .terminal.events import TestEvents
 from .terminal.entities import TestEntities
+from .terminal.character_controller import TestCharacterController
 from .panda import *
 
 
 TargetType: TypeAlias = Literal[
     'events',
     'entities',
+    'controllers',
     'physics',
     'models',
     'areas',
@@ -28,6 +30,8 @@ class Tests:
             self.__target = TestEvents()   
         elif TARGET == 'entities':
             self.__target = TestEntities()
+        elif TARGET == 'controllers':
+            self.__target = TestCharacterController()
         elif TARGET == 'physics':
             self.__target = TestPhysics()
         elif TARGET == 'models':

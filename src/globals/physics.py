@@ -3,6 +3,7 @@ from panda3d.bullet import (
     BulletRigidBodyNode,
     BulletGhostNode,
     BulletDebugNode,
+    BulletCharacterControllerNode,
 )
 from panda3d.core import Vec3
 
@@ -117,3 +118,16 @@ class Physics(Global):
             for k, v in list(cls._ghosts.items()):
                 if v == name_or_node:
                     del cls._ghosts[k]
+
+    @classmethod
+    def attach_character(cls, node: BulletCharacterControllerNode) -> None:
+        """Attach a Bullet character controller to the physics world."""
+        world = cls._ensure_world()
+        world.attachCharacter(node)
+
+    @classmethod
+    def remove_character(cls, node: BulletCharacterControllerNode) -> None:
+        """Remove a Bullet character controller from the physics world."""
+        world = cls._ensure_world()
+        world.removeCharacter(node)
+
