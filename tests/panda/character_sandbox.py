@@ -19,8 +19,10 @@ from panda3d.core import NodePath, Vec3
 
 from ..__test import Test
 from src.entities.entity import Entity
+from src.handlers.camera import ThirdPersonCameraHandler
 from src.handlers.input.wasd import WASDInputHandler
 from src.handlers.physics.character import CharacterControllerHandler
+
 from src.globals.camera import Camera
 from src.globals.clock import GlobalClock
 from src.globals.loader import GlobalLoader
@@ -42,7 +44,9 @@ class TestCharacterSandbox(Test):
         self.player: Entity | None = None
         self.controller: CharacterControllerHandler | None = None
         self.input_handler: WASDInputHandler | None = None
+        self.camera_handler: ThirdPersonCameraHandler | None = None
         self.player_visual: NodePath | None = None
+
 
         # Environment tracking for clean teardown
         self.static_bodies: list[str] = []
@@ -89,7 +93,9 @@ class TestCharacterSandbox(Test):
         self.p(" Movement:      [W, A, S, D] or Arrow Keys", color="green", bold=True)
         self.p(" Jump:          [Spacebar] (only while grounded)", color="green", bold=True)
         self.p(" Sprint:        [Left Shift] (12.0 m/s vs 6.0 m/s walk)", color="green", bold=True)
+        self.p(" Camera:        [RMB + Drag] Orbit | [Mouse Wheel] Zoom", color="green", bold=True)
         self.p(" Wireframe:     [F12] Toggle Bullet debug visualization", color="magenta", bold=True)
+
         self.space_line()
         self.p("Test Course Layout:", color="cyan", bold=True)
         self.p(" - Stairs 0.2m: Smooth step climbing test", color="cyan")
@@ -297,8 +303,15 @@ class TestCharacterSandbox(Test):
         player.node.reparentTo(self.base.render)
         player.node.setPos(0.0, 0.0, 2.0)
 
-        # Attach Input and Character Controller handlers
+        # Attach Input, Camera, and Character Controller handlers
         self.input_handler = WASDInputHandler()
+        self.camera_handler = ThirdPersonCameraHandler(
+            distance=8.0,
+            target_offset=Vec3(0.0, 0.0, 1.2),
+            pitch=-15.0,
+            smooth_speed=10.0,
+            mouse_sensitivity=0.2,
+        )
         self.controller = CharacterControllerHandler(
             radius=0.5,
             height=1.0,
@@ -308,6 +321,7 @@ class TestCharacterSandbox(Test):
         )
 
         player.add_handler(self.input_handler)
+        player.add_handler(self.camera_handler)
         player.add_handler(self.controller)
 
         # Attach visual placeholder model (box scaled to 1x1x2 centered on capsule)
@@ -328,13 +342,14 @@ class TestCharacterSandbox(Test):
             from panda3d.core import TextNode
 
             self.osd_instructions = OnscreenText(
-                text="WASD: Move | SPACE: Jump | LSHIFT: Sprint | F12: Wireframe",
+                text="WASD: Move | SPACE: Jump | LSHIFT: Sprint | RMB+Drag: Orbit | Wheel: Zoom | F12: Wireframe",
                 pos=(-1.28, 0.92),
                 scale=0.045,
                 fg=(1.0, 1.0, 1.0, 1.0),
                 align=TextNode.ALeft,
                 mayChange=False,
             )
+
 
             self.osd_telemetry = OnscreenText(
                 text="Initializing Telemetry...",
@@ -435,6 +450,8 @@ class TestCharacterSandbox(Test):
             self.player = None
         self.controller = None
         self.input_handler = None
+        self.camera_handler = None
+
 
         # 6. Call Scene base stop to free any remaining entities
         super().on_stop()

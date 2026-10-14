@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from typing import TYPE_CHECKING
 from panda3d.bullet import (
     BulletCapsuleShape,
@@ -35,6 +36,9 @@ class CharacterControllerHandler(Handler):
         sprint_speed: float = 10.0,
         jump_speed: float = 7.0,
         gravity: float = 14.0,
+        visual_node: NodePath | None = None,
+        turn_speed: float = 12.0,
+        camera_handler: Any = None,
     ) -> None:
         super().__init__()
         self.radius: float = radius
@@ -44,6 +48,9 @@ class CharacterControllerHandler(Handler):
         self.sprint_speed: float = sprint_speed
         self.jump_speed: float = jump_speed
         self.gravity: float = gravity
+        self._visual_node: NodePath | None = visual_node
+        self.turn_speed: float = turn_speed
+        self.camera_handler: Any = camera_handler
 
         # Uses BulletCapsuleShape(radius, height, 2) (Z-up axis)
         self.shape: BulletCapsuleShape = BulletCapsuleShape(self.radius, self.height, 2)
@@ -51,6 +58,17 @@ class CharacterControllerHandler(Handler):
         self.controller_np: NodePath | None = None
         self._linear_velocity: Vec3 = Vec3(0.0, 0.0, 0.0)
         self._is_attached_to_world: bool = False
+
+    @property
+    def visual_node(self) -> NodePath | None:
+        """Return the visual NodePath being rotated, or None."""
+        return self._visual_node
+
+    @visual_node.setter
+    def visual_node(self, node: NodePath | None) -> None:
+        """Set the visual NodePath to rotate towards movement direction."""
+        self._visual_node = node
+
 
     def _attach_to_world(self) -> None:
         """Attach the controller node to the active Bullet physics world."""
@@ -100,12 +118,47 @@ class CharacterControllerHandler(Handler):
         if self.entity is not None:
             input_handler = self.entity.get_handler(InputHandler)
 
+        # Check for camera handler
+        camera_handler = self.camera_handler
+        if camera_handler is None and self.entity is not None:
+            from src.handlers.camera.third_person import ThirdPersonCameraHandler
+            camera_handler = self.entity.get_handler(ThirdPersonCameraHandler)
+
+        is_local = True
         # Read movement vector, scale by current speed (walk vs sprint)
         if input_handler is not None:
             is_sprinting = input_handler.is_action_down("sprint")
             current_speed = self.sprint_speed if is_sprinting else self.walk_speed
             move_vec = input_handler.move_vector
-            velocity = Vec3(move_vec.x * current_speed, move_vec.y * current_speed, 0.0)
+
+            if camera_handler is not None and hasattr(camera_handler, "get_forward_vector"):
+                # Horizontal projection of camera's forward vector
+                cam_fwd = camera_handler.get_forward_vector()
+                fwd_h = Vec3(cam_fwd.x, cam_fwd.y, 0.0)
+                if fwd_h.length_squared() > 1e-6:
+                    fwd_h.normalize()
+                else:
+                    fwd_h = Vec3(0.0, 1.0, 0.0)
+
+                # Horizontal projection of camera's right vector
+                right_h = fwd_h.cross(Vec3(0.0, 0.0, 1.0))
+                if right_h.length_squared() > 1e-6:
+                    right_h.normalize()
+                else:
+                    right_h = Vec3(1.0, 0.0, 0.0)
+
+                # Transform (x, y) move vector:
+                # Forward (W, y > 0) moves along camera's horizontal forward
+                # Right (D, x > 0) moves along camera's horizontal right
+                world_dir = fwd_h * move_vec.y + right_h * move_vec.x
+                if world_dir.length_squared() > 1.0:
+                    world_dir.normalize()
+
+                velocity = world_dir * current_speed
+                is_local = False
+            else:
+                velocity = Vec3(move_vec.x * current_speed, move_vec.y * current_speed, 0.0)
+                is_local = True
 
             # If "jump" is triggered and controller_node.isOnGround(), triggers controller_node.jump()
             if input_handler.is_action_pressed("jump") and self.controller_node.isOnGround():
@@ -115,10 +168,26 @@ class CharacterControllerHandler(Handler):
                     self.controller_node.doJump()
         else:
             velocity = Vec3(0.0, 0.0, 0.0)
+            is_local = True
 
-        # Apply controller_node.setLinearMovement(velocity, is_local=True)
-        self.controller_node.setLinearMovement(velocity, is_local=True)
+        # Apply controller_node.setLinearMovement
+        self.controller_node.setLinearMovement(velocity, is_local=is_local)
         self._linear_velocity = velocity
+
+        # When moving, smoothly rotate the character's visual node / entity heading towards movement direction
+        if velocity.length_squared() > 1e-4 and not is_local:
+            target_h = -math.degrees(math.atan2(velocity.x, velocity.y))
+            target_node = (
+                self._visual_node
+                if (self._visual_node is not None and not self._visual_node.isEmpty())
+                else (self.entity.node if self.entity is not None else None)
+            )
+            if target_node is not None and not target_node.isEmpty():
+                curr_h = target_node.getH()
+                diff = (target_h - curr_h + 180.0) % 360.0 - 180.0
+                step = 1.0 if self.turn_speed <= 0.0 else min(1.0, max(0.0, self.turn_speed * dt))
+                target_node.setH(curr_h + diff * step)
+
 
     def jump(self) -> bool:
         """Explicitly trigger jump if controller node is on ground. Returns True if jumped."""
