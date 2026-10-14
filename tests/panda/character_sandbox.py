@@ -20,6 +20,7 @@ from panda3d.core import NodePath, Vec3
 from ..__test import Test
 from src.entities.entity import Entity
 from src.handlers.camera import ThirdPersonCameraHandler
+from src.handlers.graphics import ActorAnimationHandler
 from src.handlers.input.wasd import WASDInputHandler
 from src.handlers.physics.character import CharacterControllerHandler
 
@@ -45,7 +46,7 @@ class TestCharacterSandbox(Test):
         self.controller: CharacterControllerHandler | None = None
         self.input_handler: WASDInputHandler | None = None
         self.camera_handler: ThirdPersonCameraHandler | None = None
-        self.player_visual: NodePath | None = None
+        self.actor_handler: ActorAnimationHandler | None = None
 
 
         # Environment tracking for clean teardown
@@ -90,6 +91,7 @@ class TestCharacterSandbox(Test):
     def _print_controls_banner(self) -> None:
         """Print formatted ANSI startup banner with control instructions."""
         self.print_subtitle("Interactive Controls & Mechanics", color="yellow")
+        self.p(" Character:     X Bot 3D Model with animated Idle & camera-relative navigation", color="cyan", bold=True)
         self.p(" Controls:      WASD: Move | SPACE: Jump | LSHIFT: Sprint | Mouse: Look | Tab/Esc: Cursor | Wheel: Zoom | F12: Wireframe", color="cyan", bold=True)
         self.p(" Movement:      [W, A, S, D] or Arrow Keys", color="green", bold=True)
         self.p(" Jump:          [Spacebar] (only while grounded)", color="green", bold=True)
@@ -328,15 +330,15 @@ class TestCharacterSandbox(Test):
         player.add_handler(self.camera_handler)
         player.add_handler(self.controller)
 
-        # Attach visual placeholder model (box scaled to 1x1x2 centered on capsule) directly to physics controller
-        box_asset = GlobalLoader.load_panda_asset("box")
-        assert self.controller.controller_np is not None
-        self.player_visual = self.controller.controller_np.attachNewNode("PlayerVisualPlaceholder")
-        box_asset.copyTo(self.player_visual)
-        self.player_visual.setScale(1.0, 1.0, 2.0)
-        self.player_visual.setPos(-0.5, -0.5, -1.0)
-        self.player_visual.setColor(0.15, 0.65, 1.0, 1.0)  # Cyan-blue player color
-        self.controller.visual_node = self.player_visual
+        # Attach animated X Bot glTF character handler
+        self.actor_handler = ActorAnimationHandler(
+            model_path="X Bot.glb",
+            animations={"Idle": "anims/X Bot@Idle.glb"},
+            scale=1.0,
+            offset=Vec3(0.0, 0.0, -1.0),
+            hpr=Vec3(180.0, 90.0, 0.0),
+        )
+        player.add_handler(self.actor_handler)
 
         self.player = player
         self.add_entity(player)
@@ -439,15 +441,11 @@ class TestCharacterSandbox(Test):
             self.osd_instructions.destroy()
             self.osd_instructions = None
 
-        # 4. Remove player visual model
-        if self.player_visual is not None and not self.player_visual.isEmpty():
-            self.player_visual.removeNode()
-            self.player_visual = None
-
-        # 5. Free player entity and clear handler references
+        # 4. Free player entity and clear handler references
         if self.player is not None:
             self.player.free()
             self.player = None
+        self.actor_handler = None
         self.controller = None
         self.input_handler = None
         self.camera_handler = None

@@ -62,20 +62,23 @@ class GlobalLoader(Global):
     @classmethod
     def load_actor(cls, asset_path: str, animations: dict[str, str] | None = None) -> NodePath:
         '''Load an Actor model from the given asset path using caching.'''
+        import gltf  # noqa: F401
         from direct.actor.Actor import Actor
 
-        if asset_path in cls.__models:
-            return cls.__models[asset_path]
+        cache_key = f"{asset_path}:{sorted(animations.items()) if animations else None}"
+        template = cls.__models.get(cache_key)
+        if template is None or (hasattr(template, "isEmpty") and template.isEmpty()):
+            full_path = ASSETS_PATH + asset_path
 
-        full_path = ASSETS_PATH + asset_path
-        
-        # If animations are provided, prepend ASSETS_PATH to each one
-        if animations:
-            full_animations = {name: ASSETS_PATH + path for name, path in animations.items()}
-            actor = Actor(full_path, anims=full_animations)
-        else:
-            # Load without animations - will use embedded animations if present
-            actor = Actor(full_path)
-        
-        cls.__models[asset_path] = actor
-        return actor
+            # If animations are provided, prepend ASSETS_PATH to each one
+            if animations:
+                full_animations = {name: ASSETS_PATH + path for name, path in animations.items()}
+                template = Actor(full_path, anims=full_animations)
+            else:
+                # Load without animations - will use embedded animations if present
+                template = Actor(full_path)
+
+            cls.__models[cache_key] = template
+            cls.__models[asset_path] = template
+
+        return Actor(other=template)
