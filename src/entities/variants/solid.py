@@ -3,10 +3,13 @@ from ..entity import Entity
 
 
 class Solid(Entity):
-    def __init__(self, mass: float = 0.0):
-        super().__init__()
-        self.body = Physics.create_body(name=self.get_name(), mass=mass)
+    def __init__(self, mass: float = 0.0, name: str | None = None):
+        super().__init__(name=name)
+        self.body = Physics.create_body(name=self.name, mass=mass)
 
+    def free(self):
+        Physics.remove_body(self.body)
+        super().free()
 
     def _get_node(self):
         return self.body
