@@ -5,7 +5,7 @@ from panda3d.bullet import (
     BulletDebugNode,
     BulletCharacterControllerNode,
 )
-from panda3d.core import Vec3
+from panda3d.core import NodePath, Vec3
 
 from .__global import Global
 from .clock import GlobalClock
@@ -17,6 +17,7 @@ class Physics(Global):
     _world: BulletWorld | None = None
     _bodies: dict[str, BulletRigidBodyNode] = {}
     _ghosts: dict[str, BulletGhostNode] = {}
+    _debug_np: NodePath | None = None
 
     def __init__(self) -> None:
         super().__init__()
@@ -57,9 +58,50 @@ class Physics(Global):
 
             debug_np = self.base.render.attachNewNode(debug_node)
             debug_np.show()
+            Physics._debug_np = debug_np
             Physics._world.setDebugNode(debug_np.node())
         except Exception:
             pass
+
+    @classmethod
+    def toggle_debug(cls) -> bool:
+        """Toggle Bullet debug wireframe visualization."""
+        if cls._debug_np is not None and not cls._debug_np.isEmpty():
+            if cls._debug_np.isHidden():
+                cls._debug_np.show()
+                return True
+            else:
+                cls._debug_np.hide()
+                return False
+
+        # If debug node hasn't been attached yet, attempt to initialize it
+        base = getattr(cls.get_instance(), "base", None) if hasattr(cls, "_instance") else None
+        if base is None:
+            import builtins
+            base = getattr(builtins, "base", None)
+        if base is not None and getattr(base, "render", None) is not None:
+            try:
+                debug_node = BulletDebugNode("Physics_Debug")
+                debug_node.showWireframe(True)
+                debug_node.showConstraints(True)
+                debug_node.showBoundingBoxes(False)
+                debug_node.showNormals(False)
+
+                debug_np = base.render.attachNewNode(debug_node)
+                debug_np.show()
+                cls._debug_np = debug_np
+                cls.get_world().setDebugNode(debug_np.node())
+                return True
+            except Exception:
+                return False
+        return False
+
+    @classmethod
+    def is_debug_enabled(cls) -> bool:
+        """Return True if physics debug wireframe is currently enabled and visible."""
+        if cls._debug_np is not None and not cls._debug_np.isEmpty():
+            return not cls._debug_np.isHidden()
+        return False
 
     def _update_world(self, task):
         dt = GlobalClock.get_dt()

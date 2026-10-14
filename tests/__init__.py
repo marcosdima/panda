@@ -6,6 +6,7 @@ from .terminal.events import TestEvents
 from .terminal.entities import TestEntities
 from .terminal.character_controller import TestCharacterController
 from .panda import *
+from .panda.character_sandbox import TestCharacterSandbox
 
 
 TargetType: TypeAlias = Literal[
@@ -15,10 +16,11 @@ TargetType: TypeAlias = Literal[
     'physics',
     'models',
     'areas',
+    'character',
 ] | None
 
 
-TARGET: TargetType = 'models' # Change this to run different test suites.
+TARGET: TargetType = 'character' # Change this to run different test suites.
 #TARGET: TargetType = None
 
 
@@ -38,6 +40,8 @@ class Tests:
             self.__target = TestModels()
         elif TARGET == 'areas':
             self.__target = TestAreas()
+        elif TARGET == 'character':
+            self.__target = TestCharacterSandbox()
         
         
     def get_target(self) -> Scene | None:

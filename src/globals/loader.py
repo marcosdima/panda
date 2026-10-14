@@ -18,6 +18,8 @@ class GlobalLoader(Global):
     @classmethod
     def get_global_loader(cls) -> Loader:
         '''Get the global loader object.'''
+        if not hasattr(cls, '_instance'):
+            cls()
         loader = cls._instance.base.loader
         if loader is None:
             raise Exception('Loader is not initialized.')

@@ -10,6 +10,8 @@ class Tasks(Global):
 
     @classmethod
     def add_task(cls, name: str, task: Callable):
+        if not hasattr(cls, '_instance'):
+            cls()
         task = cls._instance.base.taskMgr.add(task, name)
         cls._tasks[name] = task
         return task
@@ -17,6 +19,8 @@ class Tasks(Global):
 
     @classmethod
     def remove_task(cls, name: str):
+        if not hasattr(cls, '_instance'):
+            cls()
         if name in cls._tasks:
             cls._instance.base.taskMgr.remove(cls._tasks[name])
             del cls._tasks[name]

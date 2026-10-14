@@ -8,7 +8,16 @@ class Camera(Global):
     @classmethod
     def get_camera(cls) -> NodePath:
         '''Get the camera NodePath.'''
-        return cls._instance.base.camera
+        if not hasattr(cls, '_instance'):
+            cls()
+        cam = getattr(cls._instance.base, 'camera', None)
+        if cam is None:
+            if cls._instance.base is not None and getattr(cls._instance.base, 'render', None) is not None:
+                cam = cls._instance.base.render.attachNewNode('headless_camera')
+                cls._instance.base.camera = cam
+            else:
+                cam = NodePath('headless_camera')
+        return cam
     
     
     @classmethod
