@@ -57,7 +57,10 @@ class ThirdPersonCameraHandler(Handler):
         self._has_updated: bool = False
 
         self._last_mouse_pos: tuple[float, float] | None = None
-        self.is_pointer_captured: bool = False
+        base = getattr(builtins, "base", None)
+        win = getattr(base, "win", None) if base else None
+        self.is_pointer_captured: bool = win is not None
+        self._skip_first_mouse_delta: bool = True
         self.force_orbit: bool = False
         self._btn_mouse3 = MouseButton.three()
 
@@ -134,6 +137,7 @@ class ThirdPersonCameraHandler(Handler):
     def set_pointer_captured(self, captured: bool) -> None:
         """Enable or disable pointer capture mode (relative mouse mode)."""
         self.is_pointer_captured = captured
+        self._skip_first_mouse_delta = True
         base = getattr(builtins, "base", None)
         win = getattr(base, "win", None) if base else None
         if win is not None and hasattr(win, "requestProperties"):
@@ -141,10 +145,28 @@ class ThirdPersonCameraHandler(Handler):
             if captured:
                 props.setCursorHidden(True)
                 props.setMouseMode(WindowProperties.M_relative)
+                cx = win.getXSize() // 2
+                cy = win.getYSize() // 2
+                if hasattr(win, "movePointer"):
+                    win.movePointer(0, cx, cy)
             else:
                 props.setCursorHidden(False)
                 props.setMouseMode(WindowProperties.M_absolute)
             win.requestProperties(props)
+
+    def _on_toggle_cursor(self) -> None:
+        """Toggle pointer capture mode (bound to Tab key)."""
+        self.set_pointer_captured(not self.is_pointer_captured)
+
+    def _on_unlock_cursor(self) -> None:
+        """Unlock pointer capture and show cursor (bound to Escape key)."""
+        if self.is_pointer_captured:
+            self.set_pointer_captured(False)
+
+    def _on_lock_cursor(self) -> None:
+        """Lock pointer capture and hide cursor on click (bound to mouse1)."""
+        if not self.is_pointer_captured:
+            self.set_pointer_captured(True)
 
     def zoom(self, delta: float) -> None:
         """Adjust camera distance by delta, clamped between min_distance and max_distance."""
@@ -205,7 +227,22 @@ class ThirdPersonCameraHandler(Handler):
             )
 
     def get_target_pos(self) -> Vec3:
-        """Compute the world-space target position (entity position + target_offset)."""
+        """Compute the world-space target position (entity position + target_offset).
+
+        If the entity has an attached CharacterControllerHandler with an active
+        physics controller NodePath, tracks controller_np position across the world.
+        """
+        if self.entity is not None:
+            from src.handlers.physics.character import CharacterControllerHandler
+
+            ctrl = self.entity.get_handler(CharacterControllerHandler)
+            if ctrl is not None and ctrl.controller_np is not None and not ctrl.controller_np.isEmpty():
+                base = getattr(builtins, "base", None)
+                render = getattr(base, "render", None) if base else None
+                if render is not None and ctrl.controller_np.hasParent():
+                    return ctrl.controller_np.getPos(render) + self.target_offset
+                return ctrl.controller_np.getPos() + self.target_offset
+
         if self.entity is None or self.entity.node is None or self.entity.node.isEmpty():
             return Vec3(self.target_offset)
 
@@ -265,7 +302,7 @@ class ThirdPersonCameraHandler(Handler):
                 self._saved_cam_hpr = Vec3(cam.getHpr())
 
     def on_start(self) -> None:
-        """Register wheel listeners and initialize defaults on scene/entity start."""
+        """Register input listeners, enable pointer capture in graphical mode, and initialize defaults."""
         super().on_start()
         cam = self.get_camera_node()
         if cam is not None and not cam.isEmpty():
@@ -277,6 +314,13 @@ class ThirdPersonCameraHandler(Handler):
         if base is not None and hasattr(base, "accept"):
             base.accept("wheel_up", self._on_wheel_up)
             base.accept("wheel_down", self._on_wheel_down)
+            base.accept("tab", self._on_toggle_cursor)
+            base.accept("escape", self._on_unlock_cursor)
+            base.accept("mouse1", self._on_lock_cursor)
+
+        win = getattr(base, "win", None) if base else None
+        if win is not None:
+            self.set_pointer_captured(True)
 
     def on_update(self, dt: float) -> None:
         """Per-frame update: poll mouse input, update pitch/yaw, calculate ideal pos, lerp, and lookAt."""
@@ -308,6 +352,10 @@ class ThirdPersonCameraHandler(Handler):
                     dy = float(py - cy)
                     if hasattr(win, "movePointer"):
                         win.movePointer(0, cx, cy)
+                    if self._skip_first_mouse_delta:
+                        self._skip_first_mouse_delta = False
+                        dx = 0.0
+                        dy = 0.0
                 else:
                     if self._last_mouse_pos is not None:
                         dx = float(px - self._last_mouse_pos[0])
@@ -338,11 +386,22 @@ class ThirdPersonCameraHandler(Handler):
             cam.lookAt(target_pos)
 
     def on_stop(self) -> None:
-        """Restore camera defaults and unregister wheel listeners."""
+        """Restore camera defaults, mouse mode, and unregister input listeners."""
         base = getattr(builtins, "base", None)
         if base is not None and hasattr(base, "ignore"):
             base.ignore("wheel_up")
             base.ignore("wheel_down")
+            base.ignore("tab")
+            base.ignore("escape")
+            base.ignore("mouse1")
+
+        win = getattr(base, "win", None) if base else None
+        if win is not None and hasattr(win, "requestProperties"):
+            props = WindowProperties()
+            props.setCursorHidden(False)
+            props.setMouseMode(WindowProperties.M_absolute)
+            win.requestProperties(props)
+        self.is_pointer_captured = False
 
         cam = self.get_camera_node()
         if cam is not None and not cam.isEmpty():

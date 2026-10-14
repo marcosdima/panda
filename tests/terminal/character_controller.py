@@ -239,6 +239,59 @@ class TestCharacterController(TerminalTest):
         self.p("CharacterControllerHandler walk and sprint scaling verified successfully.", color="green")
         self.space_line()
 
+    def test_character_controller_acceleration_damping(self):
+        self.print_subtitle("Testing CharacterControllerHandler acceleration and deceleration damping.")
+        entity = Entity("DampedHero")
+        input_handler = InputHandler()
+        controller = CharacterControllerHandler(
+            walk_speed=6.0,
+            sprint_speed=12.0,
+            acceleration=25.0,
+            deceleration=30.0,
+        )
+        entity.add_handler(input_handler)
+        entity.add_handler(controller)
+        entity.start()
+
+        # Initial velocity is zero
+        assert controller.linear_velocity == Vec3(0.0, 0.0, 0.0)
+
+        # 1. Apply forward movement: move_vector = (0, 1)
+        input_handler.set_move_vector(0.0, 1.0)
+        dt = 0.016
+        entity.update(dt)
+
+        # With acceleration=25.0, step = dt * 25.0 = 0.4
+        # Velocity should blend smoothly: 0 + (6.0 - 0) * 0.4 = 2.4
+        vel = controller.linear_velocity
+        assert 0.0 < vel.y < 6.0, f"Expected smooth acceleration, got {vel.y}"
+        assert abs(vel.x) < 1e-4
+
+        # Second tick: continues accelerating towards 6.0
+        entity.update(dt)
+        vel2 = controller.linear_velocity
+        assert vel2.y > vel.y, f"Expected speed to increase from {vel.y}, got {vel2.y}"
+
+        # Run several ticks until reaching target speed
+        for _ in range(20):
+            entity.update(dt)
+        assert abs(controller.linear_velocity.y - 6.0) < 1e-3, f"Expected 6.0, got {controller.linear_velocity.y}"
+
+        # 2. Release input: move_vector = (0, 0) -> decelerates smoothly to 0
+        input_handler.set_move_vector(0.0, 0.0)
+        entity.update(dt)
+        vel_dec = controller.linear_velocity
+        assert 0.0 < vel_dec.y < 6.0, f"Expected smooth deceleration, got {vel_dec.y}"
+
+        for _ in range(20):
+            entity.update(dt)
+        assert controller.linear_velocity == Vec3(0.0, 0.0, 0.0), f"Expected full stop, got {controller.linear_velocity}"
+
+        entity.stop()
+        entity.free()
+        self.p("CharacterControllerHandler acceleration and deceleration damping verified successfully.", color="green")
+        self.space_line()
+
     def test_character_controller_jump(self):
         self.print_subtitle("Testing CharacterControllerHandler jump invocation.")
         entity = Entity("JumpingHero")

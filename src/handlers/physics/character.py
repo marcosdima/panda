@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from panda3d.bullet import (
     BulletCapsuleShape,
     BulletCharacterControllerNode,
@@ -39,6 +39,8 @@ class CharacterControllerHandler(Handler):
         visual_node: NodePath | None = None,
         turn_speed: float = 12.0,
         camera_handler: Any = None,
+        acceleration: float = 0.0,
+        deceleration: float = 0.0,
     ) -> None:
         super().__init__()
         self.radius: float = radius
@@ -51,6 +53,8 @@ class CharacterControllerHandler(Handler):
         self._visual_node: NodePath | None = visual_node
         self.turn_speed: float = turn_speed
         self.camera_handler: Any = camera_handler
+        self.acceleration: float = float(acceleration)
+        self.deceleration: float = float(deceleration)
 
         # Uses BulletCapsuleShape(radius, height, 2) (Z-up axis)
         self.shape: BulletCapsuleShape = BulletCapsuleShape(self.radius, self.height, 2)
@@ -154,10 +158,10 @@ class CharacterControllerHandler(Handler):
                 if world_dir.length_squared() > 1.0:
                     world_dir.normalize()
 
-                velocity = world_dir * current_speed
+                target_velocity = world_dir * current_speed
                 is_local = False
             else:
-                velocity = Vec3(move_vec.x * current_speed, move_vec.y * current_speed, 0.0)
+                target_velocity = Vec3(move_vec.x * current_speed, move_vec.y * current_speed, 0.0)
                 is_local = True
 
             # If "jump" is triggered and controller_node.isOnGround(), triggers controller_node.jump()
@@ -167,26 +171,38 @@ class CharacterControllerHandler(Handler):
                 else:
                     self.controller_node.doJump()
         else:
-            velocity = Vec3(0.0, 0.0, 0.0)
-            is_local = True
+            target_velocity = Vec3(0.0, 0.0, 0.0)
+            is_local = camera_handler is None or not hasattr(camera_handler, "get_forward_vector")
+
+        # Smoothly blend velocity using acceleration / deceleration damping
+        if self.acceleration > 0.0 and self.deceleration > 0.0:
+            is_braking = (
+                target_velocity.length_squared() < 1e-6
+                or target_velocity.length_squared() < self._linear_velocity.length_squared()
+            )
+            rate = self.deceleration if is_braking else self.acceleration
+            step = min(1.0, max(0.0, dt * rate))
+            self._linear_velocity = self._linear_velocity + (target_velocity - self._linear_velocity) * step
+            if target_velocity.length_squared() < 1e-6 and self._linear_velocity.length_squared() < 1e-6:
+                self._linear_velocity = Vec3(0.0, 0.0, 0.0)
+        else:
+            self._linear_velocity = target_velocity
 
         # Apply controller_node.setLinearMovement
-        self.controller_node.setLinearMovement(velocity, is_local=is_local)
-        self._linear_velocity = velocity
+        self.controller_node.setLinearMovement(self._linear_velocity, is_local=is_local)
 
-        # When moving, smoothly rotate the character's visual node / entity heading towards movement direction
-        if velocity.length_squared() > 1e-4 and not is_local:
-            target_h = -math.degrees(math.atan2(velocity.x, velocity.y))
-            target_node = (
-                self._visual_node
-                if (self._visual_node is not None and not self._visual_node.isEmpty())
-                else (self.entity.node if self.entity is not None else None)
-            )
-            if target_node is not None and not target_node.isEmpty():
-                curr_h = target_node.getH()
-                diff = (target_h - curr_h + 180.0) % 360.0 - 180.0
-                step = 1.0 if self.turn_speed <= 0.0 else min(1.0, max(0.0, self.turn_speed * dt))
-                target_node.setH(curr_h + diff * step)
+        # When moving, smoothly rotate ONLY the character's visual node towards movement direction
+        if (
+            self._visual_node is not None
+            and not self._visual_node.isEmpty()
+            and self._linear_velocity.length_squared() > 1e-4
+            and not is_local
+        ):
+            target_h = -math.degrees(math.atan2(self._linear_velocity.x, self._linear_velocity.y))
+            curr_h = self._visual_node.getH()
+            diff = (target_h - curr_h + 180.0) % 360.0 - 180.0
+            step = 1.0 if self.turn_speed <= 0.0 else min(1.0, max(0.0, self.turn_speed * dt))
+            self._visual_node.setH(curr_h + diff * step)
 
 
     def jump(self) -> bool:

@@ -269,6 +269,32 @@ class TestCameraHandler(TerminalTest):
         self.p("Target tracking, smooth lerp, and snap_to_target verified successfully.", color="green")
         self.space_line()
 
+    def test_camera_tracks_character_controller_nodepath(self):
+        self.print_subtitle("Testing camera tracking of CharacterControllerHandler controller_np.")
+        entity = Entity("PhysicsTrackedHero")
+        controller = CharacterControllerHandler()
+        cam_handler = ThirdPersonCameraHandler(
+            distance=8.0,
+            target_offset=Vec3(0.0, 0.0, 1.5),
+        )
+        entity.add_handler(controller)
+        entity.add_handler(cam_handler)
+        entity.start()
+
+        # Place controller_np at a specific world position
+        assert controller.controller_np is not None
+        controller.controller_np.setPos(15.0, 25.0, 3.0)
+
+        # get_target_pos() must track controller_np + target_offset
+        target_pos = cam_handler.get_target_pos()
+        expected = Vec3(15.0, 25.0, 4.5)
+        assert (target_pos - expected).length() < 1e-4, f"Expected {expected}, got {target_pos}"
+
+        entity.stop()
+        entity.free()
+        self.p("Camera tracking of CharacterControllerHandler controller_np verified successfully.", color="green")
+        self.space_line()
+
     def test_headless_safety(self):
         self.print_subtitle("Testing headless safety without graphical window or MouseWatcher.")
         entity = Entity("HeadlessCamHero")

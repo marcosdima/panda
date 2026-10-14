@@ -90,10 +90,12 @@ class TestCharacterSandbox(Test):
     def _print_controls_banner(self) -> None:
         """Print formatted ANSI startup banner with control instructions."""
         self.print_subtitle("Interactive Controls & Mechanics", color="yellow")
+        self.p(" Controls:      WASD: Move | SPACE: Jump | LSHIFT: Sprint | Mouse: Look | Tab/Esc: Cursor | Wheel: Zoom | F12: Wireframe", color="cyan", bold=True)
         self.p(" Movement:      [W, A, S, D] or Arrow Keys", color="green", bold=True)
         self.p(" Jump:          [Spacebar] (only while grounded)", color="green", bold=True)
         self.p(" Sprint:        [Left Shift] (12.0 m/s vs 6.0 m/s walk)", color="green", bold=True)
-        self.p(" Camera:        [RMB + Drag] Orbit | [Mouse Wheel] Zoom", color="green", bold=True)
+        self.p(" Look / Cursor: [Mouse] Direct Look | [Tab] Toggle Lock | [Esc] Unlock | [LMB] Lock", color="green", bold=True)
+        self.p(" Zoom:          [Mouse Wheel] Zoom in/out", color="green", bold=True)
         self.p(" Wireframe:     [F12] Toggle Bullet debug visualization", color="magenta", bold=True)
 
         self.space_line()
@@ -318,19 +320,23 @@ class TestCharacterSandbox(Test):
             step_height=0.4,
             walk_speed=6.0,
             sprint_speed=12.0,
+            acceleration=25.0,
+            deceleration=30.0,
         )
 
         player.add_handler(self.input_handler)
         player.add_handler(self.camera_handler)
         player.add_handler(self.controller)
 
-        # Attach visual placeholder model (box scaled to 1x1x2 centered on capsule)
+        # Attach visual placeholder model (box scaled to 1x1x2 centered on capsule) directly to physics controller
         box_asset = GlobalLoader.load_panda_asset("box")
-        self.player_visual = player.node.attachNewNode("PlayerVisualPlaceholder")
+        assert self.controller.controller_np is not None
+        self.player_visual = self.controller.controller_np.attachNewNode("PlayerVisualPlaceholder")
         box_asset.copyTo(self.player_visual)
         self.player_visual.setScale(1.0, 1.0, 2.0)
         self.player_visual.setPos(-0.5, -0.5, -1.0)
         self.player_visual.setColor(0.15, 0.65, 1.0, 1.0)  # Cyan-blue player color
+        self.controller.visual_node = self.player_visual
 
         self.player = player
         self.add_entity(player)
@@ -342,14 +348,13 @@ class TestCharacterSandbox(Test):
             from panda3d.core import TextNode
 
             self.osd_instructions = OnscreenText(
-                text="WASD: Move | SPACE: Jump | LSHIFT: Sprint | RMB+Drag: Orbit | Wheel: Zoom | F12: Wireframe",
+                text="WASD: Move | SPACE: Jump | LSHIFT: Sprint | Mouse: Look | Tab/Esc: Cursor | Wheel: Zoom | F12: Wireframe",
                 pos=(-1.28, 0.92),
                 scale=0.045,
                 fg=(1.0, 1.0, 1.0, 1.0),
                 align=TextNode.ALeft,
                 mayChange=False,
             )
-
 
             self.osd_telemetry = OnscreenText(
                 text="Initializing Telemetry...",
@@ -371,16 +376,11 @@ class TestCharacterSandbox(Test):
         self.p(f"[Physics Debug] Bullet Wireframe {state}", color="cyan", bold=True)
 
     def _on_frame_update(self, task) -> int:
-        """Per-frame update driving scene entity updates, visual model sync, and telemetry."""
+        """Per-frame update driving scene entity updates and telemetry."""
         dt = GlobalClock.get_dt() if hasattr(GlobalClock, "get_dt") else 0.016
 
         # Step active entities (polls WASDInputHandler and updates CharacterControllerHandler)
         self.on_update(dt)
-
-        # Synchronize visual placeholder model with character controller physics node
-        if self.controller and self.controller.controller_np and self.player_visual:
-            ctrl_local_pos = self.controller.controller_np.getPos()
-            self.player_visual.setPos(ctrl_local_pos + Vec3(-0.5, -0.5, -1.0))
 
         # Update telemetry
         self._update_telemetry(task.time)
