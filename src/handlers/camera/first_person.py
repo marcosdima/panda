@@ -204,26 +204,40 @@ class FirstPersonCameraHandler(Handler):
 
         from src.globals.physics import Physics
 
-        directions = (
-            Vec3(1, 0, 0),
-            Vec3(-1, 0, 0),
-            Vec3(0, 1, 0),
-            Vec3(0, -1, 0),
-            Vec3(0, 0, 1),
-            Vec3(0, 0, -1),
-        )
-        origin = Vec3(eye_pos)
-        adjusted = Vec3(eye_pos)
-        for d in directions:
-            hit = Physics.raycast_closest(origin, origin + d * (self.collision_margin + 0.02))
+        base_pos = self.get_target_pos()
+        if base_pos == eye_pos:
+            adjusted = Vec3(eye_pos)
+        else:
+            adjusted = Vec3(base_pos)
+
+        offset = eye_pos - base_pos
+        dist = offset.length()
+        if dist > 1e-6:
+            direction = offset / dist
+            hit = Physics.raycast_closest(base_pos, eye_pos)
+            if hit is not None:
+                hit_pos, _ = hit
+                hit_dist = (hit_pos - base_pos).length()
+                clamped_dist = max(0.0, hit_dist - self.collision_margin)
+                if clamped_dist < dist:
+                    adjusted = base_pos + direction * clamped_dist
+            else:
+                adjusted = eye_pos
+        else:
+            adjusted = Vec3(eye_pos)
+
+        origin = Vec3(adjusted)
+        for d in (Vec3(1,0,0), Vec3(-1,0,0), Vec3(0,1,0), Vec3(0,-1,0), Vec3(0,0,1), Vec3(0,0,-1)):
+            hit = Physics.raycast_closest(origin, origin + d * (self.collision_margin + 0.03))
             if hit is None:
                 continue
             hit_pos, _ = hit
             push = origin - hit_pos
-            dist = push.length()
-            if dist < self.collision_margin + 1e-6 and dist > 1e-6:
+            pd = push.length()
+            if pd < self.collision_margin + 1e-6 and pd > 1e-6:
                 push.normalize()
-                adjusted += push * (self.collision_margin + 1e-6 - dist)
+                adjusted += push * (self.collision_margin + 2e-6 - pd)
+
         return adjusted
 
     def apply_view(self) -> None:
