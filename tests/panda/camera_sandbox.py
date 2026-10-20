@@ -213,6 +213,9 @@ class TestFirstPersonCameraSandbox(Test):
         if self.player is None or self.fp_handler is None or self.tp_handler is None:
             return
 
+        outgoing = self.tp_handler if first_person else self.fp_handler
+        captured = outgoing.is_pointer_captured
+
         if first_person:
             if self.player.get_handler(ThirdPersonCameraHandler) is self.tp_handler:
                 self.player.remove_handler(self.tp_handler)
@@ -220,14 +223,14 @@ class TestFirstPersonCameraSandbox(Test):
                 self.fp_handler.yaw = self.tp_handler.get_camera_yaw() % 360.0
                 self.fp_handler.pitch = max(self.fp_handler.min_pitch, min(self.fp_handler.max_pitch, self.tp_handler.pitch))
                 self.player.add_handler(self.fp_handler)
-            self.fp_handler.set_pointer_captured(self.tp_handler.is_pointer_captured)
+            self.fp_handler.set_pointer_captured(captured)
         else:
             if self.player.get_handler(FirstPersonCameraHandler) is self.fp_handler:
                 self.player.remove_handler(self.fp_handler)
             if self.player.get_handler(ThirdPersonCameraHandler) is None:
                 self.tp_handler.yaw = self.fp_handler.yaw
                 self.player.add_handler(self.tp_handler)
-            self.tp_handler.set_pointer_captured(self.fp_handler.is_pointer_captured)
+            self.tp_handler.set_pointer_captured(captured)
 
         self.first_person_active = first_person
 
