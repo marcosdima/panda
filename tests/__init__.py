@@ -5,6 +5,8 @@ from src.scenes import Scene
 from .terminal.events import TestEvents
 from .terminal.entities import TestEntities
 from .terminal.character_controller import TestCharacterController
+from .terminal.camera_handler import TestCameraHandler
+from .terminal.actor_animation import TestActorAnimation
 from .panda import *
 
 
@@ -12,6 +14,8 @@ TargetType: TypeAlias = Literal[
     'events',
     'entities',
     'controllers',
+    'camera',
+    'animation',
     'physics',
     'models',
     'character',
@@ -32,6 +36,10 @@ class Tests:
             self.__target = TestEntities()
         elif TARGET == 'controllers':
             self.__target = TestCharacterController()
+        elif TARGET == 'camera':
+            self.__target = TestCameraHandler()
+        elif TARGET == 'animation':
+            self.__target = TestActorAnimation()
         elif TARGET == 'physics':
             self.__target = TestPhysics()
         elif TARGET == 'models':

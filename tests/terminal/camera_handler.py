@@ -244,6 +244,10 @@ class TestCameraHandler(TerminalTest):
         entity.add_handler(handler)
         entity.start()
 
+        # Disable pointer capture so real mouse input (when a window is present)
+        # cannot pollute the deterministic position assertions below.
+        handler.set_pointer_captured(False)
+
         # First update snaps/initializes camera position to ideal position
         entity.update(0.016)
         initial_ideal = handler.compute_ideal_position()
@@ -339,6 +343,10 @@ class TestCameraHandler(TerminalTest):
         entity.add_handler(cam_handler)
         entity.add_handler(controller)
         entity.start()
+
+        # Disable pointer capture so real mouse input (when a window is present)
+        # cannot pollute the deterministic yaw/pitch assertions below.
+        cam_handler.set_pointer_captured(False)
 
         # 1. Camera yaw = 0 (Camera facing +Y)
         # Forward (W): input (0, 1) -> moves along +Y (0, 5, 0), visual heading = 0 deg

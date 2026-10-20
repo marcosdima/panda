@@ -8,12 +8,7 @@ except ImportError:
 
 import builtins
 import math
-from direct.showbase.ShowBase import ShowBase
 from panda3d.core import Vec3
-
-# Ensure headless ShowBase for Panda3D Loader support in terminal test
-if not hasattr(builtins, "base") or builtins.base is None:
-    ShowBase(windowType="none")
 
 from src.entities.entity import Entity
 from src.handlers.graphics.actor import ActorAnimationHandler
@@ -272,6 +267,12 @@ class TestActorAnimation(TerminalTest):
 
 
 if __name__ == "__main__":
+    from direct.showbase.ShowBase import ShowBase
+
+    # Bootstrap a headless ShowBase for Loader support when running standalone.
+    if not hasattr(builtins, "base") or builtins.base is None:
+        ShowBase(windowType="none")
+
     test = TestActorAnimation()
     test.on_start()
     test.on_stop()
