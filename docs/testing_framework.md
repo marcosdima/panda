@@ -39,8 +39,10 @@ Environment setup (ground planes, lighting, cameras, debug keybindings) is the r
 | `tests/terminal/entities.py` | `Entity` ID allocation/recycling, handler lifecycle, scene propagation. |
 | `tests/terminal/character_controller.py` | `WASDInputHandler` + `CharacterControllerHandler` (params, movement, damping, jump, leak-free detach). |
 | `tests/terminal/camera_handler.py` | `ThirdPersonCameraHandler` (spherical math, clamping, smoothing, headless safety). |
+| `tests/terminal/camera_handler.py` | `ThirdPersonCameraHandler` (spherical math, clamping, smoothing, headless safety) + `FirstPersonCameraHandler` (eye lock, view orientation, yaw/pitch clamping, controller tracking). |
 | `tests/terminal/actor_animation.py` | `ActorAnimationHandler` (visual pivot, animation binding, locomotion states, teardown). |
 | `tests/terminal/physics_handlers.py` | `RigidBodyHandler` + `TriggerZoneHandler` (config, gravity, impulses, entity-node transform sync, enter/stay/exit edges, group filters, lifecycle leaks). |
+| `tests/terminal/model_handler.py` | `ModelHandler` (parameters, entity attachment/transforms, `GlobalLoader` template caching, per-entity instances, graceful missing asset, lifecycle leaks). |
 
 Each suite runs via `TerminalTest`, which auto-discovers and executes all `test*` methods on scene start.
 
@@ -70,7 +72,7 @@ Run with a graphical window:
 ```bash
 python main.py
 ```
-The active suite is selected by the `TARGET` constant in `tests/__init__.py` (e.g., `TARGET = 'character'`). Valid targets: `events`, `entities`, `controllers`, `camera`, `animation`, `physics`, `models`, `character`, `physics_handlers`, `triggers`, or `None`.
+The active suite is selected by the `TARGET` constant in `tests/__init__.py` (e.g., `TARGET = 'character'`). Valid targets: `events`, `entities`, `controllers`, `camera`, `animation`, `physics`, `models`, `character`, `physics_handlers`, `triggers`, `model_handler`, or `None`.
 
 ### 4.2 Headless Suite Execution
 Each headless suite is directly executable without initializing a display server (suitable for terminal workflows, automated agent verification, and CI):
@@ -81,8 +83,14 @@ python tests/terminal/character_controller.py
 python tests/terminal/camera_handler.py
 python tests/terminal/actor_animation.py
 python tests/terminal/physics_handlers.py
+python tests/terminal/model_handler.py
 ```
-Headless suites that require a `Loader` (e.g., `actor_animation.py`) bootstrap their own `ShowBase(windowType="none")` automatically.
+Headless suites that require a `Loader` (e.g., `actor_animation.py`, `model_handler.py`) bootstrap their own `ShowBase(windowType="none")` automatically.
+
+To run every headless suite in one isolated subprocess pass (PASS/FAIL summary with durations, non-zero exit on failure):
+```bash
+python -m tests.terminal.run_all
+```
 
 ### 4.3 Hybrid Execution
 Headless suites can also be run through `main.py` by setting the corresponding `TARGET` (e.g., `TARGET = 'entities'`). In this mode the suite runs inside the full engine window; assertion output is printed to the terminal.

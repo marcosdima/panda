@@ -78,8 +78,8 @@ class Handler(ABC):
 
 ### 3.3 Camera Handlers (`src/handlers/camera/`)
 * **`ThirdPersonCameraHandler`:** Orbits around the entity's position with mouse pitch/yaw control, collision raycast to avoid clipping through walls, and position lerp for smooth following.
-* **`FirstPersonCameraHandler`:** Locks camera to character eye position and rotates with look angles.
+* **`FirstPersonCameraHandler`:** Locks camera to character eye position (entity node or `CharacterControllerHandler` controller + `eye_offset`) and rotates with look angles (yaw/pitch clamped, mouse sensitivity, invert flags). Mirrors `ThirdPersonCameraHandler` pointer-capture semantics (`Tab`/`Escape`/`mouse1`) and is headless-safe: tests drive `handle_mouse_delta` directly with capture disabled.
 
 ### 3.4 Visual & Animation Handlers (`src/handlers/graphics/`)
-* **`ModelHandler`:** Loads and reparents static geometry (`.bam` / `.glb` / `.egg`).
+* **`ModelHandler`:** Loads and reparents static geometry (`.bam` / `.glb` / `.egg`). Resolves the template through `GlobalLoader` (cached) and reparents a deep `copyTo` instance under `entity.node`, so entities sharing one asset never steal each other's nodes. Applies `scale`, `offset`, and `hpr`; missing assets fall back to an empty placeholder with a logged warning. The instance is removed on stop/detach while the shared template stays cached; the model is rebuilt automatically on restart.
 * **`ActorAnimationHandler`:** Loads articulated models via `Actor`, manages animation clips (`Idle`, `Walk`, `Run`), and provides blending / state machines driven by entity velocity.
