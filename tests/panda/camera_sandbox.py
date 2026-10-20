@@ -23,6 +23,7 @@ from src.handlers.physics.character import CharacterControllerHandler
 
 from src.globals.clock import GlobalClock
 from src.globals.lights import GlobalLights
+from src.globals.loader import GlobalLoader
 from src.globals.physics import Physics
 from src.globals.tasks import Tasks
 
