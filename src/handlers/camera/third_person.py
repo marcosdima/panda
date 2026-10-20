@@ -34,6 +34,8 @@ class ThirdPersonCameraHandler(Handler):
         camera: NodePath | None = None,
         invert_yaw: bool = False,
         invert_pitch: bool = False,
+        collision_enabled: bool = True,
+        collision_margin: float = 0.3,
     ) -> None:
         super().__init__()
         self.min_distance: float = float(min_distance)
@@ -53,6 +55,8 @@ class ThirdPersonCameraHandler(Handler):
         self.zoom_step: float = float(zoom_step)
         self.invert_yaw: bool = invert_yaw
         self.invert_pitch: bool = invert_pitch
+        self.collision_enabled: bool = collision_enabled
+        self.collision_margin: float = float(collision_margin)
 
         self._camera_node: NodePath | None = camera
         self._current_cam_pos: Vec3 | None = None
@@ -272,6 +276,37 @@ class ThirdPersonCameraHandler(Handler):
         cz = target_pos.z + self.distance * math.sin(-pitch_rad)
         return Vec3(cx, cy, cz)
 
+    def resolve_collision_position(self, target_pos: Vec3, ideal_pos: Vec3) -> Vec3:
+        """Shorten the camera boom to the closest obstacle between the target and ideal position.
+
+        Casts a ray from target_pos towards ideal_pos; when an obstacle is hit, the
+        camera is pulled in front of the impact (minus collision_margin) so the view
+        never ends up behind or inside world geometry. Returns the ideal position
+        unchanged when collision handling is disabled or the path is clear.
+        """
+        if not self.collision_enabled:
+            return ideal_pos
+
+        offset = ideal_pos - target_pos
+        distance = offset.length()
+        if distance <= 1e-5:
+            return ideal_pos
+
+        from src.globals.physics import Physics
+
+        hit = Physics.raycast_closest(target_pos, ideal_pos)
+        if hit is None:
+            return ideal_pos
+
+        hit_pos, _ = hit
+        hit_distance = (target_pos - hit_pos).length()
+        clamped_distance = max(self.min_distance, hit_distance - self.collision_margin)
+        if clamped_distance >= distance:
+            return ideal_pos
+
+        direction = offset / distance
+        return target_pos + direction * clamped_distance
+
     def get_forward_vector(self) -> Vec3:
         """Return the normalized 3D forward vector pointing from camera towards target."""
         pitch_rad = math.radians(self.pitch)
@@ -289,6 +324,7 @@ class ThirdPersonCameraHandler(Handler):
         """Instantly place camera at ideal spherical position without smoothing."""
         target_pos = self.get_target_pos()
         ideal_pos = self.compute_ideal_position()
+        ideal_pos = self.resolve_collision_position(target_pos, ideal_pos)
         self._current_cam_pos = Vec3(ideal_pos)
         self._has_updated = True
         cam = self.get_camera_node()
@@ -376,6 +412,7 @@ class ThirdPersonCameraHandler(Handler):
 
         target_pos = self.get_target_pos()
         ideal_pos = self.compute_ideal_position()
+        ideal_pos = self.resolve_collision_position(target_pos, ideal_pos)
         cam = self.get_camera_node()
 
         if cam is not None and not cam.isEmpty():

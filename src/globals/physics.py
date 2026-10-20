@@ -5,7 +5,7 @@ from panda3d.bullet import (
     BulletDebugNode,
     BulletCharacterControllerNode,
 )
-from panda3d.core import NodePath, Vec3
+from panda3d.core import NodePath, Vec3, BitMask32
 from direct.task import Task
 
 import logging
@@ -173,6 +173,30 @@ class Physics(Global):
         """Attach a Bullet character controller to the physics world."""
         world = cls._ensure_world()
         world.attachCharacter(node)
+
+    @classmethod
+    def raycast_closest(
+        cls,
+        from_pos: Vec3,
+        to_pos: Vec3,
+        mask: "BitMask32 | None" = None,
+    ) -> tuple[Vec3, NodePath | None] | None:
+        """Cast a ray and return the closest hit position and node, or None if unobstructed."""
+        world = cls._ensure_world()
+        if mask is None:
+            mask = BitMask32.all_on()
+        try:
+            world.doPhysics(1e-6)
+        except Exception:
+            pass
+        result = world.rayTestClosest(from_pos, to_pos, mask)
+        if result is None or not result.hasHit():
+            return None
+
+        hit_pos = Vec3(result.getHitPos())
+        hit_node = result.getNode()
+        hit_np = NodePath(hit_node) if hit_node is not None else None
+        return hit_pos, hit_np
 
     @classmethod
     def remove_character(cls, node: BulletCharacterControllerNode) -> None:

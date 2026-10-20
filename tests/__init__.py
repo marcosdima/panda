@@ -28,7 +28,7 @@ TargetType: TypeAlias = Literal[
 ] | None
 
 
-TARGET: TargetType = 'character' # Change this to run different test suites.
+TARGET: TargetType = 'camera_fp' # Change this to run different test suites.
 #TARGET: TargetType = None
 
 

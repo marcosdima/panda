@@ -561,6 +561,57 @@ class TestCameraHandler(TerminalTest):
         self.p("First-person headless safety verified successfully.", color="green")
         self.space_line()
 
+    def test_third_person_collision_spring_arm(self):
+        self.print_subtitle("Testing third-person camera boom collision (spring-arm).")
+        from panda3d.bullet import BulletBoxShape, BulletRigidBodyNode
+        from panda3d.core import TransformState, Point3
+        from src.globals.physics import Physics
+
+        entity = Entity("SpringArmHero")
+        entity.node.setPos(0.0, 0.0, 0.0)
+        cam_node = NodePath("spring_arm_camera")
+        handler = ThirdPersonCameraHandler(
+            distance=10.0,
+            min_distance=1.0,
+            max_distance=25.0,
+            target_offset=Vec3(0.0, 0.0, 0.0),
+            pitch=0.0,
+            yaw=0.0,
+            smooth_speed=0.0,
+            camera=cam_node,
+        )
+        entity.add_handler(handler)
+
+        world = Physics.get_world()
+        body = BulletRigidBodyNode("spring_wall")
+        body.setMass(0.0)
+        shape = BulletBoxShape(Vec3(1.0, 1.0, 4.0))
+        body.addShape(shape)
+        body.setTransform(TransformState.makePos(Point3(0.0, -4.0, 0.0)))
+        world.attachRigidBody(body)
+        world.doPhysics(1e-6)
+
+        entity.start()
+        entity.update(0.016)
+
+        ideal = handler.compute_ideal_position()
+        ideal_distance = (ideal - handler.get_target_pos()).length()
+        resolved = handler.resolve_collision_position(handler.get_target_pos(), ideal)
+        resolved_distance = (resolved - handler.get_target_pos()).length()
+
+        assert resolved_distance < ideal_distance, (
+            f"Expected camera boom to shorten: ideal={ideal_distance}, resolved={resolved_distance}"
+        )
+        assert resolved_distance >= handler.min_distance - 1e-4
+
+        assert (cam_node.getPos() - resolved).length() < 1e-3
+
+        entity.stop()
+        entity.free()
+        world.removeRigidBody(body)
+        self.p("Third-person camera spring-arm collision verified successfully.", color="green")
+        self.space_line()
+
     def on_stop(self):
         self.print_subtitle("TestCameraHandler completed.")
 
