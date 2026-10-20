@@ -4,7 +4,7 @@ from typing import Literal
 
 
 from .__global import Global
-from config import ASSETS_PATH, ANIMATIONS_PATH
+from config import ASSETS_PATH
 
 
 ModelKey = Literal['box', 'panda', 'environment', 'teapot']
