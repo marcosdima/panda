@@ -51,6 +51,7 @@ Each suite runs via `TerminalTest`, which auto-discovers and executes all `test*
 | Suite File | Sandbox Target | Test Objectives |
 | :--- | :--- | :--- |
 | `tests/panda/character_sandbox.py` | `CharacterControllerHandler` + `ThirdPersonCameraHandler` + `ActorAnimationHandler` | Walking, stairs (0.2m–0.6m), ramps (15°/30°/45°), jumping, camera orbit, animation states, OSD telemetry, F12 wireframe. |
+| `tests/panda/camera_sandbox.py` | `FirstPersonCameraHandler` + `ThirdPersonCameraHandler` + `CharacterControllerHandler` | Eye-locked first-person look, orientation reference corridor, near-wall contrast (FP has no spring-arm clipping), live `V` toggle between FP/TP, OSD telemetry, F12 wireframe. |
 | `tests/panda/physics.py` | `Physics` world | Static/dynamic rigid body collision (falling cube on static base). |
 | `tests/panda/models.py` | `GlobalLoader` | Loading Panda3D default models and glTF Actor with animations. |
 | `tests/panda/triggers_sandbox.py` | `TriggerZoneHandler` + `RigidBodyHandler` + `CharacterControllerHandler` | Enter/stay/exit/rejected events, group filters (PLAYER vs ENEMY), oscillating body transform sync, OSD counters, F12 wireframe. |
@@ -60,7 +61,6 @@ Each suite runs via `TerminalTest`, which auto-discovers and executes all `test*
 | Suite File | Sandbox Target | Test Objectives |
 | :--- | :--- | :--- |
 | `tests/panda/animation_sandbox.py` | `ActorAnimationHandler` | Velocity-driven state transitions (Idle → Walk → Run) in isolation. |
-| `tests/panda/camera_sandbox.py` | `ThirdPersonCameraHandler` | Target follow lerp, mouse orbit, collision spring-arm against test walls. |
 | `tests/panda/ai_sandbox.py` | AI Behavior Handlers | Patrol paths, line-of-sight raycasts, target chasing. |
 
 ---
@@ -72,7 +72,7 @@ Run with a graphical window:
 ```bash
 python main.py
 ```
-The active suite is selected by the `TARGET` constant in `tests/__init__.py` (e.g., `TARGET = 'character'`). Valid targets: `events`, `entities`, `controllers`, `camera`, `animation`, `physics`, `models`, `character`, `physics_handlers`, `triggers`, `model_handler`, or `None`.
+The active suite is selected by the `TARGET` constant in `tests/__init__.py` (e.g., `TARGET = 'character'`). Valid targets: `events`, `entities`, `controllers`, `camera`, `animation`, `physics`, `models`, `character`, `physics_handlers`, `triggers`, `model_handler`, `camera_fp`, or `None`.
 
 ### 4.2 Headless Suite Execution
 Each headless suite is directly executable without initializing a display server (suitable for terminal workflows, automated agent verification, and CI):
