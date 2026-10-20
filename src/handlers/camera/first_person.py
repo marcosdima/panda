@@ -16,15 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class FirstPersonCameraHandler(Handler):
-    """First-person camera handler that locks the camera to the character's eye position.
-
-    The camera is placed at the tracked target (entity node or an attached
-    `CharacterControllerHandler` controller) plus `eye_offset` every frame and
-    oriented towards `get_forward_vector()` derived from the current yaw and
-    pitch look angles. Mouse look mirrors `ThirdPersonCameraHandler` pointer
-    capture semantics and is fully headless-safe (tests drive
-    `handle_mouse_delta` directly with pointer capture disabled).
-    """
+    """First-person camera handler that locks the camera to the character's eye position."""
 
     def __init__(
         self,
@@ -37,6 +29,9 @@ class FirstPersonCameraHandler(Handler):
         camera: NodePath | None = None,
         invert_yaw: bool = False,
         invert_pitch: bool = False,
+        collision_enabled: bool = True,
+        collision_margin: float = 0.15,
+        hide_self: bool = True,
     ) -> None:
         super().__init__()
         self.eye_offset: Vec3 = Vec3(eye_offset)
@@ -49,6 +44,10 @@ class FirstPersonCameraHandler(Handler):
         self.mouse_sensitivity: float = float(mouse_sensitivity)
         self.invert_yaw: bool = invert_yaw
         self.invert_pitch: bool = invert_pitch
+        self.collision_enabled: bool = collision_enabled
+        self.collision_margin: float = float(collision_margin)
+        self.hide_self: bool = hide_self
+        self._hidden_nodes: list[NodePath] = []
 
         self._camera_node: NodePath | None = camera
         self._saved_cam_pos: Vec3 | None = None
@@ -63,41 +62,35 @@ class FirstPersonCameraHandler(Handler):
 
     @property
     def pitch(self) -> float:
-        """Current pitch look angle in degrees (clamped between min_pitch and max_pitch)."""
         return self._pitch
 
     @pitch.setter
     def pitch(self, value: float) -> None:
-        """Set pitch look angle, clamped between min_pitch and max_pitch."""
         self._pitch = max(self.min_pitch, min(self.max_pitch, float(value)))
 
     @property
     def yaw(self) -> float:
-        """Current yaw look angle in degrees (normalized to [0, 360))."""
         return self._yaw
 
     @yaw.setter
     def yaw(self, value: float) -> None:
-        """Set yaw look angle, normalized to [0, 360)."""
         self._yaw = float(value) % 360.0
 
     @property
     def camera(self) -> NodePath:
-        """Return the managed camera NodePath."""
         return self.get_camera_node()
 
     @camera.setter
     def camera(self, cam: NodePath | None) -> None:
-        """Set a custom camera NodePath."""
         self._camera_node = cam
 
     def get_camera_node(self) -> NodePath:
-        """Retrieve the camera NodePath safely, falling back to a dummy node in headless mode."""
         if self._camera_node is not None and not self._camera_node.isEmpty():
             return self._camera_node
 
         try:
             from src.globals.camera import Camera
+
             cam = Camera.get_camera()
             if cam is not None and not cam.isEmpty():
                 self._camera_node = cam
@@ -115,7 +108,6 @@ class FirstPersonCameraHandler(Handler):
         return self._camera_node
 
     def set_pointer_captured(self, captured: bool) -> None:
-        """Enable or disable pointer capture mode (relative mouse mode)."""
         self.is_pointer_captured = captured
         self._skip_first_mouse_delta = True
         base = getattr(builtins, "base", None)
@@ -135,21 +127,17 @@ class FirstPersonCameraHandler(Handler):
             win.requestProperties(props)
 
     def _on_toggle_cursor(self) -> None:
-        """Toggle pointer capture mode (bound to Tab key)."""
         self.set_pointer_captured(not self.is_pointer_captured)
 
     def _on_unlock_cursor(self) -> None:
-        """Unlock pointer capture and show cursor (bound to Escape key)."""
         if self.is_pointer_captured:
             self.set_pointer_captured(False)
 
     def _on_lock_cursor(self) -> None:
-        """Lock pointer capture and hide cursor (bound to mouse1)."""
         if not self.is_pointer_captured:
             self.set_pointer_captured(True)
 
     def _get_mouse_watcher(self):
-        """Retrieve MouseWatcher node if engine is initialized with active input."""
         base = getattr(builtins, "base", None)
         if base is None:
             return None
@@ -164,7 +152,6 @@ class FirstPersonCameraHandler(Handler):
         return None
 
     def handle_mouse_delta(self, dx: float, dy: float) -> None:
-        """Process horizontal and vertical mouse deltas and update yaw and pitch look angles."""
         yaw_delta = dx * self.mouse_sensitivity
         pitch_delta = dy * self.mouse_sensitivity
 
@@ -174,23 +161,11 @@ class FirstPersonCameraHandler(Handler):
             self.yaw = (self.yaw + yaw_delta) % 360.0
 
         if not self.invert_pitch:
-            self.pitch = max(
-                self.min_pitch,
-                min(self.max_pitch, self.pitch - pitch_delta),
-            )
+            self.pitch = max(self.min_pitch, min(self.max_pitch, self.pitch - pitch_delta))
         else:
-            self.pitch = max(
-                self.min_pitch,
-                min(self.max_pitch, self.pitch + pitch_delta),
-            )
+            self.pitch = max(self.min_pitch, min(self.max_pitch, self.pitch + pitch_delta))
 
     def get_target_pos(self) -> Vec3:
-        """Compute the world-space eye target (tracked node position + eye_offset).
-
-        If the entity has an attached CharacterControllerHandler with an active
-        physics controller NodePath, the controller position is tracked across
-        the world (same semantics as ThirdPersonCameraHandler).
-        """
         if self.entity is not None:
             from src.handlers.physics.character import CharacterControllerHandler
 
@@ -212,7 +187,6 @@ class FirstPersonCameraHandler(Handler):
         return self.entity.node.getPos() + self.eye_offset
 
     def get_forward_vector(self) -> Vec3:
-        """Return the normalized 3D forward vector for the current yaw and pitch."""
         pitch_rad = math.radians(self.pitch)
         yaw_rad = math.radians(self.yaw)
         fx = -math.cos(pitch_rad) * math.sin(yaw_rad)
@@ -221,20 +195,63 @@ class FirstPersonCameraHandler(Handler):
         return Vec3(fx, fy, fz)
 
     def get_eye_pos(self) -> Vec3:
-        """Return the current world-space eye position of the camera."""
-        return self.get_target_pos()
+        eye_pos = self.get_target_pos()
+        return self._resolve_collision(eye_pos)
+
+    def _resolve_collision(self, eye_pos: Vec3) -> Vec3:
+        if not self.collision_enabled:
+            return eye_pos
+
+        from src.globals.physics import Physics
+
+        directions = (
+            Vec3(1, 0, 0),
+            Vec3(-1, 0, 0),
+            Vec3(0, 1, 0),
+            Vec3(0, -1, 0),
+            Vec3(0, 0, 1),
+            Vec3(0, 0, -1),
+        )
+        origin = Vec3(eye_pos)
+        adjusted = Vec3(eye_pos)
+        for d in directions:
+            hit = Physics.raycast_closest(origin, origin + d * (self.collision_margin + 0.02))
+            if hit is None:
+                continue
+            hit_pos, _ = hit
+            push = origin - hit_pos
+            dist = push.length()
+            if dist < self.collision_margin + 1e-6 and dist > 1e-6:
+                push.normalize()
+                adjusted += push * (self.collision_margin + 1e-6 - dist)
+        return adjusted
 
     def apply_view(self) -> None:
-        """Place the camera at the eye position and aim it along the forward vector."""
-        eye_pos = self.get_target_pos()
+        eye_pos = self.get_eye_pos()
         cam = self.get_camera_node()
         if cam is None or cam.isEmpty():
             return
         cam.setPos(eye_pos)
         cam.lookAt(eye_pos + self.get_forward_vector())
 
+    def _hide_entity_model(self) -> None:
+        if not self.hide_self or self.entity is None:
+            return
+        node = self.entity.node
+        if node is None or node.isEmpty():
+            return
+        if node.isHidden():
+            return
+        node.hide()
+        self._hidden_nodes.append(node)
+
+    def _show_entity_model(self) -> None:
+        for np in self._hidden_nodes:
+            if np is not None and not np.isEmpty() and np.isHidden():
+                np.show()
+        self._hidden_nodes.clear()
+
     def on_attach(self, entity: Entity) -> None:
-        """Attach to entity and save camera defaults."""
         super().on_attach(entity)
         cam = self.get_camera_node()
         if cam is not None and not cam.isEmpty():
@@ -243,8 +260,8 @@ class FirstPersonCameraHandler(Handler):
                 self._saved_cam_hpr = Vec3(cam.getHpr())
 
     def on_start(self) -> None:
-        """Register input listeners and enable pointer capture in graphical mode."""
         super().on_start()
+        self._hide_entity_model()
         cam = self.get_camera_node()
         if cam is not None and not cam.isEmpty():
             if self._saved_cam_pos is None:
@@ -262,7 +279,6 @@ class FirstPersonCameraHandler(Handler):
             self.set_pointer_captured(True)
 
     def on_update(self, dt: float) -> None:
-        """Poll mouse look input, then lock the camera to the eye position and look angle."""
         super().on_update(dt)
         if self.entity is None or self.entity.node is None or self.entity.node.isEmpty():
             return
@@ -311,7 +327,7 @@ class FirstPersonCameraHandler(Handler):
         self.apply_view()
 
     def on_stop(self) -> None:
-        """Restore camera defaults, mouse mode, and unregister input listeners."""
+        self._show_entity_model()
         base = getattr(builtins, "base", None)
         if base is not None and hasattr(base, "ignore"):
             base.ignore("tab")
@@ -337,9 +353,10 @@ class FirstPersonCameraHandler(Handler):
         super().on_stop()
 
     def on_detach(self) -> None:
-        """Restore defaults and detach cleanly from entity."""
+        self._show_entity_model()
         self.on_stop()
         self._camera_node = None
         self._saved_cam_pos = None
         self._saved_cam_hpr = None
+        self._hidden_nodes.clear()
         super().on_detach()
