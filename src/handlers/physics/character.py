@@ -11,6 +11,7 @@ from panda3d.core import NodePath, Vec3
 from src.globals.physics import Physics
 from src.handlers.base import Handler
 from src.handlers.input.base import InputHandler
+from .groups import CollisionGroup
 
 if TYPE_CHECKING:
     from src.entities.entity import Entity
@@ -41,6 +42,7 @@ class CharacterControllerHandler(Handler):
         camera_handler: Any = None,
         acceleration: float = 0.0,
         deceleration: float = 0.0,
+        collision_group: CollisionGroup = CollisionGroup.DEFAULT,
     ) -> None:
         super().__init__()
         self.radius: float = radius
@@ -55,6 +57,7 @@ class CharacterControllerHandler(Handler):
         self.camera_handler: Any = camera_handler
         self.acceleration: float = float(acceleration)
         self.deceleration: float = float(deceleration)
+        self.collision_group: CollisionGroup = collision_group
 
         # Uses BulletCapsuleShape(radius, height, 2) (Z-up axis)
         self.shape: BulletCapsuleShape = BulletCapsuleShape(self.radius, self.height, 2)
@@ -97,6 +100,7 @@ class CharacterControllerHandler(Handler):
             self.controller_node.setJumpSpeed(self.jump_speed)
         else:
             self.controller_node.setName(entity.name)
+        self.controller_node.setPythonTag("entity", entity)
 
         if self.controller_np is None or self.controller_np.isEmpty():
             self.controller_np = entity.node.attachNewNode(self.controller_node)
