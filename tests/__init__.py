@@ -8,6 +8,7 @@ from .terminal.character_controller import TestCharacterController
 from .terminal.camera_handler import TestCameraHandler
 from .terminal.actor_animation import TestActorAnimation
 from .terminal.physics_handlers import TestPhysicsHandlers
+from .terminal.model_handler import TestModelHandler
 from .panda import *
 
 
@@ -22,6 +23,7 @@ TargetType: TypeAlias = Literal[
     'character',
     'physics_handlers',
     'triggers',
+    'model_handler',
 ] | None
 
 
@@ -53,6 +55,8 @@ class Tests:
             self.__target = TestPhysicsHandlers()
         elif TARGET == 'triggers':
             self.__target = TestTriggersSandbox()
+        elif TARGET == 'model_handler':
+            self.__target = TestModelHandler()
 
 
     def get_target(self) -> Scene | None:
