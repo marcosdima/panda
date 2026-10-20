@@ -33,6 +33,8 @@ class FirstPersonCameraHandler(Handler):
         collision_enabled: bool = True,
         collision_margin: float = 0.15,
         hide_self: bool = True,
+        near_plane: float = 0.1,
+        far_plane: float = 1000.0,
     ) -> None:
         super().__init__()
         self.eye_offset: Vec3 = Vec3(eye_offset)
@@ -48,6 +50,8 @@ class FirstPersonCameraHandler(Handler):
         self.collision_enabled: bool = collision_enabled
         self.collision_margin: float = float(collision_margin)
         self.hide_self: bool = hide_self
+        self.near_plane: float = float(near_plane)
+        self.far_plane: float = float(far_plane)
         self._hidden_nodes: list[NodePath] = []
 
         self._camera_node: NodePath | None = camera
@@ -240,6 +244,36 @@ class FirstPersonCameraHandler(Handler):
                 push_dir = self.get_forward_vector()
                 adjusted = adjusted + push_dir * (probe_dist - hit_dist)
 
+        # Detección de "cámara dentro de volumen": dispara rayos desde el ojo
+        # en varias direcciones. Si alguno choca casi inmediatamente, el ojo
+        # está dentro de geometría; empujamos hacia el centro del cuerpo para
+        # salir del volumen.
+        if dist > 1e-6:
+            body_dir = (base_pos - adjusted).normalized()
+            for d in (
+                body_dir,
+                Vec3(1, 0, 0),
+                Vec3(-1, 0, 0),
+                Vec3(0, 1, 0),
+                Vec3(0, -1, 0),
+                Vec3(0, 0, 1),
+                Vec3(0, 0, -1),
+            ):
+                probe = Physics.raycast_closest(
+                    adjusted, adjusted + d * probe_dist, step_physics=False
+                )
+                if probe is None:
+                    continue
+                hit_pos, _ = probe
+                hit_dist2 = (hit_pos - adjusted).length()
+                if hit_dist2 < self.collision_margin + 1e-4:
+                    # Estamos dentro: empujar en dirección opuesta al golpe
+                    push = adjusted - hit_pos
+                    pd = push.length()
+                    if pd > 1e-6:
+                        push.normalize()
+                        adjusted += push * (self.collision_margin + 2e-4 - pd)
+
         return adjusted
 
     def apply_view(self) -> None:
@@ -249,6 +283,9 @@ class FirstPersonCameraHandler(Handler):
             return
         cam.setPos(eye_pos)
         cam.lookAt(eye_pos + self.get_forward_vector())
+        lens = cam.node()
+        if lens is not None and hasattr(lens, "setNearFar"):
+            lens.setNearFar(self.near_plane, self.far_plane)
 
     def _hide_entity_model(self) -> None:
         if not self.hide_self or self.entity is None:
