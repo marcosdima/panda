@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from panda3d.core import MouseButton, NodePath, Vec3, WindowProperties
 
 from src.handlers.base import Handler
+from src.handlers.physics.character import CharacterControllerHandler
 
 if TYPE_CHECKING:
     from src.entities.entity import Entity
@@ -165,26 +166,29 @@ class FirstPersonCameraHandler(Handler):
         else:
             self.pitch = max(self.min_pitch, min(self.max_pitch, self.pitch + pitch_delta))
 
-    def get_target_pos(self) -> Vec3:
+    def get_body_pos(self) -> Vec3:
+        """Return the character's body position without the eye offset."""
         if self.entity is not None:
-            from src.handlers.physics.character import CharacterControllerHandler
-
             ctrl = self.entity.get_handler(CharacterControllerHandler)
             if ctrl is not None and ctrl.controller_np is not None and not ctrl.controller_np.isEmpty():
                 base = getattr(builtins, "base", None)
                 render = getattr(base, "render", None) if base else None
                 if render is not None and ctrl.controller_np.hasParent():
-                    return ctrl.controller_np.getPos(render) + self.eye_offset
-                return ctrl.controller_np.getPos() + self.eye_offset
+                    return ctrl.controller_np.getPos(render)
+                return ctrl.controller_np.getPos()
 
         if self.entity is None or self.entity.node is None or self.entity.node.isEmpty():
-            return Vec3(self.eye_offset)
+            return Vec3(0.0, 0.0, 0.0)
 
         base = getattr(builtins, "base", None)
         render = getattr(base, "render", None) if base else None
         if render is not None and self.entity.node.hasParent():
-            return self.entity.node.getPos(render) + self.eye_offset
-        return self.entity.node.getPos() + self.eye_offset
+            return self.entity.node.getPos(render)
+        return self.entity.node.getPos()
+
+    def get_target_pos(self) -> Vec3:
+        """Return the eye position (body position + eye_offset)."""
+        return self.get_body_pos() + self.eye_offset
 
     def get_forward_vector(self) -> Vec3:
         pitch_rad = math.radians(self.pitch)
@@ -204,39 +208,37 @@ class FirstPersonCameraHandler(Handler):
 
         from src.globals.physics import Physics
 
-        base_pos = self.get_target_pos()
-        if base_pos == eye_pos:
-            adjusted = Vec3(eye_pos)
-        else:
-            adjusted = Vec3(base_pos)
+        base_pos = self.get_body_pos()
+        adjusted = Vec3(eye_pos)
 
+        # Raycast desde el cuerpo hacia el ojo: detecta si el ojo atraviesa
+        # una pared al pegarse a ella (ver a través de la geometría).
         offset = eye_pos - base_pos
         dist = offset.length()
         if dist > 1e-6:
             direction = offset / dist
-            hit = Physics.raycast_closest(base_pos, eye_pos)
+            hit = Physics.raycast_closest(base_pos, eye_pos, step_physics=False)
             if hit is not None:
                 hit_pos, _ = hit
                 hit_dist = (hit_pos - base_pos).length()
                 clamped_dist = max(0.0, hit_dist - self.collision_margin)
                 if clamped_dist < dist:
                     adjusted = base_pos + direction * clamped_dist
-            else:
-                adjusted = eye_pos
-        else:
-            adjusted = Vec3(eye_pos)
 
-        origin = Vec3(adjusted)
-        for d in (Vec3(1,0,0), Vec3(-1,0,0), Vec3(0,1,0), Vec3(0,-1,0), Vec3(0,0,1), Vec3(0,0,-1)):
-            hit = Physics.raycast_closest(origin, origin + d * (self.collision_margin + 0.03))
-            if hit is None:
-                continue
-            hit_pos, _ = hit
-            push = origin - hit_pos
-            pd = push.length()
-            if pd < self.collision_margin + 1e-6 and pd > 1e-6:
-                push.normalize()
-                adjusted += push * (self.collision_margin + 2e-6 - pd)
+        # Raycast desde el ojo hacia atrás: detecta si el ojo ya está dentro
+        # de geometría (por ejemplo, al encajar contra una pared). Si es así,
+        # empuja la cámara hacia adelante hasta quedar fuera del volumen.
+        backward_dir = -self.get_forward_vector()
+        probe_dist = self.collision_margin + 0.05
+        hit2 = Physics.raycast_closest(
+            adjusted, adjusted + backward_dir * probe_dist, step_physics=False
+        )
+        if hit2 is not None:
+            hit_pos, _ = hit2
+            hit_dist = (hit_pos - adjusted).length()
+            if hit_dist < probe_dist:
+                push_dir = self.get_forward_vector()
+                adjusted = adjusted + push_dir * (probe_dist - hit_dist)
 
         return adjusted
 

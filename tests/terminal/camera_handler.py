@@ -612,6 +612,130 @@ class TestCameraHandler(TerminalTest):
         self.p("Third-person camera spring-arm collision verified successfully.", color="green")
         self.space_line()
 
+    def test_third_person_no_self_clipping(self):
+        self.print_subtitle("Testing third-person camera does not clip into the owner entity.")
+        entity = Entity("NoClipHero")
+        entity.node.setPos(0.0, 0.0, 0.0)
+        cam_node = NodePath("no_clip_camera")
+        handler = ThirdPersonCameraHandler(
+            distance=1.0,
+            min_distance=0.5,
+            max_distance=25.0,
+            target_offset=Vec3(0.0, 0.0, 0.0),
+            pitch=0.0,
+            yaw=0.0,
+            smooth_speed=0.0,
+            camera=cam_node,
+            owner_min_distance=2.0,
+        )
+        entity.add_handler(handler)
+        entity.start()
+        entity.update(0.016)
+
+        target_pos = handler.get_target_pos()
+        resolved = handler.resolve_collision_position(target_pos, handler.compute_ideal_position())
+        resolved_distance = (resolved - target_pos).length()
+
+        assert resolved_distance >= handler.owner_min_distance - 1e-4, (
+            f"Expected camera to be pushed out to at least {handler.owner_min_distance}, "
+            f"got distance={resolved_distance}"
+        )
+
+        entity.stop()
+        entity.free()
+        self.p("Third-person camera no-self-clipping verified successfully.", color="green")
+        self.space_line()
+
+    def test_third_person_shoulder_offset(self):
+        self.print_subtitle("Testing third-person camera over-the-shoulder offset.")
+        entity = Entity("ShoulderHero")
+        entity.node.setPos(0.0, 0.0, 0.0)
+        cam_node = NodePath("shoulder_camera")
+        handler = ThirdPersonCameraHandler(
+            distance=8.0,
+            min_distance=2.0,
+            max_distance=25.0,
+            target_offset=Vec3(0.0, 0.0, 0.0),
+            pitch=0.0,
+            yaw=0.0,
+            smooth_speed=0.0,
+            camera=cam_node,
+            shoulder_offset=Vec3(1.0, 0.0, 0.0),
+        )
+        entity.add_handler(handler)
+        entity.start()
+        entity.update(0.016)
+
+        ideal = handler.compute_ideal_position()
+        target_pos = handler.get_target_pos()
+
+        # With yaw=0, pitch=0, distance=8: ideal base = (0, -8, 0)
+        # Shoulder offset rotated by yaw=0: (1.0, 0.0, 0.0)
+        # Expected: (1.0, -8.0, 0.0)
+        expected = Vec3(1.0, -8.0, 0.0)
+        assert (ideal - expected).length() < 1e-4, (
+            f"Expected shoulder-offset ideal={expected}, got {ideal}"
+        )
+
+        entity.stop()
+        entity.free()
+        self.p("Third-person camera shoulder offset verified successfully.", color="green")
+        self.space_line()
+
+    def test_first_person_no_wall_clipping(self):
+        self.print_subtitle("Testing first-person camera does not clip into walls.")
+        from panda3d.bullet import BulletRigidBodyNode
+        from panda3d.core import TransformState, Point3
+        from src.globals.physics import Physics
+
+        entity = Entity("FPSHero")
+        entity.node.setPos(0.0, 0.0, 0.0)
+        cam_node = NodePath("fp_camera")
+        handler = FirstPersonCameraHandler(
+            eye_offset=Vec3(0.0, 0.0, 1.5),
+            yaw=0.0,
+            pitch=0.0,
+            collision_enabled=True,
+            collision_margin=0.15,
+            camera=cam_node,
+        )
+        entity.add_handler(handler)
+        entity.start()
+        entity.update(0.016)
+
+        # Colocar una pared justo delante del ojo del personaje
+        world = Physics.get_world()
+        body = BulletRigidBodyNode("fp_wall")
+        body.setMass(0.0)
+        from panda3d.bullet import BulletBoxShape
+        shape = BulletBoxShape(Vec3(2.0, 0.2, 4.0))
+        body.addShape(shape)
+        body.setTransform(TransformState.makePos(Point3(0.0, 1.0, 0.0)))
+        world.attachRigidBody(body)
+        world.doPhysics(1e-6)
+
+        eye_pos = handler.get_eye_pos()
+        body_pos = handler.get_body_pos()
+        eye_to_wall = (Vec3(0.0, 1.0, 0.0) - body_pos).length()
+
+        # El ojo no debe quedar dentro o tras la pared (distancia cuerpo-ojomuy corta)
+        # Si el ojo está a menos de collision_margin de la pared, se ajusta
+        dist_body_eye = (eye_pos - body_pos).length()
+        assert dist_body_eye < handler.eye_offset.length() + 1e-4, (
+            f"Eye should be near body offset, got dist={dist_body_eye}"
+        )
+
+        # Verificar que el ojo no haya atravesado la pared (no debe estar tras el plano y=1.0)
+        assert eye_pos.y < 1.0 - handler.collision_margin, (
+            f"Eye clipped through wall: eye_pos.y={eye_pos.y}, wall at y=1.0, margin={handler.collision_margin}"
+        )
+
+        world.removeRigidBody(body)
+        entity.stop()
+        entity.free()
+        self.p("First-person camera no-wall-clipping verified successfully.", color="green")
+        self.space_line()
+
     def on_stop(self):
         self.print_subtitle("TestCameraHandler completed.")
 

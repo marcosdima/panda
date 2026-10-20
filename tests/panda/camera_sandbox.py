@@ -92,6 +92,7 @@ class TestFirstPersonCameraSandbox(Test):
         self.p("Test Course Layout:", color="cyan", bold=True)
         self.p(" - Colored pillars at increasing distance: eye-lock & orientation check", color="cyan")
         self.p(" - Near wall ahead: third-person spring-arm clips around it, first-person walks through", color="cyan")
+        self.p(" - Sticky wall near start: walk up to it to verify camera never clips into the player (owner_min_distance)", color="cyan")
         self.p(" - Raised blocks: pitch look down/up reference", color="cyan")
         self.space_line()
 
@@ -169,6 +170,15 @@ class TestFirstPersonCameraSandbox(Test):
             color=(0.40, 0.35, 0.55, 1.0),
         )
 
+        # Sticky wall close to the player: approach it to verify the camera
+        # never ends up inside or behind the owner model.
+        self._create_static_box(
+            name="sticky_wall",
+            pos=(0.0, 6.0, 2.0),
+            size=(10.0, 0.4, 4.0),
+            color=(0.80, 0.50, 0.20, 1.0),
+        )
+
     def _spawn_player(self) -> None:
         """Spawn the player entity with WASD input, controller, and both camera handlers."""
         player = Entity("PlayerCameraHero")
@@ -194,10 +204,14 @@ class TestFirstPersonCameraSandbox(Test):
         )
         self.tp_handler = ThirdPersonCameraHandler(
             distance=8.0,
+            min_distance=1.5,
+            max_distance=20.0,
             target_offset=Vec3(0.0, 0.0, 1.2),
             pitch=-15.0,
             smooth_speed=10.0,
             mouse_sensitivity=0.2,
+            owner_min_distance=1.5,
+            shoulder_offset=Vec3(0.4, 0.0, 0.2),
         )
 
         player.add_handler(self.input_handler)

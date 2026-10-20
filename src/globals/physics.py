@@ -180,15 +180,23 @@ class Physics(Global):
         from_pos: Vec3,
         to_pos: Vec3,
         mask: "BitMask32 | None" = None,
+        step_physics: bool = True,
     ) -> tuple[Vec3, NodePath | None] | None:
-        """Cast a ray and return the closest hit position and node, or None if unobstructed."""
+        """Cast a ray and return the closest hit position and node, or None if unobstructed.
+
+        When `step_physics` is True (default), the Bullet world is stepped a tiny
+        amount before the query so dynamic bodies are up to date. Set to False
+        when the caller already steps the world (e.g. per-frame camera raycasts)
+        to avoid advancing the simulation more than once per frame.
+        """
         world = cls._ensure_world()
         if mask is None:
             mask = BitMask32.all_on()
-        try:
-            world.doPhysics(1e-6)
-        except Exception:
-            pass
+        if step_physics:
+            try:
+                world.doPhysics(1e-6)
+            except Exception:
+                pass
         result = world.rayTestClosest(from_pos, to_pos, mask)
         if result is None or not result.hasHit():
             return None
