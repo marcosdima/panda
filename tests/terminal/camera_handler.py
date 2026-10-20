@@ -10,13 +10,14 @@ import math
 from panda3d.core import NodePath, Vec2, Vec3
 
 from src.entities.entity import Entity
+from src.handlers.camera.first_person import FirstPersonCameraHandler
 from src.handlers.camera.third_person import ThirdPersonCameraHandler
 from src.handlers.input.base import InputHandler
 from src.handlers.physics.character import CharacterControllerHandler
 
 
 class TestCameraHandler(TerminalTest):
-    """Headless unit test suite for ThirdPersonCameraHandler and camera-relative movement."""
+    """Headless unit test suite for ThirdPersonCameraHandler, FirstPersonCameraHandler and camera-relative movement."""
 
     def on_start(self):
         self.print_title("TestCameraHandler started.", color="cyan")
@@ -404,6 +405,160 @@ class TestCameraHandler(TerminalTest):
         entity.stop()
         entity.free()
         self.p("Camera-relative character movement and heading rotation verified successfully.", color="green")
+        self.space_line()
+
+    def test_first_person_camera_defaults_and_eye_lock(self):
+        self.print_subtitle("Testing FirstPersonCameraHandler defaults, eye lock, and view orientation.")
+        entity = Entity("FirstPersonHero")
+        entity.node.setPos(0.0, 0.0, 0.0)
+        cam_node = NodePath("fp_test_camera")
+        handler = FirstPersonCameraHandler(
+            eye_offset=Vec3(0.0, 0.0, 1.7),
+            yaw=0.0,
+            pitch=0.0,
+            min_pitch=-80.0,
+            max_pitch=70.0,
+            mouse_sensitivity=0.15,
+            camera=cam_node,
+        )
+
+        assert handler.eye_offset == Vec3(0.0, 0.0, 1.7)
+        assert handler.yaw == 0.0
+        assert handler.pitch == 0.0
+        assert handler.min_pitch == -80.0
+        assert handler.max_pitch == 70.0
+        assert handler.mouse_sensitivity == 0.15
+        assert handler.camera == cam_node
+
+        entity.add_handler(handler)
+        assert entity.get_handler(FirstPersonCameraHandler) is handler
+
+        entity.start()
+        handler.set_pointer_captured(False)
+        entity.update(0.016)
+
+        # Camera locked at entity position + eye offset
+        expected_eye = Vec3(0.0, 0.0, 1.7)
+        assert (cam_node.getPos() - expected_eye).length() < 1e-4, f"Expected {expected_eye}, got {cam_node.getPos()}"
+
+        # Camera view direction (local +Y after lookAt) matches forward vector
+        cam_fwd = cam_node.getQuat().xform(Vec3(0.0, 1.0, 0.0))
+        fwd = handler.get_forward_vector()
+        assert (cam_fwd - fwd).length() < 1e-4, f"Expected {fwd}, got {cam_fwd}"
+
+        # Yaw = 90 turns the view towards -X
+        handler.yaw = 90.0
+        entity.update(0.016)
+        cam_fwd = cam_node.getQuat().xform(Vec3(0.0, 1.0, 0.0))
+        fwd = handler.get_forward_vector()
+        assert abs(fwd.x - (-1.0)) < 1e-4
+        assert (cam_fwd - fwd).length() < 1e-4
+
+        # Moving the entity moves the locked eye position
+        entity.node.setPos(10.0, -5.0, 2.0)
+        entity.update(0.016)
+        assert (cam_node.getPos() - Vec3(10.0, -5.0, 3.7)).length() < 1e-4
+
+        entity.stop()
+        entity.remove_handler(handler)
+        assert entity.get_handler(FirstPersonCameraHandler) is None
+        assert handler.entity is None
+
+        entity.free()
+        self.p("FirstPersonCameraHandler defaults, eye lock, and orientation verified successfully.", color="green")
+        self.space_line()
+
+    def test_first_person_pitch_yaw_clamping_and_mouse_delta(self):
+        self.print_subtitle("Testing first-person yaw/pitch clamping and mouse delta processing.")
+        handler = FirstPersonCameraHandler(
+            yaw=0.0,
+            pitch=0.0,
+            min_pitch=-89.0,
+            max_pitch=89.0,
+            mouse_sensitivity=0.2,
+        )
+
+        # Yaw normalized to [0, 360)
+        handler.yaw = -90.0
+        assert abs(handler.yaw - 270.0) < 1e-4
+        handler.yaw = 450.0
+        assert abs(handler.yaw - 90.0) < 1e-4
+
+        # Pitch clamped by property setter
+        handler.pitch = -120.0
+        assert abs(handler.pitch - (-89.0)) < 1e-4
+        handler.pitch = 120.0
+        assert abs(handler.pitch - 89.0) < 1e-4
+
+        # Mouse delta: dx=10 -> yaw -= 2.0, dy=20 -> pitch -= 4.0 (same as third person)
+        handler.yaw = 100.0
+        handler.pitch = 0.0
+        handler.handle_mouse_delta(dx=10.0, dy=20.0)
+        assert abs(handler.yaw - 98.0) < 1e-4, f"Expected 98.0, got {handler.yaw}"
+        assert abs(handler.pitch - (-4.0)) < 1e-4, f"Expected -4.0, got {handler.pitch}"
+
+        # Extreme deltas respect clamping
+        handler.handle_mouse_delta(dx=0.0, dy=1000.0)
+        assert abs(handler.pitch - (-89.0)) < 1e-4
+        handler.handle_mouse_delta(dx=0.0, dy=-2000.0)
+        assert abs(handler.pitch - 89.0) < 1e-4
+
+        # Inverted pitch flips the vertical sign
+        inverted = FirstPersonCameraHandler(invert_pitch=True, invert_yaw=True)
+        inverted.handle_mouse_delta(dx=10.0, dy=20.0)
+        assert abs(inverted.yaw - (0.0 + 2.0) % 360.0) < 1e-4, f"Expected 2.0, got {inverted.yaw}"
+        assert abs(inverted.pitch - 4.0) < 1e-4, f"Expected 4.0, got {inverted.pitch}"
+
+        self.p("First-person yaw/pitch clamping and mouse delta verified successfully.", color="green")
+        self.space_line()
+
+    def test_first_person_tracks_character_controller_nodepath(self):
+        self.print_subtitle("Testing first-person eye tracking of CharacterControllerHandler controller_np.")
+        entity = Entity("FirstPersonPhysicsHero")
+        controller = CharacterControllerHandler()
+        cam_handler = FirstPersonCameraHandler(eye_offset=Vec3(0.0, 0.0, 1.6))
+        entity.add_handler(controller)
+        entity.add_handler(cam_handler)
+        entity.start()
+        cam_handler.set_pointer_captured(False)
+
+        assert controller.controller_np is not None
+        controller.controller_np.setPos(12.0, -8.0, 3.0)
+
+        eye_pos = cam_handler.get_target_pos()
+        expected = Vec3(12.0, -8.0, 4.6)
+        assert (eye_pos - expected).length() < 1e-4, f"Expected {expected}, got {eye_pos}"
+
+        entity.update(0.016)
+        cam = cam_handler.camera
+        assert (cam.getPos() - expected).length() < 1e-4, f"Expected {expected}, got {cam.getPos()}"
+
+        entity.stop()
+        entity.free()
+        self.p("First-person tracking of CharacterControllerHandler controller_np verified successfully.", color="green")
+        self.space_line()
+
+    def test_first_person_headless_safety(self):
+        self.print_subtitle("Testing first-person headless safety without graphical window.")
+        entity = Entity("FirstPersonHeadlessHero")
+        handler = FirstPersonCameraHandler()
+        entity.add_handler(handler)
+
+        entity.start()
+        entity.update(0.016)
+        entity.update(0.033)
+        entity.update(0.1)
+
+        fwd = handler.get_forward_vector()
+        assert isinstance(fwd, Vec3)
+        assert abs(fwd.length() - 1.0) < 1e-4
+
+        cam = handler.camera
+        assert cam is not None and not cam.isEmpty()
+
+        entity.stop()
+        entity.free()
+        self.p("First-person headless safety verified successfully.", color="green")
         self.space_line()
 
     def on_stop(self):
