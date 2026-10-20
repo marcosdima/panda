@@ -1,5 +1,5 @@
 from .base import Handler
-from .camera import ThirdPersonCameraHandler
+from .camera import FirstPersonCameraHandler, ThirdPersonCameraHandler
 from .graphics import ActorAnimationHandler
 from .input import InputHandler, WASDInputHandler
 from .physics import (
@@ -18,5 +18,6 @@ __all__ = [
     "RigidBodyHandler",
     "TriggerZoneHandler",
     "ThirdPersonCameraHandler",
+    "FirstPersonCameraHandler",
     "ActorAnimationHandler",
 ]

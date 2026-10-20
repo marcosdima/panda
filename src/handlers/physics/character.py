@@ -129,8 +129,12 @@ class CharacterControllerHandler(Handler):
         # Check for camera handler
         camera_handler = self.camera_handler
         if camera_handler is None and self.entity is not None:
+            from src.handlers.camera.first_person import FirstPersonCameraHandler
             from src.handlers.camera.third_person import ThirdPersonCameraHandler
-            camera_handler = self.entity.get_handler(ThirdPersonCameraHandler)
+
+            camera_handler = self.entity.get_handler(
+                ThirdPersonCameraHandler
+            ) or self.entity.get_handler(FirstPersonCameraHandler)
 
         is_local = True
         # Read movement vector, scale by current speed (walk vs sprint)
