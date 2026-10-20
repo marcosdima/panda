@@ -24,6 +24,7 @@ TargetType: TypeAlias = Literal[
     'physics_handlers',
     'triggers',
     'model_handler',
+    'camera_fp',
 ] | None
 
 
@@ -57,6 +58,8 @@ class Tests:
             self.__target = TestTriggersSandbox()
         elif TARGET == 'model_handler':
             self.__target = TestModelHandler()
+        elif TARGET == 'camera_fp':
+            self.__target = TestFirstPersonCameraSandbox()
 
 
     def get_target(self) -> Scene | None:
