@@ -1,6 +1,6 @@
 from .base import Handler
 from .camera import FirstPersonCameraHandler, ThirdPersonCameraHandler
-from .graphics import ActorAnimationHandler
+from .graphics import ActorAnimationHandler, ModelHandler
 from .input import InputHandler, WASDInputHandler
 from .physics import (
     CharacterControllerHandler,
@@ -20,4 +20,5 @@ __all__ = [
     "ThirdPersonCameraHandler",
     "FirstPersonCameraHandler",
     "ActorAnimationHandler",
+    "ModelHandler",
 ]
