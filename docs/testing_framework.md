@@ -40,6 +40,7 @@ Environment setup (ground planes, lighting, cameras, debug keybindings) is the r
 | `tests/terminal/character_controller.py` | `WASDInputHandler` + `CharacterControllerHandler` (params, movement, damping, jump, leak-free detach). |
 | `tests/terminal/camera_handler.py` | `ThirdPersonCameraHandler` (spherical math, clamping, smoothing, headless safety). |
 | `tests/terminal/actor_animation.py` | `ActorAnimationHandler` (visual pivot, animation binding, locomotion states, teardown). |
+| `tests/terminal/physics_handlers.py` | `RigidBodyHandler` + `TriggerZoneHandler` (config, gravity, impulses, entity-node transform sync, enter/stay/exit edges, group filters, lifecycle leaks). |
 
 Each suite runs via `TerminalTest`, which auto-discovers and executes all `test*` methods on scene start.
 
@@ -50,12 +51,12 @@ Each suite runs via `TerminalTest`, which auto-discovers and executes all `test*
 | `tests/panda/character_sandbox.py` | `CharacterControllerHandler` + `ThirdPersonCameraHandler` + `ActorAnimationHandler` | Walking, stairs (0.2m–0.6m), ramps (15°/30°/45°), jumping, camera orbit, animation states, OSD telemetry, F12 wireframe. |
 | `tests/panda/physics.py` | `Physics` world | Static/dynamic rigid body collision (falling cube on static base). |
 | `tests/panda/models.py` | `GlobalLoader` | Loading Panda3D default models and glTF Actor with animations. |
+| `tests/panda/triggers_sandbox.py` | `TriggerZoneHandler` + `RigidBodyHandler` + `CharacterControllerHandler` | Enter/stay/exit/rejected events, group filters (PLAYER vs ENEMY), oscillating body transform sync, OSD counters, F12 wireframe. |
 
 ### 3.3 Planned Sandboxes (not yet implemented)
 
 | Suite File | Sandbox Target | Test Objectives |
 | :--- | :--- | :--- |
-| `tests/panda/triggers_sandbox.py` | `TriggerZoneHandler` | Dynamic enter/stay/exit events, group filters (Player vs Enemy vs Default). |
 | `tests/panda/animation_sandbox.py` | `ActorAnimationHandler` | Velocity-driven state transitions (Idle → Walk → Run) in isolation. |
 | `tests/panda/camera_sandbox.py` | `ThirdPersonCameraHandler` | Target follow lerp, mouse orbit, collision spring-arm against test walls. |
 | `tests/panda/ai_sandbox.py` | AI Behavior Handlers | Patrol paths, line-of-sight raycasts, target chasing. |
@@ -69,7 +70,7 @@ Run with a graphical window:
 ```bash
 python main.py
 ```
-The active suite is selected by the `TARGET` constant in `tests/__init__.py` (e.g., `TARGET = 'character'`). Valid targets: `events`, `entities`, `controllers`, `camera`, `animation`, `physics`, `models`, `character`, or `None`.
+The active suite is selected by the `TARGET` constant in `tests/__init__.py` (e.g., `TARGET = 'character'`). Valid targets: `events`, `entities`, `controllers`, `camera`, `animation`, `physics`, `models`, `character`, `physics_handlers`, `triggers`, or `None`.
 
 ### 4.2 Headless Suite Execution
 Each headless suite is directly executable without initializing a display server (suitable for terminal workflows, automated agent verification, and CI):
@@ -79,6 +80,7 @@ python tests/terminal/entities.py
 python tests/terminal/character_controller.py
 python tests/terminal/camera_handler.py
 python tests/terminal/actor_animation.py
+python tests/terminal/physics_handlers.py
 ```
 Headless suites that require a `Loader` (e.g., `actor_animation.py`) bootstrap their own `ShowBase(windowType="none")` automatically.
 

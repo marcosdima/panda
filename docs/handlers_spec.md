@@ -71,9 +71,10 @@ class Handler(ABC):
 * **`WASDInputHandler`:** Standard PC keyboard input mapping.
 
 ### 3.2 Physics Handlers (`src/handlers/physics/`)
-* **`CharacterControllerHandler`:** Encapsulates Panda3D's `BulletCharacterControllerNode`. Manages linear velocity, walking on slopes, step climbing, jumping, and gravity.
-* **`RigidBodyHandler`:** Encapsulates standard `BulletRigidBodyNode` for dynamic props (mass > 0) or static terrain (mass = 0).
-* **`TriggerZoneHandler`:** Encapsulates `BulletGhostNode` for trigger volumes with `on_enter`, `on_stay`, and `on_exit` callbacks.
+* **`CharacterControllerHandler`:** Encapsulates Panda3D's `BulletCharacterControllerNode`. Manages linear velocity, walking on slopes, step climbing, jumping, and gravity. Accepts a `CollisionGroup` label used by trigger filtering.
+* **`RigidBodyHandler`:** Encapsulates standard `BulletRigidBodyNode` for dynamic props (mass > 0) or static terrain (mass = 0). Applies velocity, forces, and impulses. Each `on_update` propagates `entity.node` transform changes into Bullet (parent-change detection → `setTransformDirty`), so scene-driven moves are adopted on the next physics step while untouched bodies remain under Bullet's control.
+* **`TriggerZoneHandler`:** Encapsulates `BulletGhostNode` for trigger volumes with `on_enter`, `on_stay`, `on_exit`, and `on_rejected` callbacks. Overlaps are filtered by each entity's `CollisionGroup` (`target_groups` / `avoid_groups`); selective zones (explicit `target_groups`) skip ambient `CollisionGroup.DEFAULT` environment overlaps (e.g. ground under a floating zone, detected only through Bullet's inflated broadphase AABBs) so static scenery never emits event noise. The ghost has collision response disabled and is never tagged as a trigger itself (triggers never detect each other). Uses the same `entity.node` transform auto-sync as `RigidBodyHandler`.
+* **`CollisionGroup` (Enum):** Semantic Python-side labels (`DEFAULT`, `PLAYER`, `ENEMY`) stored on physics handlers and consumed by trigger filters.
 
 ### 3.3 Camera Handlers (`src/handlers/camera/`)
 * **`ThirdPersonCameraHandler`:** Orbits around the entity's position with mouse pitch/yaw control, collision raycast to avoid clipping through walls, and position lerp for smooth following.
