@@ -11,7 +11,7 @@ class Test(Scene):
         center: bool = False,
         width: int = 40,
         raw: bool = False,
-    ):
+    ) -> None:
         """Print a message with optional ANSI formatting.
 
         - `bold`: bold text
@@ -45,18 +45,18 @@ class Test(Scene):
         print(f"{bold_code}{color_code}{out}{reset}")
 
     
-    def space_line(self, l: int = 40):
+    def space_line(self, l: int = 40) -> None:
         self.p('\n*' + '-' * l + '*\n', color='yellow')
 
 
-    def print_title(self, title: str = "TESTS", color: str | None = None, width: int = 40):
+    def print_title(self, title: str = "TESTS", color: str | None = None, width: int = 40) -> None:
         """Print a decorated title using the `p` helper for formatting."""
         self.space_line(width)
         self.p(title, bold=True, color=color, center=True, width=width)
         self.space_line(width)
 
 
-    def print_subtitle(self, subtitle: str, color: str | None = None, width: int = 40):
+    def print_subtitle(self, subtitle: str, color: str | None = None, width: int = 40) -> None:
         """Print a decorated subtitle using the `p` helper for formatting."""
         self.p(subtitle, bold=True, color=color, center=True, width=width)
         self.p('-' * width, color=color)

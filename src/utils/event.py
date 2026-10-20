@@ -15,7 +15,7 @@ class Event(Generic[T]):
         self.__check = check
 
     
-    def clear_callbacks(self):
+    def clear_callbacks(self) -> None:
         ''' Clear all callbacks. '''
         self.__callback.clear()
 
@@ -24,7 +24,7 @@ class Event(Generic[T]):
         self,
         cb: Callable[..., None],
         priority: int = 0
-    ):
+    ) -> None:
         ''' Add a callback with an optional priority. '''
         self.__callback[cb] = priority
         
@@ -37,12 +37,12 @@ class Event(Generic[T]):
         )   
 
 
-    def remove_callback(self, cb: Callable[..., None]):
+    def remove_callback(self, cb: Callable[..., None]) -> None:
         ''' Remove a callback. '''
         self.__callback.pop(cb, None)
 
 
-    def set_check(self, check: Callable[[], bool]):
+    def set_check(self, check: Callable[[], bool]) -> None:
         ''' Set the check function. '''
         self.__check = check
 
@@ -52,12 +52,12 @@ class Event(Generic[T]):
         return self.__check()
 
 
-    def debug(self):
+    def debug(self) -> None:
         ''' Add a debug callback that prints when the event is triggered. '''
         self.add_callback(lambda *args, **kwargs: print("Event triggered with args:", args, "and kwargs:", kwargs))
 
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> None:
         '''Call the event, executing all callbacks if working.'''
         if not self.working():
             return

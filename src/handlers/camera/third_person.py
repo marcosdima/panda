@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import builtins
+import logging
 import math
 from typing import TYPE_CHECKING
 from panda3d.core import MouseButton, NodePath, Vec3, WindowProperties
@@ -9,6 +10,9 @@ from src.handlers.base import Handler
 
 if TYPE_CHECKING:
     from src.entities.entity import Entity
+
+
+logger = logging.getLogger(__name__)
 
 
 class ThirdPersonCameraHandler(Handler):
@@ -123,7 +127,7 @@ class ThirdPersonCameraHandler(Handler):
                 self._camera_node = cam
                 return cam
         except Exception:
-            pass
+            logger.debug("Global Camera unavailable; falling back to builtins.base.camera.", exc_info=True)
 
         base = getattr(builtins, "base", None)
         cam = getattr(base, "camera", None) if base else None

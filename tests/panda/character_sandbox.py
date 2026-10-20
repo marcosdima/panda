@@ -365,6 +365,7 @@ class TestCharacterSandbox(Test):
             )
         except Exception:
             # Gracefully ignore in non-graphical environments where OnscreenText is not supported
+            self.p("OSD not available in this environment; skipping telemetry overlay.", color="yellow")
             self.osd_instructions = None
             self.osd_telemetry = None
 

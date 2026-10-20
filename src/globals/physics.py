@@ -6,9 +6,15 @@ from panda3d.bullet import (
     BulletCharacterControllerNode,
 )
 from panda3d.core import NodePath, Vec3
+from direct.task import Task
+
+import logging
 
 from .__global import Global
 from .clock import GlobalClock
+
+
+logger = logging.getLogger(__name__)
 
 
 class Physics(Global):
@@ -61,7 +67,7 @@ class Physics(Global):
             Physics._debug_np = debug_np
             Physics._world.setDebugNode(debug_np.node())
         except Exception:
-            pass
+            logger.warning("Failed to set up Bullet debug visualization.", exc_info=True)
 
     @classmethod
     def toggle_debug(cls) -> bool:
@@ -93,6 +99,7 @@ class Physics(Global):
                 cls.get_world().setDebugNode(debug_np.node())
                 return True
             except Exception:
+                logger.warning("Failed to enable Bullet debug visualization.", exc_info=True)
                 return False
         return False
 
@@ -103,7 +110,7 @@ class Physics(Global):
             return not cls._debug_np.isHidden()
         return False
 
-    def _update_world(self, task):
+    def _update_world(self, task: Task) -> int:
         dt = GlobalClock.get_dt()
         if Physics._world is not None:
             Physics._world.doPhysics(dt)

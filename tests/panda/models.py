@@ -1,13 +1,11 @@
 from ..__test import Test
 from src.globals import GlobalLoader
-from config import ASSETS_PATH
 
 
 class TestModels(Test):
-    def on_start(self):
+    def on_start(self) -> None:
         self.print_title('TestModels started.', color='cyan')
         self.base = GlobalLoader.get_instance().base
-        
 
         super().on_start()
 
@@ -16,7 +14,6 @@ class TestModels(Test):
         model_specs = [
             {'name': 'box', 'key': 'box', 'scale': 10, 'pos': (-20, 50, 0)},
             {'name': 'panda', 'key': 'panda', 'scale': 0.5, 'pos': (30, 50, 0)},
-            #{'name': 'environment', 'key': 'environment', 'scale': 0.25, 'pos': (60, 50, 0)},
             {'name': 'teapot', 'key': 'teapot', 'scale': 5, 'pos': (90, 50, 0)},
         ]
 
@@ -35,7 +32,7 @@ class TestModels(Test):
         self.__create_base_model()
 
 
-    def __create_base_model(self):
+    def __create_base_model(self) -> None:
         try:
             actor = GlobalLoader.load_actor(
                 asset_path="X Bot.glb",
@@ -43,31 +40,37 @@ class TestModels(Test):
                     "Idle": "anims/X Bot@Idle.glb",
                 }
             )
-            #actor.setScale(0)
             actor.setHpr(0, 90, 0)
             actor.setPos(0, 30, 0)
             actor.reparentTo(self.base.render)
-            
-            print(f"Animation names: {actor.getAnimNames()}")
+            self.actor = actor
+
+            self.p(f"Animation names: {actor.getAnimNames()}", color='green')
             anim = actor.getAnimControl("Idle")
             if anim:
-                print(f"Frames: {anim.getNumFrames()}")
-                print(f"Frame rate: {anim.getFrameRate()}")
+                self.p(f"Frames: {anim.getNumFrames()}", color='green')
+                self.p(f"Frame rate: {anim.getFrameRate()}", color='green')
             else:
-                print("No animation control found for 'Idle'")
+                self.p("No animation control found for 'Idle'", color='red')
                 return
-            
-            print("Attempting to loop animation...")
-            #actor.loop("Idle")
-            print("Animation loop commented out for testing")
-        except Exception as exc:
+
+            actor.loop("Idle")
+        except Exception as exc:  # noqa: BLE001
             self.p(f"Error creating base model: {exc}", color='red')
             import traceback
             traceback.print_exc()
 
 
-    def on_stop(self):
+    def on_stop(self) -> None:
         self.print_subtitle('TestModels stopped.')
+        # Detach (not remove) cached models so GlobalLoader's cache stays valid.
         for model in getattr(self, 'models', []):
-            model.removeNode()
+            if model is not None and not model.isEmpty():
+                model.detachNode()
         self.models = []
+
+        # The actor instance is unique to this scene, so removing it is safe.
+        actor = getattr(self, 'actor', None)
+        if actor is not None and not actor.isEmpty():
+            actor.removeNode()
+        self.actor = None

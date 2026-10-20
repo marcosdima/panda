@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import math
 from typing import TYPE_CHECKING
 from panda3d.core import NodePath, Vec3, autoBind, AnimControlCollection
@@ -10,6 +11,9 @@ from src.handlers.physics.character import CharacterControllerHandler
 
 if TYPE_CHECKING:
     from src.entities.entity import Entity
+
+
+logger = logging.getLogger(__name__)
 
 
 class ActorAnimationHandler(Handler):
@@ -118,8 +122,8 @@ class ActorAnimationHandler(Handler):
                         for anim_node in anim_model.findAllMatches("**/+AnimBundleNode"):
                             anim_node.node().getBundle().setName(anim_name)
                         anim_model.reparentTo(self.visual_pivot)
-                    except Exception:
-                        pass
+                    except (IOError, OSError):
+                        logger.warning("Failed to load animation '%s' from %s.", anim_name, full_anim_path, exc_info=True)
 
                 autoBind(self.visual_pivot.node(), self.anim_controls, ~0)
 
