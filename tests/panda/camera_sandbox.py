@@ -13,7 +13,7 @@ Provides a physical test course to evaluate camera handlers in isolation:
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
-from panda3d.core import Vec3
+from panda3d.core import KeyboardButton, Vec3
 
 from ..__test import Test
 from src.entities.entity import Entity
@@ -58,6 +58,8 @@ class TestFirstPersonCameraSandbox(Test):
         self._console_interval: float = 1.0
 
         self._task_name: str = "camera_fp_sandbox_update_task"
+        self._toggle_btn = KeyboardButton.ascii_key("v")
+        self._toggle_was_down: bool = False
 
     def on_start(self) -> None:
         """Initialize environment, player entity, camera handlers, controls, and telemetry."""
@@ -71,7 +73,6 @@ class TestFirstPersonCameraSandbox(Test):
 
         if self.base is not None and hasattr(self.base, "accept"):
             self.base.accept("f12", self._toggle_physics_debug)
-            self.base.accept("v", self._toggle_camera_mode)
 
         self._setup_osd()
         Tasks.add_task(self._task_name, self._on_frame_update)
@@ -270,9 +271,25 @@ class TestFirstPersonCameraSandbox(Test):
         state = "ENABLED" if active else "DISABLED"
         self.p(f"[Physics Debug] Bullet Wireframe {state}", color="cyan", bold=True)
 
+    def _poll_camera_toggle(self) -> None:
+        """Poll the V key with edge detection and toggle camera mode on a new press."""
+        watcher = None
+        if self.base is not None:
+            node = getattr(self.base, "mouseWatcherNode", None)
+            if node is not None and hasattr(node, "is_button_down"):
+                watcher = node
+        if watcher is None:
+            return
+
+        is_down = watcher.is_button_down(self._toggle_btn)
+        if is_down and not self._toggle_was_down:
+            self._toggle_camera_mode()
+        self._toggle_was_down = is_down
+
     def _on_frame_update(self, task: Any) -> int:
         """Per-frame update driving scene entities and telemetry."""
         dt = GlobalClock.get_dt() if hasattr(GlobalClock, "get_dt") else 0.016
+        self._poll_camera_toggle()
         self.on_update(dt)
         self._update_telemetry(task.time)
         return task.cont
@@ -341,6 +358,7 @@ class TestFirstPersonCameraSandbox(Test):
         self.input_handler = None
         self.fp_handler = None
         self.tp_handler = None
+        self._toggle_was_down = False
 
         GlobalLights.clear_lights()
         super().on_stop()
