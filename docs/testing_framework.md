@@ -39,7 +39,7 @@ Environment setup (ground planes, lighting, cameras, debug keybindings) is the r
 | `tests/terminal/entities.py` | `Entity` ID allocation/recycling, handler lifecycle, scene propagation. |
 | `tests/terminal/character_controller.py` | `WASDInputHandler` + `CharacterControllerHandler` (params, movement, damping, jump, leak-free detach). |
 | `tests/terminal/camera_handler.py` | `ThirdPersonCameraHandler` (spherical math, clamping, smoothing, headless safety). |
-| `tests/terminal/camera_handler.py` | `ThirdPersonCameraHandler` (spherical math, clamping, smoothing, headless safety) + `FirstPersonCameraHandler` (eye lock, view orientation, yaw/pitch clamping, controller tracking). |
+| `tests/terminal/camera_handler.py` | `ThirdPersonCameraHandler` (spherical math, clamping, smoothing, headless safety) + `FirstPersonCameraHandler` (eye lock, view orientation, yaw/pitch clamping, controller tracking, see-through protection: wall/ceiling/corner clearance, near-plane fitting on the real lens, lens restore, ignoring own capsule and triggers, smoothing validation). |
 | `tests/terminal/actor_animation.py` | `ActorAnimationHandler` (visual pivot, animation binding, locomotion states, teardown). |
 | `tests/terminal/physics_handlers.py` | `RigidBodyHandler` + `TriggerZoneHandler` (config, gravity, impulses, entity-node transform sync, enter/stay/exit edges, group filters, lifecycle leaks). |
 | `tests/terminal/model_handler.py` | `ModelHandler` (parameters, entity attachment/transforms, `GlobalLoader` template caching, per-entity instances, graceful missing asset, lifecycle leaks). |
@@ -51,7 +51,7 @@ Each suite runs via `TerminalTest`, which auto-discovers and executes all `test*
 | Suite File | Sandbox Target | Test Objectives |
 | :--- | :--- | :--- |
 | `tests/panda/character_sandbox.py` | `CharacterControllerHandler` + `ThirdPersonCameraHandler` + `ActorAnimationHandler` | Walking, stairs (0.2m–0.6m), ramps (15°/30°/45°), jumping, camera orbit, animation states, OSD telemetry, F12 wireframe. |
-| `tests/panda/camera_sandbox.py` | `FirstPersonCameraHandler` + `ThirdPersonCameraHandler` + `CharacterControllerHandler` | Eye-locked first-person look, orientation reference corridor, near-wall contrast (FP has no spring-arm clipping), live `V` toggle between FP/TP, OSD telemetry, F12 wireframe. |
+| `tests/panda/camera_sandbox.py` | `FirstPersonCameraHandler` + `ThirdPersonCameraHandler` + `CharacterControllerHandler` | Eye-locked first-person look, orientation reference corridor, near-wall contrast and sticky wall to verify FP never sees through geometry, live `V` toggle between FP/TP, OSD telemetry, F12 wireframe. |
 | `tests/panda/physics.py` | `Physics` world | Static/dynamic rigid body collision (falling cube on static base). |
 | `tests/panda/models.py` | `GlobalLoader` | Loading Panda3D default models and glTF Actor with animations. |
 | `tests/panda/triggers_sandbox.py` | `TriggerZoneHandler` + `RigidBodyHandler` + `CharacterControllerHandler` | Enter/stay/exit/rejected events, group filters (PLAYER vs ENEMY), oscillating body transform sync, OSD counters, F12 wireframe. |
