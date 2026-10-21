@@ -3,17 +3,28 @@ from __future__ import annotations
 import builtins
 import logging
 import math
-from typing import TYPE_CHECKING
-from panda3d.core import MouseButton, NodePath, Vec3, WindowProperties
+from typing import TYPE_CHECKING, Any
+from panda3d.core import Camera as CameraNode
+from panda3d.core import Lens, MouseButton, NodePath, Vec3, WindowProperties
 
 from src.handlers.base import Handler
 from src.handlers.physics.character import CharacterControllerHandler
+from src.handlers.physics.groups import CameraCollision
 
 if TYPE_CHECKING:
     from src.entities.entity import Entity
 
 
 logger = logging.getLogger(__name__)
+
+_MIN_COLLISION_RADIUS: float = 0.02
+_MIN_NEAR_PLANE: float = 0.005
+_CAPSULE_RADIUS_FRACTION: float = 0.9
+_MAX_RADIUS_RETRIES: int = 6
+_START_PENETRATION_EPS: float = 1e-3
+_DEFAULT_EXTENT_FACTOR: float = 1.8
+_NEAR_SAFETY: float = 1.1
+_SMOOTH_SNAP_DISTANCE: float = 5.0
 
 
 class FirstPersonCameraHandler(Handler):
@@ -31,11 +42,35 @@ class FirstPersonCameraHandler(Handler):
         invert_yaw: bool = False,
         invert_pitch: bool = False,
         collision_enabled: bool = True,
-        collision_margin: float = 0.15,
+        collision_margin: float = 0.2,
         hide_self: bool = True,
         near_plane: float = 0.1,
         far_plane: float = 1000.0,
+        smooth_factor: float = 0.0,
+        pivot_offset: Vec3 | None = None,
     ) -> None:
+        """Create a FirstPersonCameraHandler.
+
+        Parameters
+        ----------
+        collision_margin: float
+            Radius (world units) of the sphere swept from the body pivot to the eye.
+            It is capped to 90% of the character capsule radius so it always fits
+            inside the body, and the near plane is automatically reduced to fit
+            inside it, so the view can never see through geometry the eye touches.
+        near_plane: float
+            Desired near plane distance, applied to the real camera lens.
+        far_plane: float
+            Far plane distance, applied to the real camera lens.
+        smooth_factor: float
+            Optional position smoothing in [0, 1] applied to the eye before
+            collision resolution (frame-rate independent, relative to 60 FPS).
+            ``0`` (default) locks the eye rigidly to the character.
+        pivot_offset: Vec3 | None
+            Offset from the body position where the collision sweep starts. It must be
+            inside the character. Defaults to the capsule centre when a
+            ``CharacterControllerHandler`` is attached, otherwise half of ``eye_offset``.
+        """
         super().__init__()
         self.eye_offset: Vec3 = Vec3(eye_offset)
 
@@ -48,10 +83,16 @@ class FirstPersonCameraHandler(Handler):
         self.invert_yaw: bool = invert_yaw
         self.invert_pitch: bool = invert_pitch
         self.collision_enabled: bool = collision_enabled
-        self.collision_margin: float = float(collision_margin)
+        self.collision_margin: float = float(max(collision_margin, 0.0))
         self.hide_self: bool = hide_self
-        self.near_plane: float = float(near_plane)
+        self.near_plane: float = float(max(near_plane, _MIN_NEAR_PLANE))
         self.far_plane: float = float(far_plane)
+        self.pivot_offset: Vec3 | None = Vec3(pivot_offset) if pivot_offset is not None else None
+
+        self.smooth_factor: float = float(min(max(smooth_factor, 0.0), 1.0))
+        self._smoothed_eye: Vec3 | None = None
+        self._effective_radius: float | None = None
+        self._saved_near_far: tuple[float, float] | None = None
         self._hidden_nodes: list[NodePath] = []
 
         self._camera_node: NodePath | None = camera
@@ -202,90 +243,189 @@ class FirstPersonCameraHandler(Handler):
         fz = math.sin(pitch_rad)
         return Vec3(fx, fy, fz)
 
+    def _get_controller(self) -> CharacterControllerHandler | None:
+        """Return the entity's character controller handler, if any."""
+        if self.entity is None:
+            return None
+        return self.entity.get_handler(CharacterControllerHandler)
+
+    def get_pivot_pos(self) -> Vec3:
+        """Return the world-space point from which the eye sphere is swept.
+
+        The pivot must always be a free position that is *inside* the character
+        (its capsule centre), so the sweep towards the eye can only be blocked
+        by world geometry between the body and the head, never by the body itself.
+        """
+        body = self.get_body_pos()
+        if self.pivot_offset is not None:
+            return body + self.pivot_offset
+        if self._get_controller() is not None:
+            return body
+        return body + self.eye_offset * 0.5
+
     def get_eye_pos(self) -> Vec3:
-        eye_pos = self.get_target_pos()
-        return self._resolve_collision(eye_pos)
+        """Return the collision-safe eye position for the current frame (no smoothing)."""
+        return self._resolve_collision(self.get_target_pos())
+
+    def _get_physics(self) -> Any:
+        """Retrieve physics world from Service Locator, falling back to global Physics."""
+        try:
+            from src.services import services
+            from src.globals.physics import Physics
+
+            return services.get("physics", default=Physics)
+        except ImportError:
+            from src.globals.physics import Physics
+
+            return Physics
+
+    def _get_collision_radius(self) -> float:
+        """Radius of the sphere that represents the camera's near-plane volume.
+
+        ``collision_margin`` is capped to a fraction of the controller's capsule
+        radius so the sweep sphere always fits inside the body at its pivot.
+        """
+        radius = max(self.collision_margin, _MIN_COLLISION_RADIUS)
+        ctrl = self._get_controller()
+        if ctrl is not None:
+            radius = min(radius, max(ctrl.radius * _CAPSULE_RADIUS_FRACTION, _MIN_COLLISION_RADIUS))
+        return radius
 
     def _resolve_collision(self, eye_pos: Vec3) -> Vec3:
+        """Return the closest valid eye position along the pivot -> `eye_pos` path.
+
+        A single sphere sweep from the pivot (inside the body) to the desired eye
+        replaces ad-hoc ray checks: the sphere has the volume of the camera's near
+        plane, so walls, corners, floors and ceilings are all handled uniformly and
+        the returned position is guaranteed to be free of world geometry. The
+        radius actually used is stored so the near plane can be fitted inside it
+        (see ``_get_effective_near``).
+        """
         if not self.collision_enabled:
-            return eye_pos
+            self._effective_radius = None
+            return Vec3(eye_pos)
 
-        from src.globals.physics import Physics
+        physics = self._get_physics()
+        pivot = self.get_pivot_pos()
+        path = eye_pos - pivot
+        length = path.length()
+        radius = self._get_collision_radius()
+        if length < 1e-6:
+            self._effective_radius = radius
+            return Vec3(eye_pos)
 
-        base_pos = self.get_body_pos()
-        adjusted = Vec3(eye_pos)
+        for _ in range(_MAX_RADIUS_RETRIES):
+            hit = physics.sweep_sphere_closest(pivot, eye_pos, radius, CameraCollision.QUERY_MASK)
+            if hit is None:
+                self._effective_radius = radius
+                return Vec3(eye_pos)
+            fraction = hit[0]
+            if fraction * length > _START_PENETRATION_EPS:
+                self._effective_radius = radius
+                return pivot + path * fraction
+            # The sphere already overlaps geometry at the pivot: shrink and retry.
+            radius *= 0.5
 
-        # Raycast desde el cuerpo hacia el ojo: detecta si el ojo atraviesa
-        # una pared al pegarse a ella (ver a través de la geometría).
-        offset = eye_pos - base_pos
-        dist = offset.length()
-        if dist > 1e-6:
-            direction = offset / dist
-            hit = Physics.raycast_closest(base_pos, eye_pos, step_physics=False)
-            if hit is not None:
-                hit_pos, _ = hit
-                hit_dist = (hit_pos - base_pos).length()
-                clamped_dist = max(0.0, hit_dist - self.collision_margin)
-                if clamped_dist < dist:
-                    adjusted = base_pos + direction * clamped_dist
+        # Squeezed into geometry even with a tiny sphere: stay at the pivot (inside the body).
+        self._effective_radius = radius
+        return Vec3(pivot)
 
-        # Raycast desde el ojo hacia atrás: detecta si el ojo ya está dentro
-        # de geometría (por ejemplo, al encajar contra una pared). Si es así,
-        # empuja la cámara hacia adelante hasta quedar fuera del volumen.
-        backward_dir = -self.get_forward_vector()
-        probe_dist = self.collision_margin + 0.05
-        hit2 = Physics.raycast_closest(
-            adjusted, adjusted + backward_dir * probe_dist, step_physics=False
-        )
-        if hit2 is not None:
-            hit_pos, _ = hit2
-            hit_dist = (hit_pos - adjusted).length()
-            if hit_dist < probe_dist:
-                push_dir = self.get_forward_vector()
-                adjusted = adjusted + push_dir * (probe_dist - hit_dist)
+    def _get_lens(self) -> Lens | None:
+        """Return the real lens used to render the view, or None when headless.
 
-        # Detección de "cámara dentro de volumen": dispara rayos desde el ojo
-        # en varias direcciones. Si alguno choca casi inmediatamente, el ojo
-        # está dentro de geometría; empujamos hacia el centro del cuerpo para
-        # salir del volumen.
-        if dist > 1e-6:
-            body_dir = (base_pos - adjusted).normalized()
-            for d in (
-                body_dir,
-                Vec3(1, 0, 0),
-                Vec3(-1, 0, 0),
-                Vec3(0, 1, 0),
-                Vec3(0, -1, 0),
-                Vec3(0, 0, 1),
-                Vec3(0, 0, -1),
-            ):
-                probe = Physics.raycast_closest(
-                    adjusted, adjusted + d * probe_dist, step_physics=False
-                )
-                if probe is None:
-                    continue
-                hit_pos, _ = probe
-                hit_dist2 = (hit_pos - adjusted).length()
-                if hit_dist2 < self.collision_margin + 1e-4:
-                    # Estamos dentro: empujar en dirección opuesta al golpe
-                    push = adjusted - hit_pos
-                    pd = push.length()
-                    if pd > 1e-6:
-                        push.normalize()
-                        adjusted += push * (self.collision_margin + 2e-4 - pd)
+        ``base.camera`` is only a transform node; the lens lives on the ``Camera``
+        node underneath it (``base.cam``) and is shared with ``base.camLens``.
+        """
+        cam = self.get_camera_node()
+        if cam is not None and not cam.isEmpty():
+            node = cam.node()
+            if isinstance(node, CameraNode):
+                return node.getLens()
+            child = cam.find("**/+Camera")
+            if not child.isEmpty():
+                return child.node().getLens()
 
-        return adjusted
+        base = getattr(builtins, "base", None)
+        return getattr(base, "camLens", None) if base is not None else None
 
-    def apply_view(self) -> None:
-        eye_pos = self.get_eye_pos()
+    @staticmethod
+    def _get_frustum_extent_factor(lens: Lens | None) -> float:
+        """Return the distance from the eye to the near-plane corners divided by ``near``."""
+        if lens is None:
+            return _DEFAULT_EXTENT_FACTOR
+        fov = lens.getFov()
+        half_h = math.radians(min(max(fov[0], 1.0), 170.0) / 2.0)
+        half_v = math.radians(min(max(fov[1], 1.0), 170.0) / 2.0)
+        return math.sqrt(1.0 + math.tan(half_h) ** 2 + math.tan(half_v) ** 2)
+
+    def _get_effective_near(self, lens: Lens | None) -> float:
+        """Near plane distance, reduced when needed so it fits inside the collision sphere.
+
+        Every point of the near-plane rectangle is at most ``near * extent_factor``
+        from the eye. Keeping that below the sphere radius guarantees the visible
+        frustum never starts behind a surface the sphere has been stopped by.
+        """
+        near = self.near_plane
+        if self.collision_enabled and self._effective_radius is not None:
+            factor = self._get_frustum_extent_factor(lens) * _NEAR_SAFETY
+            near = min(near, self._effective_radius / factor)
+        return max(near, _MIN_NEAR_PLANE)
+
+    def _apply_lens(self) -> None:
+        """Push the effective near/far planes to the real lens, remembering the originals."""
+        lens = self._get_lens()
+        if lens is None:
+            return
+        if self._saved_near_far is None:
+            self._saved_near_far = (lens.getNear(), lens.getFar())
+        lens.setNearFar(self._get_effective_near(lens), self.far_plane)
+
+    def _restore_lens(self) -> None:
+        """Restore the near/far planes the lens had before this handler touched it."""
+        if self._saved_near_far is None:
+            return
+        lens = self._get_lens()
+        if lens is not None:
+            lens.setNearFar(*self._saved_near_far)
+        self._saved_near_far = None
+
+    def _smooth_eye(self, desired: Vec3, dt: float) -> Vec3:
+        """Optionally smooth the unresolved eye position (frame-rate independent).
+
+        Smoothing happens *before* collision resolution so the resolved position
+        is always validated against the geometry, whatever the interpolation does.
+        """
+        if self.smooth_factor <= 0.0 or self._smoothed_eye is None:
+            self._smoothed_eye = Vec3(desired)
+            return Vec3(desired)
+        if (desired - self._smoothed_eye).length() > _SMOOTH_SNAP_DISTANCE:
+            self._smoothed_eye = Vec3(desired)
+            return Vec3(desired)
+        keep = (1.0 - min(self.smooth_factor, 1.0)) ** (max(dt, 0.0) * 60.0)
+        self._smoothed_eye = desired + (self._smoothed_eye - desired) * keep
+        return Vec3(self._smoothed_eye)
+
+    def apply_view(self, dt: float = 1.0 / 60.0) -> None:
+        """Apply the camera transform and lens planes for this frame.
+
+        - Resolves the eye position through the sphere-sweep collision pass.
+        - Orients the camera directly from yaw/pitch (no look smoothing).
+        - Fits the near plane inside the collision sphere on the real lens.
+        - Keeps the camera parented to the render scene (headless safe).
+        """
         cam = self.get_camera_node()
         if cam is None or cam.isEmpty():
             return
-        cam.setPos(eye_pos)
-        cam.lookAt(eye_pos + self.get_forward_vector())
-        lens = cam.node()
-        if lens is not None and hasattr(lens, "setNearFar"):
-            lens.setNearFar(self.near_plane, self.far_plane)
+
+        base = getattr(builtins, "base", None)
+        render = getattr(base, "render", None) if base else None
+        if render is not None and cam.getParent() != render:
+            cam.reparentTo(render)
+
+        eye = self._resolve_collision(self._smooth_eye(self.get_target_pos(), dt))
+        cam.setPos(eye)
+        cam.lookAt(eye + self.get_forward_vector())
+        self._apply_lens()
 
     def _hide_entity_model(self) -> None:
         if not self.hide_self or self.entity is None:
@@ -377,10 +517,13 @@ class FirstPersonCameraHandler(Handler):
             else:
                 self._last_mouse_pos = None
 
-        self.apply_view()
+        self.apply_view(dt)
 
     def on_stop(self) -> None:
         self._show_entity_model()
+        self._restore_lens()
+        self._smoothed_eye = None
+        self._effective_radius = None
         base = getattr(builtins, "base", None)
         if base is not None and hasattr(base, "ignore"):
             base.ignore("tab")
