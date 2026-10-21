@@ -8,7 +8,7 @@ from src.globals.physics import Physics
 from src.handlers.base import Handler
 from src.utils.event import Event
 from .character import CharacterControllerHandler
-from .groups import CollisionGroup
+from .groups import CameraCollision, CollisionGroup
 from .rigid_body import RigidBodyHandler
 
 
@@ -76,6 +76,8 @@ class TriggerZoneHandler(Handler):
             self.ghost_node = BulletGhostNode(entity.name)
             self.ghost_node.addShape(self.shape)
             self.ghost_node.setCollisionResponse(False)
+            # Trigger volumes are not solid: camera queries must pass through them.
+            self.ghost_node.setIntoCollideMask(CameraCollision.non_blocking_mask())
         else:
             self.ghost_node.setName(entity.name)
 

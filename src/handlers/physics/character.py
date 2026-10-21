@@ -11,7 +11,7 @@ from panda3d.core import NodePath, Vec3
 from src.globals.physics import Physics
 from src.handlers.base import Handler
 from src.handlers.input.base import InputHandler
-from .groups import CollisionGroup
+from .groups import CameraCollision, CollisionGroup
 
 if TYPE_CHECKING:
     from src.entities.entity import Entity
@@ -98,6 +98,8 @@ class CharacterControllerHandler(Handler):
             )
             self.controller_node.setGravity(self.gravity)
             self.controller_node.setJumpSpeed(self.jump_speed)
+            # Camera queries must never hit the character's own capsule.
+            self.controller_node.setIntoCollideMask(CameraCollision.non_blocking_mask())
         else:
             self.controller_node.setName(entity.name)
         self.controller_node.setPythonTag("entity", entity)

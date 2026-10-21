@@ -1,11 +1,12 @@
 from panda3d.bullet import (
+    BulletSphereShape,
     BulletWorld,
     BulletRigidBodyNode,
     BulletGhostNode,
     BulletDebugNode,
     BulletCharacterControllerNode,
 )
-from panda3d.core import NodePath, Vec3, BitMask32
+from panda3d.core import NodePath, TransformState, Vec3, BitMask32
 from direct.task import Task
 
 import logging
@@ -205,6 +206,41 @@ class Physics(Global):
         hit_node = result.getNode()
         hit_np = NodePath(hit_node) if hit_node is not None else None
         return hit_pos, hit_np
+
+    @classmethod
+    def sweep_sphere_closest(
+        cls,
+        from_pos: Vec3,
+        to_pos: Vec3,
+        radius: float,
+        mask: "BitMask32 | None" = None,
+    ) -> tuple[float, Vec3, Vec3] | None:
+        """Sweep a sphere from `from_pos` to `to_pos` and return the first impact.
+
+        Returns ``(fraction, hit_pos, hit_normal)`` where ``fraction`` in [0, 1] is the
+        portion of the path travelled before touching geometry (the sphere centre is
+        ``from_pos + (to_pos - from_pos) * fraction`` at contact), or None when the
+        whole path is clear. A ``fraction`` of ~0 means the sphere already overlaps
+        geometry at its starting point. Never advances the simulation.
+        """
+        world = cls._ensure_world()
+        if mask is None:
+            mask = BitMask32.all_on()
+        shape = BulletSphereShape(max(float(radius), 1e-4))
+        result = world.sweepTestClosest(
+            shape,
+            TransformState.makePos(from_pos),
+            TransformState.makePos(to_pos),
+            mask,
+            0.0,
+        )
+        if result is None or not result.hasHit():
+            return None
+        return (
+            float(result.getHitFraction()),
+            Vec3(result.getHitPos()),
+            Vec3(result.getHitNormal()),
+        )
 
     @classmethod
     def remove_character(cls, node: BulletCharacterControllerNode) -> None:
