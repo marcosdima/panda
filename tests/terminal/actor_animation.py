@@ -262,6 +262,58 @@ class TestActorAnimation(TerminalTest):
         self.p("Lifecycle symmetry and leak prevention verified successfully.", color="green")
         self.space_line()
 
+    def test_kaykit_multi_clip_files_and_state_mapping(self) -> None:
+        self.print_subtitle("Testing KayKit multi-clip glTF loading and locomotion state mapping.")
+        entity = Entity("KayKitHero")
+        input_handler = InputHandler()
+        controller = CharacterControllerHandler(walk_speed=5.0, sprint_speed=10.0)
+        handler = ActorAnimationHandler.kaykit_rig_medium("Knight", air_threshold=0.0)
+        entity.add_handler(input_handler)
+        entity.add_handler(controller)
+        entity.add_handler(handler)
+
+        names = handler.get_anim_names()
+        for clip in ("Idle_A", "Walking_A", "Running_A", "Jump_Idle", "Interact", "PickUp"):
+            assert clip in names, f"Missing clip {clip}: {names}"
+        assert len(names) == len(set(names)), f"Duplicate clip bindings: {names}"
+        assert not any(".1" in n for n in names), f"Clips bound more than once: {names}"
+
+        entity.start()
+        assert handler.current_animation == "Idle_A"
+
+        # Walk, then sprint (grounded state is forced by a huge air threshold)
+        handler.air_threshold = 1e9
+        input_handler.set_move_vector(0.0, 1.0)
+        entity.update(0.016)
+        assert handler.current_animation == "Walking_A", handler.current_animation
+        input_handler.set_action_state("sprint", True)
+        entity.update(0.016)
+        assert handler.current_animation == "Running_A", handler.current_animation
+        input_handler.set_action_state("sprint", False)
+        input_handler.set_move_vector(0.0, 0.0)
+        for _ in range(60):
+            entity.update(0.016)
+        assert handler.current_animation == "Idle_A", handler.current_animation
+
+        # Airborne: Jump clip once the controller has been off the ground past threshold
+        handler.air_threshold = 0.05
+        controller.controller_node.isOnGround = lambda: False
+        # Small dt below threshold: should still be Idle_A
+        entity.update(0.02)
+        assert handler.current_animation == "Idle_A", handler.current_animation
+        # Accumulate air time past threshold: switches to Jump_Idle
+        entity.update(0.04)
+        assert handler.current_animation == "Jump_Idle", handler.current_animation
+        # Landing: controller is on ground again
+        controller.controller_node.isOnGround = lambda: True
+        entity.update(0.016)
+        assert handler.current_animation == "Idle_A", handler.current_animation
+
+        entity.stop()
+        entity.free()
+        self.p("KayKit multi-clip loading and state mapping verified successfully.", color="green")
+        self.space_line()
+
     def on_stop(self) -> None:
         self.print_subtitle("TestActorAnimation completed.")
 

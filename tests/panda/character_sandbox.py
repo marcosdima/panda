@@ -88,7 +88,7 @@ class TestCharacterSandbox(Test):
     def _print_controls_banner(self) -> None:
         """Print formatted ANSI startup banner with control instructions."""
         self.print_subtitle("Interactive Controls & Mechanics", color="yellow")
-        self.p(" Character:     X Bot 3D Model with animated Idle & camera-relative navigation", color="cyan", bold=True)
+        self.p(" Character:     KayKit Knight with animated Idle/Walk/Run/Jump & camera-relative navigation", color="cyan", bold=True)
         self.p(" Controls:      WASD: Move | SPACE: Jump | LSHIFT: Sprint | Mouse: Look | Tab/Esc: Cursor | Wheel: Zoom | F12: Wireframe", color="cyan", bold=True)
         self.p(" Movement:      [W, A, S, D] or Arrow Keys", color="green", bold=True)
         self.p(" Jump:          [Spacebar] (only while grounded)", color="green", bold=True)
@@ -327,14 +327,8 @@ class TestCharacterSandbox(Test):
         player.add_handler(self.camera_handler)
         player.add_handler(self.controller)
 
-        # Attach animated X Bot glTF character handler
-        self.actor_handler = ActorAnimationHandler(
-            model_path="X Bot.glb",
-            animations={"Idle": "anims/X Bot@Idle.glb"},
-            scale=100.0,
-            offset=Vec3(0.0, 0.0, -1.0),
-            hpr=Vec3(0.0, 0.0, 0.0),
-        )
+        # Attach animated KayKit Knight (shared Rig_Medium clips: Idle/Walk/Run/Jump)
+        self.actor_handler = ActorAnimationHandler.kaykit_rig_medium("Knight")
         player.add_handler(self.actor_handler)
 
         self.player = player

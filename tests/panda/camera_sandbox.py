@@ -19,6 +19,7 @@ from panda3d.core import KeyboardButton, Vec3
 from ..__test import Test
 from src.entities.entity import Entity
 from src.handlers.camera import FirstPersonCameraHandler, ThirdPersonCameraHandler
+from src.handlers.graphics import ActorAnimationHandler
 from src.handlers.input.parameter_adjust import ParameterAdjustHandler
 from src.handlers.input.wasd import WASDInputHandler
 
@@ -230,6 +231,8 @@ class TestFirstPersonCameraSandbox(Test):
         )
         player.add_handler(self.param_adjust)
         player.add_handler(self.controller)
+        # Visible body for third-person mode (first-person hides the whole entity node).
+        player.add_handler(ActorAnimationHandler.kaykit_rig_medium("Knight"))
 
         self.player = player
         self.first_person_active = True

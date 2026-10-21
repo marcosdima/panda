@@ -48,8 +48,6 @@ class WASDInputHandler(InputHandler):
         if watcher is None:
             # Gracefully handle headless mode when base.mouseWatcherNode is not present
             super().on_update(dt)
-            if not self._current_actions:
-                self.move_vector = Vec2(0.0, 0.0)
             return
 
         # Snapshot current actions before new frame input is evaluated
