@@ -7,7 +7,7 @@ from .lights import GlobalLights
 
 
 class Globals:
-    def __init__(self):
+    def __init__(self) -> None:
         self.clock = GlobalClock()
         self.tasks = Tasks()
         self.global_loader = GlobalLoader()
@@ -17,6 +17,10 @@ class Globals:
         
         # Setup default lighting
         GlobalLights.setup_default_lights()
+
+        # Register core services in Service Locator
+        from src.services.initializers import initialize_services
+        initialize_services()
 
 
 __all__ = [

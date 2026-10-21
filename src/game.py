@@ -1,8 +1,8 @@
 from direct.showbase.ShowBase import ShowBase
 
-
 from .globals import Globals
 from .scenes import Scene
+from src.services.initializers import initialize_services
 
 
 class Game(ShowBase):
@@ -11,6 +11,9 @@ class Game(ShowBase):
 
         # Set globals.
         self.globals = Globals()
+
+        # Initialize core services in Service Locator.
+        initialize_services()
 
         # Set scenes.
         self.scenes: dict[int, Scene] = {}
