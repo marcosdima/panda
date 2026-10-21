@@ -736,6 +736,196 @@ class TestCameraHandler(TerminalTest):
         self.p("First-person camera no-wall-clipping verified successfully.", color="green")
         self.space_line()
 
+    # ------------------------------------------------------------------
+    # First-person see-through protection (sphere sweep + real lens near plane)
+    # ------------------------------------------------------------------
+    def _make_static_box(self, name: str, pos: Vec3, half: Vec3, ghost: bool = False):
+        """Attach a static box (or ghost trigger) to the physics world and return its node."""
+        from panda3d.bullet import BulletBoxShape, BulletGhostNode, BulletRigidBodyNode
+        from panda3d.core import TransformState
+        from src.globals.physics import Physics
+
+        node = BulletGhostNode(name) if ghost else BulletRigidBodyNode(name)
+        if not ghost:
+            node.setMass(0.0)
+        node.addShape(BulletBoxShape(half))
+        node.setTransform(TransformState.makePos(pos))
+        if ghost:
+            Physics.get_world().attachGhost(node)
+        else:
+            Physics.get_world().attachRigidBody(node)
+        Physics.get_world().doPhysics(1e-6)
+        return node
+
+    def _remove_static_box(self, node) -> None:
+        from panda3d.bullet import BulletGhostNode
+        from src.globals.physics import Physics
+
+        if isinstance(node, BulletGhostNode):
+            Physics.get_world().removeGhost(node)
+        else:
+            Physics.get_world().removeRigidBody(node)
+
+    def _make_fp_rig(self, name: str, fov: float = 90.0, **kwargs):
+        """Create an entity with controller + FP handler driving a real Camera node with a 1.0 near plane."""
+        from panda3d.core import Camera as CameraNode, PerspectiveLens
+
+        entity = Entity(name)
+        controller = CharacterControllerHandler(radius=0.5, height=1.0)
+        lens = PerspectiveLens()
+        lens.setFov(fov)
+        lens.setNearFar(1.0, 100000.0)  # Panda's default: the value that caused see-through walls
+        cam_np = NodePath(CameraNode(f"{name}_cam"))
+        cam_np.node().setLens(lens)
+        handler = FirstPersonCameraHandler(eye_offset=Vec3(0.0, 0.0, 1.2), camera=cam_np, **kwargs)
+        entity.add_handler(controller)
+        entity.add_handler(handler)
+        entity.start()
+        handler.set_pointer_captured(False)
+        return entity, controller, handler, cam_np, lens
+
+    def _near_plane_corners(self, cam_np, lens) -> list[Vec3]:
+        """Return the four near-plane corners in the camera's parent space."""
+        from panda3d.core import Point2, Point3
+
+        corners = []
+        for x in (-1.0, 1.0):
+            for y in (-1.0, 1.0):
+                near_pt, far_pt = Point3(), Point3()
+                assert lens.extrude(Point2(x, y), near_pt, far_pt)
+                corners.append(Vec3(cam_np.getMat().xformPoint(near_pt)))
+        return corners
+
+    def test_first_person_pressed_against_wall_never_sees_through(self):
+        self.print_subtitle("Testing FP camera cannot see through a wall it is pressed against.")
+        wall = self._make_static_box("fp_press_wall", Vec3(0.0, 1.0, 0.0), Vec3(6.0, 0.2, 6.0))
+        entity, controller, handler, cam_np, lens = self._make_fp_rig("FPPressHero")
+        controller.controller_np.setPos(0.0, 0.3, 0.0)  # capsule surface touches the wall at y=0.8
+
+        wall_surface = 0.8
+        for yaw in (0.0, 45.0, 90.0, 180.0, 270.0, 315.0):
+            for pitch in (-80.0, -30.0, 0.0, 30.0, 80.0):
+                handler.yaw = yaw
+                handler.pitch = pitch
+                entity.update(0.016)
+                assert lens.getNear() < 1.0, "near plane was never applied to the real lens"
+                for corner in self._near_plane_corners(cam_np, lens):
+                    assert corner.y < wall_surface - 1e-3, (
+                        f"Near plane crosses wall (yaw={yaw}, pitch={pitch}): corner.y={corner.y:.4f}"
+                    )
+
+        entity.stop()
+        entity.free()
+        self._remove_static_box(wall)
+        self.p("FP camera pressed against a wall never sees through it.", color="green")
+        self.space_line()
+
+    def test_first_person_ceiling_and_corner_clearance(self):
+        self.print_subtitle("Testing FP eye clearance below a low ceiling and around a pillar corner.")
+        ceiling = self._make_static_box("fp_low_ceiling", Vec3(0.0, 0.0, 1.3), Vec3(4.0, 4.0, 0.2))  # underside z=1.1
+        pillar = self._make_static_box("fp_corner_pillar", Vec3(1.0, 1.0, 0.0), Vec3(0.5, 0.5, 5.0))
+        entity, controller, handler, cam_np, lens = self._make_fp_rig("FPCeilingHero")
+        controller.controller_np.setPos(0.0, 0.0, 0.0)
+
+        # Eye would sit at z=1.2 (inside the ceiling): it must be pulled below the underside.
+        for pitch in (-60.0, 0.0, 60.0):
+            handler.pitch = pitch
+            handler.yaw = 0.0
+            entity.update(0.016)
+            for corner in self._near_plane_corners(cam_np, lens):
+                assert corner.z < 1.1 - 1e-3, f"Near plane pokes through ceiling: z={corner.z:.4f}"
+        assert cam_np.getZ() < 1.1 - 1e-3, f"Eye inside ceiling: z={cam_np.getZ():.4f}"
+
+        # Moving the body diagonally against the pillar corner must keep the near plane outside it.
+        self._remove_static_box(ceiling)
+        controller.controller_np.setPos(0.4, 0.4, 0.0)  # corner at (0.5, 0.5): capsule overlaps by design of the test
+        controller.controller_np.setPos(0.1, 0.1, 0.0)
+        for yaw in (0.0, 45.0, 90.0, 135.0, 225.0, 315.0):
+            handler.yaw = yaw
+            handler.pitch = 0.0
+            entity.update(0.016)
+            for corner in self._near_plane_corners(cam_np, lens):
+                inside = 0.5 < corner.x < 1.5 and 0.5 < corner.y < 1.5
+                assert not inside, f"Near plane corner inside pillar (yaw={yaw}): {corner}"
+
+        entity.stop()
+        entity.free()
+        self._remove_static_box(pillar)
+        self.p("FP ceiling and corner clearance verified successfully.", color="green")
+        self.space_line()
+
+    def test_first_person_ignores_own_capsule_and_triggers(self):
+        self.print_subtitle("Testing FP collision ignores the player's capsule and trigger volumes.")
+        from panda3d.bullet import BulletBoxShape
+        from src.globals.physics import Physics
+        from src.handlers.physics.trigger_zone import TriggerZoneHandler
+
+        trigger_entity = Entity("FPTriggerZone")
+        trigger_entity.node.setPos(0.0, 0.0, 1.0)
+        trigger_entity.add_handler(TriggerZoneHandler(BulletBoxShape(Vec3(3.0, 3.0, 3.0))))
+        trigger_entity.start()
+        Physics.get_world().doPhysics(1e-6)
+        entity, controller, handler, cam_np, lens = self._make_fp_rig("FPFreeHero")
+        controller.controller_np.setPos(0.0, 0.0, 0.0)
+
+        entity.update(0.016)
+        expected = Vec3(0.0, 0.0, 1.2)
+        assert (cam_np.getPos() - expected).length() < 1e-4, (
+            f"Eye should be free of own capsule and trigger, got {cam_np.getPos()}"
+        )
+        # In free space the requested near plane is only limited by the collision sphere.
+        assert 0.0 < lens.getNear() <= handler.near_plane + 1e-6
+
+        entity.stop()
+        entity.free()
+        trigger_entity.stop()
+        trigger_entity.free()
+        self.p("FP ignores own capsule and trigger volumes.", color="green")
+        self.space_line()
+
+    def test_first_person_oversized_margin_and_lens_restore(self):
+        self.print_subtitle("Testing FP robustness with oversized margin and lens restoration on stop.")
+        wall = self._make_static_box("fp_margin_wall", Vec3(0.0, 1.0, 0.0), Vec3(6.0, 0.2, 6.0))
+        entity, controller, handler, cam_np, lens = self._make_fp_rig("FPMarginHero", collision_margin=5.0)
+        controller.controller_np.setPos(0.0, 0.3, 0.0)
+
+        handler.yaw = 0.0
+        entity.update(0.016)
+        eye = cam_np.getPos()
+        assert eye.y < 0.8 - 1e-3, f"Oversized margin pushed the eye into the wall: {eye}"
+        assert (eye - controller.controller_np.getPos()).length() > 0.5, "Eye collapsed into the body pivot"
+        for corner in self._near_plane_corners(cam_np, lens):
+            assert corner.y < 0.8 - 1e-3
+
+        entity.stop()
+        assert abs(lens.getNear() - 1.0) < 1e-6, f"Lens near not restored: {lens.getNear()}"
+        assert abs(lens.getFar() - 100000.0) < 1e-3, f"Lens far not restored: {lens.getFar()}"
+
+        entity.free()
+        self._remove_static_box(wall)
+        self.p("FP oversized margin handled and lens restored.", color="green")
+        self.space_line()
+
+    def test_first_person_smoothing_is_validated_against_geometry(self):
+        self.print_subtitle("Testing FP position smoothing never lets the eye enter geometry.")
+        wall = self._make_static_box("fp_smooth_wall", Vec3(0.0, 1.0, 0.0), Vec3(6.0, 0.2, 6.0))
+        entity, controller, handler, cam_np, lens = self._make_fp_rig("FPSmoothHero", smooth_factor=0.1)
+        handler.yaw = 0.0
+        controller.controller_np.setPos(0.0, -3.0, 0.0)
+        entity.update(0.016)
+
+        # Teleport-like fast approach: smoothed eye lags, but is always validated.
+        for i in range(30):
+            controller.controller_np.setPos(0.0, -3.0 + i * 0.12, 0.0)  # ends at y=0.48 (inside wall zone)
+            entity.update(0.016)
+            assert cam_np.getY() < 0.8 - 1e-3, f"Frame {i}: eye reached the wall, y={cam_np.getY():.4f}"
+
+        entity.stop()
+        entity.free()
+        self._remove_static_box(wall)
+        self.p("FP smoothing validated against geometry.", color="green")
+        self.space_line()
+
     def on_stop(self):
         self.print_subtitle("TestCameraHandler completed.")
 

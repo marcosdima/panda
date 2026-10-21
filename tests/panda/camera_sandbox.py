@@ -2,8 +2,9 @@
 
 Provides a physical test course to evaluate camera handlers in isolation:
 - Static ground plane with a colored reference corridor (pillars, blocks, wall)
-- A near wall to demonstrate that first-person mode has no spring-arm clipping
-  while third-person mode keeps a collision-aware orbiting camera
+- A near wall to demonstrate that first-person mode never sees through geometry
+  (sphere-sweep eye collision + near plane fitted on the real lens) while
+  third-person mode keeps a collision-aware orbiting camera
 - Player entity driven by WASDInputHandler and CharacterControllerHandler
 - Live toggle between FirstPersonCameraHandler and ThirdPersonCameraHandler (V)
 - Telemetry OSD / terminal output and F12 Bullet wireframe toggling
@@ -18,7 +19,9 @@ from panda3d.core import KeyboardButton, Vec3
 from ..__test import Test
 from src.entities.entity import Entity
 from src.handlers.camera import FirstPersonCameraHandler, ThirdPersonCameraHandler
+from src.handlers.input.parameter_adjust import ParameterAdjustHandler
 from src.handlers.input.wasd import WASDInputHandler
+
 from src.handlers.physics.character import CharacterControllerHandler
 
 from src.globals.clock import GlobalClock
@@ -91,8 +94,9 @@ class TestFirstPersonCameraSandbox(Test):
         self.space_line()
         self.p("Test Course Layout:", color="cyan", bold=True)
         self.p(" - Colored pillars at increasing distance: eye-lock & orientation check", color="cyan")
-        self.p(" - Near wall ahead: third-person spring-arm clips around it, first-person walks through", color="cyan")
-        self.p(" - Sticky wall near start: walk up to it to verify camera never clips into the player (owner_min_distance)", color="cyan")
+        self.p(" - Near wall ahead: third-person spring-arm shortens against it, first-person eye stops at it", color="cyan")
+        self.p(" - Sticky wall near start: press against it (look at it from every yaw/pitch, also with F12 on): FP must never see through, TP must never clip into the player", color="cyan")
+        self.p(" - Low-clearance check: collision_margin can be tuned with +/- (sphere radius, capped to the capsule radius)", color="cyan")
         self.p(" - Raised blocks: pitch look down/up reference", color="cyan")
         self.space_line()
 
@@ -216,6 +220,15 @@ class TestFirstPersonCameraSandbox(Test):
 
         player.add_handler(self.input_handler)
         player.add_handler(self.fp_handler)
+        # Runtime adjustable collision margin via '+' and '-' keys
+        self.param_adjust = ParameterAdjustHandler(
+            target=self.fp_handler,
+            attribute_name="collision_margin",
+            step=0.1,
+            min_value=0.0,
+            max_value=5.0,
+        )
+        player.add_handler(self.param_adjust)
         player.add_handler(self.controller)
 
         self.player = player
@@ -231,6 +244,7 @@ class TestFirstPersonCameraSandbox(Test):
         captured = outgoing.is_pointer_captured
 
         if first_person:
+            # Switch to first‑person handler
             if self.player.get_handler(ThirdPersonCameraHandler) is self.tp_handler:
                 self.player.remove_handler(self.tp_handler)
             if self.player.get_handler(FirstPersonCameraHandler) is None:
@@ -239,6 +253,7 @@ class TestFirstPersonCameraSandbox(Test):
                 self.player.add_handler(self.fp_handler)
             self.fp_handler.set_pointer_captured(captured)
         else:
+            # Switch to third‑person handler
             if self.player.get_handler(FirstPersonCameraHandler) is self.fp_handler:
                 self.player.remove_handler(self.fp_handler)
             if self.player.get_handler(ThirdPersonCameraHandler) is None:
