@@ -123,6 +123,18 @@ class Entity:
         """Alias for on_update."""
         self.on_update(dt)
 
+    def on_post_update(self, dt: float) -> None:
+        """Post-physics update for all enabled handlers attached to this entity."""
+        if not self._started or self._freed:
+            return
+        for handler in list(self._handlers):
+            if handler.is_enabled:
+                handler.on_post_update(dt)
+
+    def update_post(self, dt: float) -> None:
+        """Alias for on_post_update."""
+        self.on_post_update(dt)
+
     def on_stop(self) -> None:
         """Stop the entity and notify all attached handlers."""
         if not self._started:

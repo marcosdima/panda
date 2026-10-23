@@ -1,11 +1,16 @@
 from direct.showbase.ShowBase import ShowBase
 
-from .globals import Globals
+from .globals import Globals, GlobalClock
 from .scenes import Scene
 from src.services.initializers import initialize_services
 
 
 class Game(ShowBase):
+    UPDATE_TASK_NAME = "game_scene_update"
+    UPDATE_TASK_SORT = -5
+    POST_UPDATE_TASK_NAME = "game_post_update"
+    POST_UPDATE_TASK_SORT = 1
+
     def __init__(self) -> None:
         super().__init__()
 
@@ -19,13 +24,22 @@ class Game(ShowBase):
         self.scenes: dict[int, Scene] = {}
         self.main_scene: Scene | None = None
 
-    
+        # Centralized per-frame scene update (runs before scene-specific tasks).
+        self.paused: bool = False
+        self._update_task = self.taskMgr.add(
+            self._update_main_scene, self.UPDATE_TASK_NAME, sort=self.UPDATE_TASK_SORT
+        )
+        self._post_update_task = self.taskMgr.add(
+            self._post_update_main_scene,
+            self.POST_UPDATE_TASK_NAME,
+            sort=self.POST_UPDATE_TASK_SORT,
+        )
+
     def add_scene(self, scene: Scene, set_as_main: bool = False) -> None:
         ''' Add a scene to the game. '''
         self.scenes[scene.id] = scene
         if set_as_main:
             self.set_main_scene(scene.id)
-
 
     def set_main_scene(self, scene_id: int) -> None:
         ''' Set the main scene by its ID. '''
@@ -38,5 +52,20 @@ class Game(ShowBase):
             self.main_scene = self.scenes[scene_id]
             self.main_scene.on_start()
 
+    def set_paused(self, paused: bool) -> None:
+        ''' Pause or resume the per-frame update of the main scene. '''
+        self.paused = paused
 
+    def _update_main_scene(self, task) -> int:
+        ''' Dispatch on_update(dt) to the active scene unless the game is paused. '''
+        scene = self.main_scene
+        if not self.paused and scene is not None and scene.is_started:
+            scene.on_update(GlobalClock.get_dt())
+        return task.cont
 
+    def _post_update_main_scene(self, task) -> int:
+        ''' Dispatch on_post_update(dt) to the active scene unless the game is paused. '''
+        scene = self.main_scene
+        if not self.paused and scene is not None and scene.is_started:
+            scene.on_post_update(GlobalClock.get_dt())
+        return task.cont

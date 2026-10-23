@@ -14,6 +14,8 @@ from src.globals.camera import Camera
 from src.globals.lights import GlobalLights
 from src.globals.tasks import Tasks
 from src.globals.clock import GlobalClock
+# Engine-wide event bus (owner-less / cross-entity communication).
+from src.utils import bus
 
 def initialize_services() -> None:
     """Register core engine services.
@@ -27,3 +29,4 @@ def initialize_services() -> None:
     services.register("lights", GlobalLights)
     services.register("tasks", Tasks)
     services.register("clock", GlobalClock)
+    services.register("events", bus)

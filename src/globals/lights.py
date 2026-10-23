@@ -1,4 +1,4 @@
-from panda3d.core import AmbientLight, DirectionalLight, Vec3, NodePath
+from panda3d.core import AmbientLight, DirectionalLight, NodePath
 from .__global import Global
 
 
