@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import Enum
 import math
 from typing import TYPE_CHECKING, Any
 from panda3d.bullet import (
@@ -10,11 +11,26 @@ from panda3d.core import NodePath, Vec3
 
 from src.globals.physics import Physics
 from src.handlers.base import Handler
+from src.utils.math import clamp, normalize_angle
 from src.handlers.input.base import InputHandler
+from src.handlers.input.action_map import JUMP, SPRINT
 from .groups import CameraCollision, CollisionGroup
 
 if TYPE_CHECKING:
     from src.entities.entity import Entity
+
+
+class CharacterOrientationMode(str, Enum):
+    """Visual rotation mode for the character controller.
+
+    - MOVE_DIRECTION: Character rotates to face the direction of movement (Adventure / RPG style).
+    - CAMERA_LOOK: Character rotates to face the horizontal look direction of the camera (Shooter / Strafe style).
+    - NONE: Character visual node does not rotate automatically.
+    """
+
+    MOVE_DIRECTION = "move_direction"
+    CAMERA_LOOK = "camera_look"
+    NONE = "none"
 
 
 class _CharacterControllerNode(BulletCharacterControllerNode):
@@ -43,6 +59,8 @@ class CharacterControllerHandler(Handler):
         acceleration: float = 0.0,
         deceleration: float = 0.0,
         collision_group: CollisionGroup = CollisionGroup.DEFAULT,
+        orientation_mode: CharacterOrientationMode | str = CharacterOrientationMode.MOVE_DIRECTION,
+        body_follows_camera_yaw: bool | None = None,
     ) -> None:
         super().__init__()
         self.radius: float = radius
@@ -59,12 +77,34 @@ class CharacterControllerHandler(Handler):
         self.deceleration: float = float(deceleration)
         self.collision_group: CollisionGroup = collision_group
 
+        if body_follows_camera_yaw is not None:
+            self.orientation_mode: CharacterOrientationMode = (
+                CharacterOrientationMode.CAMERA_LOOK
+                if body_follows_camera_yaw
+                else CharacterOrientationMode.MOVE_DIRECTION
+            )
+        elif isinstance(orientation_mode, str):
+            self.orientation_mode = CharacterOrientationMode(orientation_mode)
+        else:
+            self.orientation_mode = orientation_mode
+
         # Uses BulletCapsuleShape(radius, height, 2) (Z-up axis)
         self.shape: BulletCapsuleShape = BulletCapsuleShape(self.radius, self.height, 2)
         self.controller_node: BulletCharacterControllerNode | None = None
         self.controller_np: NodePath | None = None
         self._linear_velocity: Vec3 = Vec3(0.0, 0.0, 0.0)
         self._is_attached_to_world: bool = False
+
+    @property
+    def body_follows_camera_yaw(self) -> bool:
+        """Backwards compatibility alias: True if orientation_mode is CAMERA_LOOK."""
+        return self.orientation_mode == CharacterOrientationMode.CAMERA_LOOK
+
+    @body_follows_camera_yaw.setter
+    def body_follows_camera_yaw(self, value: bool) -> None:
+        self.orientation_mode = (
+            CharacterOrientationMode.CAMERA_LOOK if value else CharacterOrientationMode.MOVE_DIRECTION
+        )
 
     @property
     def visual_node(self) -> NodePath | None:
@@ -141,7 +181,7 @@ class CharacterControllerHandler(Handler):
         is_local = True
         # Read movement vector, scale by current speed (walk vs sprint)
         if input_handler is not None:
-            is_sprinting = input_handler.is_action_down("sprint")
+            is_sprinting = input_handler.is_action_down(SPRINT)
             current_speed = self.sprint_speed if is_sprinting else self.walk_speed
             move_vec = input_handler.move_vector
 
@@ -174,8 +214,8 @@ class CharacterControllerHandler(Handler):
                 target_velocity = Vec3(move_vec.x * current_speed, move_vec.y * current_speed, 0.0)
                 is_local = True
 
-            # If "jump" is triggered and controller_node.isOnGround(), triggers controller_node.jump()
-            if input_handler.is_action_pressed("jump") and self.controller_node.isOnGround():
+            # If the jump action is triggered and controller_node.isOnGround(), triggers controller_node.jump()
+            if input_handler.is_action_pressed(JUMP) and self.controller_node.isOnGround():
                 if hasattr(self.controller_node, "jump"):
                     self.controller_node.jump()
                 else:
@@ -191,7 +231,7 @@ class CharacterControllerHandler(Handler):
                 or target_velocity.length_squared() < self._linear_velocity.length_squared()
             )
             rate = self.deceleration if is_braking else self.acceleration
-            step = min(1.0, max(0.0, dt * rate))
+            step = clamp(dt * rate, 0.0, 1.0)
             self._linear_velocity = self._linear_velocity + (target_velocity - self._linear_velocity) * step
             if target_velocity.length_squared() < 1e-6 and self._linear_velocity.length_squared() < 1e-6:
                 self._linear_velocity = Vec3(0.0, 0.0, 0.0)
@@ -201,18 +241,31 @@ class CharacterControllerHandler(Handler):
         # Apply controller_node.setLinearMovement
         self.controller_node.setLinearMovement(self._linear_velocity, is_local=is_local)
 
-        # When moving, smoothly rotate ONLY the character's visual node towards movement direction
-        if (
-            self._visual_node is not None
-            and not self._visual_node.isEmpty()
-            and self._linear_velocity.length_squared() > 1e-4
-            and not is_local
-        ):
-            target_h = -math.degrees(math.atan2(self._linear_velocity.x, self._linear_velocity.y))
-            curr_h = self._visual_node.getH()
-            diff = (target_h - curr_h + 180.0) % 360.0 - 180.0
-            step = 1.0 if self.turn_speed <= 0.0 else min(1.0, max(0.0, self.turn_speed * dt))
-            self._visual_node.setH(curr_h + diff * step)
+        # Rotate the character's visual node according to orientation_mode.
+        if self._visual_node is not None and not self._visual_node.isEmpty():
+            target_h: float | None = None
+            if (
+                self.orientation_mode == CharacterOrientationMode.CAMERA_LOOK
+                and camera_handler is not None
+                and hasattr(camera_handler, "get_forward_vector")
+            ):
+                # Always face the horizontal forward direction of the camera
+                cam_fwd = camera_handler.get_forward_vector()
+                if cam_fwd.x * cam_fwd.x + cam_fwd.y * cam_fwd.y > 1e-6:
+                    target_h = -math.degrees(math.atan2(cam_fwd.x, cam_fwd.y))
+            elif (
+                self.orientation_mode == CharacterOrientationMode.MOVE_DIRECTION
+                and self._linear_velocity.length_squared() > 1e-4
+                and not is_local
+            ):
+                # Face movement direction
+                target_h = -math.degrees(math.atan2(self._linear_velocity.x, self._linear_velocity.y))
+
+            if target_h is not None:
+                curr_h = self._visual_node.getH()
+                diff = normalize_angle(target_h - curr_h)
+                step = 1.0 if self.turn_speed <= 0.0 else clamp(self.turn_speed * dt, 0.0, 1.0)
+                self._visual_node.setH(curr_h + diff * step)
 
 
     def jump(self) -> bool:
@@ -263,7 +316,7 @@ class CharacterControllerHandler(Handler):
         if self.entity is not None:
             input_handler = self.entity.get_handler(InputHandler)
             if input_handler is not None:
-                return input_handler.is_action_down("sprint")
+                return input_handler.is_action_down(SPRINT)
         return False
 
     @property
