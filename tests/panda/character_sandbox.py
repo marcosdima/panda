@@ -14,22 +14,27 @@ from __future__ import annotations
 
 import math
 from typing import TYPE_CHECKING, Any
-from panda3d.bullet import BulletBoxShape, BulletRigidBodyNode
+from panda3d.bullet import BulletBoxShape
 from panda3d.core import NodePath, Vec3
 
 from ..__test import Test
 from src.entities.entity import Entity
-from src.handlers.camera import ThirdPersonCameraHandler
+from src.handlers.camera import (
+    ADVENTURE_PRESET,
+    ISOMETRIC_PRESET,
+    OVERHEAD_PRESET,
+    SHOOTER_PRESET,
+    ThirdPersonCameraHandler,
+)
 from src.handlers.graphics import ActorAnimationHandler
 from src.handlers.input.wasd import WASDInputHandler
-from src.handlers.physics.character import CharacterControllerHandler
+from src.handlers.physics.character import CharacterControllerHandler, CharacterOrientationMode
 
 from src.globals.camera import Camera
 from src.globals.clock import GlobalClock
 from src.globals.lights import GlobalLights
 from src.globals.loader import GlobalLoader
 from src.globals.physics import Physics
-from src.globals.tasks import Tasks
 
 if TYPE_CHECKING:
     from direct.gui.OnscreenText import OnscreenText
@@ -61,6 +66,8 @@ class TestCharacterSandbox(Test):
         self._console_interval: float = 1.0  # seconds between terminal telemetry prints
 
         self._task_name: str = "character_sandbox_update_task"
+        self._preset_index: int = 0
+        self.current_preset_name: str = ADVENTURE_PRESET.name
 
     def on_start(self) -> None:
         """Initialize environment, player entity, camera, controls, and telemetry."""
@@ -75,15 +82,21 @@ class TestCharacterSandbox(Test):
         # Spawn and configure player entity
         self._spawn_player()
 
-        # Setup F12 wireframe key listener
+        # Setup key listeners
         if self.base is not None and hasattr(self.base, "accept"):
             self.base.accept("f12", self._toggle_physics_debug)
+            self.base.accept("1", self._set_preset_adventure)
+            self.base.accept("2", self._set_preset_shooter)
+            self.base.accept("3", self._set_preset_isometric)
+            self.base.accept("4", self._set_preset_overhead)
+            self.base.accept("c", self._cycle_camera_preset)
+            self.base.accept("b", self._toggle_body_orientation)
 
         # Setup On-Screen Display (OSD)
         self._setup_osd()
 
         # Register per-frame update and telemetry task
-        Tasks.add_task(self._task_name, self._on_frame_update)
+        self.add_task(self._task_name, self._on_frame_update)
 
     def _print_controls_banner(self) -> None:
         """Print formatted ANSI startup banner with control instructions."""
@@ -93,6 +106,8 @@ class TestCharacterSandbox(Test):
         self.p(" Movement:      [W, A, S, D] or Arrow Keys", color="green", bold=True)
         self.p(" Jump:          [Spacebar] (only while grounded)", color="green", bold=True)
         self.p(" Sprint:        [Left Shift] (12.0 m/s vs 6.0 m/s walk)", color="green", bold=True)
+        self.p(" Camera Presets:[1] Adventure/Orbit | [2] Over-Shoulder Shooter | [3] Isometric | [4] Top-Down | [C] Cycle", color="green", bold=True)
+        self.p(" Body Mode:     [B] Toggle Movement-Dir vs Camera-Look orientation", color="green", bold=True)
         self.p(" Look / Cursor: [Mouse] Direct Look | [Tab] Toggle Lock | [Esc] Unlock | [LMB] Lock", color="green", bold=True)
         self.p(" Zoom:          [Mouse Wheel] Zoom in/out", color="green", bold=True)
         self.p(" Wireframe:     [F12] Toggle Bullet debug visualization", color="magenta", bold=True)
@@ -341,9 +356,9 @@ class TestCharacterSandbox(Test):
             from panda3d.core import TextNode
 
             self.osd_instructions = OnscreenText(
-                text="WASD: Move | SPACE: Jump | LSHIFT: Sprint | Mouse: Look | Tab/Esc: Cursor | Wheel: Zoom | F12: Wireframe",
+                text="WASD: Move | SPACE: Jump | 1-4: Camera Presets | C: Cycle Cam | B: Body Mode | Wheel: Zoom | F12: Wireframe",
                 pos=(-1.28, 0.92),
-                scale=0.045,
+                scale=0.040,
                 fg=(1.0, 1.0, 1.0, 1.0),
                 align=TextNode.ALeft,
                 mayChange=False,
@@ -352,7 +367,7 @@ class TestCharacterSandbox(Test):
             self.osd_telemetry = OnscreenText(
                 text="Initializing Telemetry...",
                 pos=(-1.28, 0.84),
-                scale=0.042,
+                scale=0.040,
                 fg=(0.2, 0.9, 1.0, 1.0),
                 align=TextNode.ALeft,
                 mayChange=True,
@@ -362,6 +377,68 @@ class TestCharacterSandbox(Test):
             self.p("OSD not available in this environment; skipping telemetry overlay.", color="yellow")
             self.osd_instructions = None
             self.osd_telemetry = None
+
+    def _set_preset_adventure(self) -> None:
+        """Switch to standard Third-Person Orbit Adventure camera preset."""
+        if self.camera_handler is not None:
+            self.camera_handler.apply_preset(ADVENTURE_PRESET, snap=True)
+            self.current_preset_name = ADVENTURE_PRESET.name
+        if self.controller is not None:
+            self.controller.orientation_mode = CharacterOrientationMode.MOVE_DIRECTION
+        self.p(f"[Camera Preset] {ADVENTURE_PRESET.name} | Body: MOVE_DIRECTION", color="cyan", bold=True)
+
+    def _set_preset_shooter(self) -> None:
+        """Switch to Over-The-Shoulder Shooter camera preset."""
+        if self.camera_handler is not None:
+            self.camera_handler.apply_preset(SHOOTER_PRESET, snap=True)
+            self.current_preset_name = SHOOTER_PRESET.name
+        if self.controller is not None:
+            self.controller.orientation_mode = CharacterOrientationMode.CAMERA_LOOK
+        self.p(f"[Camera Preset] {SHOOTER_PRESET.name} | Body: CAMERA_LOOK", color="cyan", bold=True)
+
+    def _set_preset_isometric(self) -> None:
+        """Switch to Isometric Strategy camera preset."""
+        if self.camera_handler is not None:
+            self.camera_handler.apply_preset(ISOMETRIC_PRESET, snap=True)
+            self.current_preset_name = ISOMETRIC_PRESET.name
+        if self.controller is not None:
+            self.controller.orientation_mode = CharacterOrientationMode.MOVE_DIRECTION
+        self.p(f"[Camera Preset] {ISOMETRIC_PRESET.name} | Body: MOVE_DIRECTION", color="cyan", bold=True)
+
+    def _set_preset_overhead(self) -> None:
+        """Switch to Top-Down Overhead camera preset."""
+        if self.camera_handler is not None:
+            self.camera_handler.apply_preset(OVERHEAD_PRESET, snap=True)
+            self.current_preset_name = OVERHEAD_PRESET.name
+        if self.controller is not None:
+            self.controller.orientation_mode = CharacterOrientationMode.MOVE_DIRECTION
+        self.p(f"[Camera Preset] {OVERHEAD_PRESET.name} | Body: MOVE_DIRECTION", color="cyan", bold=True)
+
+    def _cycle_camera_preset(self) -> None:
+        """Cycle sequentially through all available standard camera presets."""
+        presets = [ADVENTURE_PRESET, SHOOTER_PRESET, ISOMETRIC_PRESET, OVERHEAD_PRESET]
+        self._preset_index = (self._preset_index + 1) % len(presets)
+        preset = presets[self._preset_index]
+        if preset == SHOOTER_PRESET:
+            self._set_preset_shooter()
+        elif preset == ISOMETRIC_PRESET:
+            self._set_preset_isometric()
+        elif preset == OVERHEAD_PRESET:
+            self._set_preset_overhead()
+        else:
+            self._set_preset_adventure()
+
+    def _toggle_body_orientation(self) -> None:
+        """Toggle body rotation mode between MOVE_DIRECTION and CAMERA_LOOK."""
+        if self.controller is None:
+            return
+        if self.controller.orientation_mode == CharacterOrientationMode.MOVE_DIRECTION:
+            self.controller.orientation_mode = CharacterOrientationMode.CAMERA_LOOK
+            mode_str = "CAMERA_LOOK (Body faces camera look)"
+        else:
+            self.controller.orientation_mode = CharacterOrientationMode.MOVE_DIRECTION
+            mode_str = "MOVE_DIRECTION (Body faces movement direction)"
+        self.p(f"[Body Orientation] {mode_str}", color="magenta", bold=True)
 
     def _toggle_physics_debug(self) -> None:
         """Toggle Bullet physics debug wireframe and notify via console."""
@@ -373,9 +450,7 @@ class TestCharacterSandbox(Test):
         """Per-frame update driving scene entity updates and telemetry."""
         dt = GlobalClock.get_dt() if hasattr(GlobalClock, "get_dt") else 0.016
 
-        # Step active entities (polls WASDInputHandler and updates CharacterControllerHandler)
-        self.on_update(dt)
-
+        # Scene entities are updated centrally by Game's update task.
         # Update telemetry
         self._update_telemetry(task.time)
 
@@ -394,23 +469,30 @@ class TestCharacterSandbox(Test):
         velocity = self.controller.linear_velocity
         mode = "SPRINT" if is_sprinting else "WALK"
         wireframe = "ON" if Physics.is_debug_enabled() else "OFF"
+        body_mode = (
+            "CAM-LOOK"
+            if self.controller.orientation_mode == CharacterOrientationMode.CAMERA_LOOK
+            else "MOV-DIR"
+        )
+        cam_preset = getattr(self, "current_preset_name", "Custom")
+        locomotion = str(self.actor_handler.locomotion.state) if self.actor_handler is not None else "-"
+        clip = (self.actor_handler.current_animation if self.actor_handler is not None else None) or "-"
 
         # Update OnscreenText OSD
         if self.osd_telemetry is not None:
             self.osd_telemetry.setText(
-                f"Pos: ({world_pos.x:6.2f}, {world_pos.y:6.2f}, {world_pos.z:6.2f}) | "
-                f"Mode: {mode:6} ({speed:4.1f} m/s)\n"
-                f"Vel: ({velocity.x:5.1f}, {velocity.y:5.1f}, {velocity.z:5.1f}) | "
-                f"Ground: {str(is_on_ground):5} | CanJump: {str(can_jump):5} | Debug: {wireframe}"
+                f"Camera: {cam_preset} | Body: {body_mode} | Pos: ({world_pos.x:6.2f}, {world_pos.y:6.2f}, {world_pos.z:6.2f})\n"
+                f"Speed: {speed:4.1f} m/s ({mode}) | Ground: {str(is_on_ground):5} | CanJump: {str(can_jump):5} | Debug: {wireframe}\n"
+                f"Locomotion: {locomotion:6} | Clip: {clip}"
             )
 
         # Periodic console telemetry
         if current_time - self._last_console_telemetry_time >= self._console_interval:
             self._last_console_telemetry_time = current_time
             self.p(
-                f"[Telemetry] Pos: ({world_pos.x:.2f}, {world_pos.y:.2f}, {world_pos.z:.2f}) | "
+                f"[Telemetry] Cam: {cam_preset} | Body: {body_mode} | Pos: ({world_pos.x:.2f}, {world_pos.y:.2f}, {world_pos.z:.2f}) | "
                 f"Speed: {speed:.1f} m/s ({mode}) | Grounded: {is_on_ground} | "
-                f"Wireframe: {wireframe}",
+                f"Wireframe: {wireframe} | Locomotion: {locomotion} | Clip: {clip}",
                 color="blue",
             )
 
@@ -419,11 +501,17 @@ class TestCharacterSandbox(Test):
         self.print_subtitle("Character Controller Sandbox stopping...")
 
         # 1. Remove telemetry and update task
-        Tasks.remove_task(self._task_name)
+        self.remove_task(self._task_name)
 
-        # 2. Ignore key listener
+        # 2. Ignore key listeners
         if self.base is not None and hasattr(self.base, "ignore"):
             self.base.ignore("f12")
+            self.base.ignore("1")
+            self.base.ignore("2")
+            self.base.ignore("3")
+            self.base.ignore("4")
+            self.base.ignore("c")
+            self.base.ignore("b")
 
         # 3. Destroy OSD elements
         if self.osd_telemetry is not None:

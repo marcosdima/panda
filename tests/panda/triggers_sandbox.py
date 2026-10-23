@@ -37,7 +37,6 @@ from src.globals.clock import GlobalClock
 from src.globals.lights import GlobalLights
 from src.globals.loader import GlobalLoader
 from src.globals.physics import Physics
-from src.globals.tasks import Tasks
 
 if TYPE_CHECKING:
     from direct.gui.OnscreenText import OnscreenText
@@ -95,7 +94,7 @@ class TestTriggersSandbox(Test):
             self.base.accept("f12", self._toggle_physics_debug)
 
         self._setup_osd()
-        Tasks.add_task(self._task_name, self._on_frame_update)
+        self.add_task(self._task_name, self._on_frame_update)
 
     def _print_controls_banner(self) -> None:
         """Print formatted ANSI startup banner with control and zone instructions."""
@@ -342,7 +341,6 @@ class TestTriggersSandbox(Test):
             x = 6.0 * math.sin(math.tau * self._enemy_time / 8.0)
             self.enemy.node.setPos(x, 8.0, 0.5)
 
-        self.on_update(dt)
         self._update_osd(task.time)
         return task.cont
 
@@ -401,7 +399,7 @@ class TestTriggersSandbox(Test):
         """Clean teardown: remove tasks, listeners, entities, nodes, and lights."""
         self.print_subtitle("Trigger Zones Sandbox stopping...")
 
-        Tasks.remove_task(self._task_name)
+        self.remove_task(self._task_name)
 
         if self.base is not None and hasattr(self.base, "ignore"):
             self.base.ignore("f12")
