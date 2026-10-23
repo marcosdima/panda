@@ -7,14 +7,13 @@ telemetry or advanced control.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Sequence
 
-from panda3d.core import NodePath, Vec3
 from panda3d.bullet import BulletShape
+from panda3d.core import NodePath, Vec3
 
 from src.entities.entity import Entity
-from src.prefabs.builder import EntityBuilder
 from src.handlers.ai import AIPatrolHandler, FollowHandler
 from src.handlers.camera import FirstPersonCameraHandler, ThirdPersonCameraHandler
 from src.handlers.graphics import ActorAnimationHandler
@@ -23,7 +22,7 @@ from src.handlers.input import WASDInputHandler
 from src.handlers.input.base import InputHandler
 from src.handlers.physics.character import CharacterControllerHandler
 from src.handlers.physics.rigid_body import RigidBodyHandler
-from src.utils.position import world_position
+from src.prefabs.builder import EntityBuilder
 
 if TYPE_CHECKING:
     from src.scenes import Scene

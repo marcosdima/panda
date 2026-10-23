@@ -6,8 +6,8 @@ except ImportError:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
     from tests.terminal.__terminal import TerminalTest
 
-from panda3d.core import Vec3
 from panda3d.bullet import BulletBoxShape
+from panda3d.core import Vec3
 
 from src.entities.entity import Entity
 from src.prefabs import (
