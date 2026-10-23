@@ -216,3 +216,9 @@ assets/KayKit_Adventurers_2.0_FREE/Samples/
 assets/KayKit_Adventurers_2.0_FREE/contents.png
 assets/KayKit_Adventurers_2.0_FREE/**/*.url
 assets/KayKit_Adventurers_2.0_FREE/*.url
+
+# Local agent tooling and runtime state
+/.agents/
+/.opencode/
+/.test_default
+/opencode.json
