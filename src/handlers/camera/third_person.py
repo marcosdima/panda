@@ -7,7 +7,9 @@ from typing import TYPE_CHECKING
 from panda3d.core import MouseButton, NodePath, Vec3, WindowProperties
 
 from src.handlers.base import Handler
-from src.handlers.physics.character import CharacterControllerHandler
+from src.utils.math import clamp, normalize_angle
+from src.utils.position import world_position
+from src.handlers.camera.presets import CameraPreset, PRESETS_BY_NAME
 
 if TYPE_CHECKING:
     from src.entities.entity import Entity
@@ -40,20 +42,21 @@ class ThirdPersonCameraHandler(Handler):
         collision_margin: float = 0.3,
         shoulder_offset: Vec3 = Vec3(0.0, 0.0, 0.0),
         owner_min_distance: float = 1.0,
+        preset: CameraPreset | str | None = None,
     ) -> None:
         super().__init__()
         self.min_distance: float = float(min_distance)
         self.max_distance: float = float(max_distance)
-        self._distance: float = max(self.min_distance, min(self.max_distance, float(distance)))
+        self._distance: float = clamp(float(distance), self.min_distance, self.max_distance)
         self._target_distance: float = self._distance
 
         self.target_offset: Vec3 = Vec3(target_offset)
 
         self.min_pitch: float = float(min_pitch)
         self.max_pitch: float = float(max_pitch)
-        self._pitch: float = max(self.min_pitch, min(self.max_pitch, float(pitch)))
+        self._pitch: float = clamp(float(pitch), self.min_pitch, self.max_pitch)
 
-        self._yaw: float = float(yaw) % 360.0
+        self._yaw: float = normalize_angle(float(yaw), 0.0)
 
         self.smooth_speed: float = float(smooth_speed)
         self.mouse_sensitivity: float = float(mouse_sensitivity)
@@ -62,9 +65,12 @@ class ThirdPersonCameraHandler(Handler):
         self.invert_yaw: bool = invert_yaw
         self.invert_pitch: bool = invert_pitch
         self.collision_enabled: bool = collision_enabled
+        self.owner_min_distance: float = float(owner_min_distance)
         self.collision_margin: float = float(collision_margin)
         self.shoulder_offset: Vec3 = Vec3(shoulder_offset)
-        self.owner_min_distance: float = float(owner_min_distance)
+
+        if preset is not None:
+            self.apply_preset(preset, snap=False)
 
         self._camera_node: NodePath | None = camera
         self._current_cam_pos: Vec3 | None = None
@@ -88,7 +94,7 @@ class ThirdPersonCameraHandler(Handler):
     @distance.setter
     def distance(self, value: float) -> None:
         """Set distance, clamped between min_distance and max_distance."""
-        self._distance = max(self.min_distance, min(self.max_distance, float(value)))
+        self._distance = clamp(float(value), self.min_distance, self.max_distance)
 
     @property
     def target_distance(self) -> float:
@@ -98,7 +104,7 @@ class ThirdPersonCameraHandler(Handler):
     @target_distance.setter
     def target_distance(self, value: float) -> None:
         """Set target zoom distance, clamped between min_distance and max_distance."""
-        self._target_distance = max(self.min_distance, min(self.max_distance, float(value)))
+        self._target_distance = clamp(float(value), self.min_distance, self.max_distance)
 
     @property
     def pitch(self) -> float:
@@ -108,7 +114,7 @@ class ThirdPersonCameraHandler(Handler):
     @pitch.setter
     def pitch(self, value: float) -> None:
         """Set pitch angle in degrees, clamped between min_pitch and max_pitch."""
-        self._pitch = max(self.min_pitch, min(self.max_pitch, float(value)))
+        self._pitch = clamp(float(value), self.min_pitch, self.max_pitch)
 
     @property
     def yaw(self) -> float:
@@ -118,7 +124,7 @@ class ThirdPersonCameraHandler(Handler):
     @yaw.setter
     def yaw(self, value: float) -> None:
         """Set yaw angle in degrees (normalized to [0, 360))."""
-        self._yaw = float(value) % 360.0
+        self._yaw = normalize_angle(float(value), 0.0)
 
     @property
     def camera(self) -> NodePath:
@@ -244,44 +250,24 @@ class ThirdPersonCameraHandler(Handler):
         pitch_delta = dy * self.mouse_sensitivity
 
         if not self.invert_yaw:
-            self.yaw = (self.yaw - yaw_delta) % 360.0
+            self.yaw = normalize_angle(self.yaw - yaw_delta, 0.0)
         else:
-            self.yaw = (self.yaw + yaw_delta) % 360.0
+            self.yaw = normalize_angle(self.yaw + yaw_delta, 0.0)
 
         if not self.invert_pitch:
-            self.pitch = max(
-                self.min_pitch,
-                min(self.max_pitch, self.pitch - pitch_delta),
-            )
+            self.pitch = clamp(self.pitch - pitch_delta, self.min_pitch, self.max_pitch)
         else:
-            self.pitch = max(
-                self.min_pitch,
-                min(self.max_pitch, self.pitch + pitch_delta),
-            )
+            self.pitch = clamp(self.pitch + pitch_delta, self.min_pitch, self.max_pitch)
 
     def get_target_pos(self) -> Vec3:
         """Compute the world-space target position (entity position + target_offset).
 
-        If the entity has an attached CharacterControllerHandler with an active
-        physics controller NodePath, tracks controller_np position across the world.
+        Uses the authoritative entity position, so it follows the character
+        controller node when one is attached.
         """
-        if self.entity is not None:
-            ctrl = self.entity.get_handler(CharacterControllerHandler)
-            if ctrl is not None and ctrl.controller_np is not None and not ctrl.controller_np.isEmpty():
-                base = getattr(builtins, "base", None)
-                render = getattr(base, "render", None) if base else None
-                if render is not None and ctrl.controller_np.hasParent():
-                    return ctrl.controller_np.getPos(render) + self.target_offset
-                return ctrl.controller_np.getPos() + self.target_offset
-
-        if self.entity is None or self.entity.node is None or self.entity.node.isEmpty():
+        if self.entity is None:
             return Vec3(self.target_offset)
-
-        base = getattr(builtins, "base", None)
-        render = getattr(base, "render", None) if base else None
-        if render is not None and self.entity.node.hasParent():
-            return self.entity.node.getPos(render) + self.target_offset
-        return self.entity.node.getPos() + self.target_offset
+        return world_position(self.entity) + self.target_offset
 
     def compute_ideal_position(self) -> Vec3:
         """Compute the ideal spherical camera position centered at target_pos.
@@ -365,9 +351,42 @@ class ThirdPersonCameraHandler(Handler):
         fz = -math.sin(-pitch_rad)
         return Vec3(fx, fy, fz)
 
+    def apply_preset(self, preset: CameraPreset | str, snap: bool = True) -> None:
+        """Apply a standard CameraPreset configuration."""
+        if isinstance(preset, str):
+            key = preset.lower()
+            if key not in PRESETS_BY_NAME:
+                raise ValueError(
+                    f"Unknown camera preset: {preset}. Choose from {list(PRESETS_BY_NAME.keys())}"
+                )
+            resolved = PRESETS_BY_NAME[key]
+        else:
+            resolved = preset
+
+        self.min_distance = resolved.min_distance
+        self.max_distance = resolved.max_distance
+        self.min_pitch = resolved.min_pitch
+        self.max_pitch = resolved.max_pitch
+        self.pitch = resolved.pitch
+        self.distance = resolved.distance
+        self.target_distance = resolved.distance
+        self.target_offset = Vec3(resolved.target_offset)
+        self.shoulder_offset = Vec3(resolved.shoulder_offset)
+        if snap:
+            self.snap_to_target()
+
     def get_camera_yaw(self) -> float:
         """Return the current camera yaw angle in degrees."""
         return self.yaw
+
+    def get_body_yaw(self) -> float:
+        """Return the yaw angle the character body should face.
+
+        In Panda3D, heading 0 faces +Y, -90 faces +X (right), 90 faces -X (left).
+        Returns the body yaw normalized to [0, 360).
+        """
+        fwd = self.get_forward_vector()
+        return normalize_angle(-math.degrees(math.atan2(fwd.x, fwd.y)), 0.0)
 
     def snap_to_target(self) -> None:
         """Instantly place camera at ideal spherical position without smoothing."""
@@ -381,7 +400,7 @@ class ThirdPersonCameraHandler(Handler):
             cam.setPos(ideal_pos)
             cam.lookAt(target_pos)
 
-    def on_attach(self, entity: Entity) -> None:
+    def on_attach(self, entity: "Entity") -> None:
         """Attach to entity, initialize camera reference, and save defaults."""
         super().on_attach(entity)
         cam = self.get_camera_node()
@@ -412,7 +431,7 @@ class ThirdPersonCameraHandler(Handler):
             self.set_pointer_captured(True)
 
     def on_update(self, dt: float) -> None:
-        """Per-frame update: poll mouse input, update pitch/yaw, calculate ideal pos, lerp, and lookAt."""
+        """Per-frame update: poll mouse input and update pitch/yaw/orbit/look."""
         super().on_update(dt)
         if self.entity is None or self.entity.node is None or self.entity.node.isEmpty():
             return
@@ -461,8 +480,14 @@ class ThirdPersonCameraHandler(Handler):
 
         # Smoothly interpolate distance toward target_distance (zoom smoothing)
         if self._distance != self._target_distance:
-            t = 1.0 if self.zoom_speed <= 0.0 else min(1.0, max(0.0, self.zoom_speed * dt))
+            t = 1.0 if self.zoom_speed <= 0.0 else clamp(self.zoom_speed * dt, 0.0, 1.0)
             self._distance = self._distance + (self._target_distance - self._distance) * t
+
+    def on_post_update(self, dt: float) -> None:
+        """Apply camera transform after physics step."""
+        super().on_post_update(dt)
+        if self.entity is None or self.entity.node is None or self.entity.node.isEmpty():
+            return
 
         target_pos = self.get_target_pos()
         ideal_pos = self.compute_ideal_position()
@@ -474,7 +499,7 @@ class ThirdPersonCameraHandler(Handler):
                 self._current_cam_pos = Vec3(ideal_pos)
                 self._has_updated = True
             else:
-                t = 1.0 if self.smooth_speed <= 0.0 else min(1.0, max(0.0, self.smooth_speed * dt))
+                t = 1.0 if self.smooth_speed <= 0.0 else clamp(self.smooth_speed * dt, 0.0, 1.0)
                 self._current_cam_pos = self._current_cam_pos + (ideal_pos - self._current_cam_pos) * t
 
             cam.setPos(self._current_cam_pos)

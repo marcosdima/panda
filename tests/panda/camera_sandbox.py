@@ -29,7 +29,6 @@ from src.globals.clock import GlobalClock
 from src.globals.lights import GlobalLights
 from src.globals.loader import GlobalLoader
 from src.globals.physics import Physics
-from src.globals.tasks import Tasks
 
 if TYPE_CHECKING:
     from panda3d.core import NodePath
@@ -64,6 +63,8 @@ class TestFirstPersonCameraSandbox(Test):
         self._task_name: str = "camera_fp_sandbox_update_task"
         self._toggle_btn = KeyboardButton.ascii_key("v")
         self._toggle_was_down: bool = False
+        self._toggle_body_follow_btn = KeyboardButton.ascii_key("b")
+        self._toggle_body_follow_was_down: bool = False
 
     def on_start(self) -> None:
         """Initialize environment, player entity, camera handlers, controls, and telemetry."""
@@ -79,7 +80,7 @@ class TestFirstPersonCameraSandbox(Test):
             self.base.accept("f12", self._toggle_physics_debug)
 
         self._setup_osd()
-        Tasks.add_task(self._task_name, self._on_frame_update)
+        self.add_task(self._task_name, self._on_frame_update)
 
     def _print_controls_banner(self) -> None:
         """Print formatted ANSI startup banner with control instructions."""
@@ -89,6 +90,7 @@ class TestFirstPersonCameraSandbox(Test):
         self.p(" Jump:          [Spacebar] (only while grounded)", color="green", bold=True)
         self.p(" Sprint:        [Left Shift] (12.0 m/s vs 6.0 m/s walk)", color="green", bold=True)
         self.p(" Camera:        [V] Toggle First-Person / Third-Person", color="green", bold=True)
+        self.p(" Body Mode:     [B] Toggle Camera-Yaw vs Movement-Dir (third-person body orientation)", color="green", bold=True)
         self.p(" Look / Cursor: [Mouse] Direct Look | [Tab] Toggle Lock | [Esc] Unlock | [LMB] Lock", color="green", bold=True)
         self.p(" Wireframe:     [F12] Toggle Bullet debug visualization", color="magenta", bold=True)
 
@@ -199,6 +201,7 @@ class TestFirstPersonCameraSandbox(Test):
             sprint_speed=12.0,
             acceleration=25.0,
             deceleration=30.0,
+            body_follows_camera_yaw=True,
         )
         self.fp_handler = FirstPersonCameraHandler(
             eye_offset=Vec3(0.0, 0.0, 1.2),
@@ -279,7 +282,7 @@ class TestFirstPersonCameraSandbox(Test):
             from panda3d.core import TextNode
 
             self.osd_instructions = OnscreenText(
-                text="WASD: Move | SPACE: Jump | LSHIFT: Sprint | Mouse: Look | V: Toggle Camera | Tab/Esc: Cursor | F12: Wireframe",
+                text="WASD: Move | SPACE: Jump | LSHIFT: Sprint | Mouse: Look | V: Toggle Camera | B: Toggle Body Mode | Tab/Esc: Cursor | F12: Wireframe",
                 pos=(-1.28, 0.92),
                 scale=0.045,
                 fg=(1.0, 1.0, 1.0, 1.0),
@@ -321,11 +324,27 @@ class TestFirstPersonCameraSandbox(Test):
             self._toggle_camera_mode()
         self._toggle_was_down = is_down
 
+    def _poll_body_follow_toggle(self) -> None:
+        """Poll the B key to toggle body-follows-camera-yaw on the controller."""
+        if self.controller is None or self.base is None:
+            return
+        node = getattr(self.base, "mouseWatcherNode", None)
+        if node is None or not hasattr(node, "is_button_down"):
+            return
+
+        is_down = node.is_button_down(self._toggle_body_follow_btn)
+        if is_down and not self._toggle_body_follow_was_down:
+            new_val = not self.controller.body_follows_camera_yaw
+            self.controller.body_follows_camera_yaw = new_val
+            mode = "CAMERA-YAW" if new_val else "MOVEMENT-DIR"
+            self.p(f"[Body Orientation] {mode}", color="magenta", bold=True)
+        self._toggle_body_follow_was_down = is_down
+
     def _on_frame_update(self, task: Any) -> int:
         """Per-frame update driving scene entities and telemetry."""
         dt = GlobalClock.get_dt() if hasattr(GlobalClock, "get_dt") else 0.016
         self._poll_camera_toggle()
-        self.on_update(dt)
+        self._poll_body_follow_toggle()
         self._update_telemetry(task.time)
         return task.cont
 
@@ -353,9 +372,11 @@ class TestFirstPersonCameraSandbox(Test):
             yaw = 0.0
             pitch = 0.0
 
+        body_mode = "CAM-YAW" if (self.controller is not None and self.controller.body_follows_camera_yaw) else "MOV-DIR"
+
         if self.osd_telemetry is not None:
             self.osd_telemetry.setText(
-                f"Camera: {mode} | Pos: ({world_pos.x:6.2f}, {world_pos.y:6.2f}, {world_pos.z:6.2f}) | "
+                f"Camera: {mode} | Body: {body_mode} | Pos: ({world_pos.x:6.2f}, {world_pos.y:6.2f}, {world_pos.z:6.2f}) | "
                 f"Speed: {speed:4.1f} m/s | Ground: {str(is_on_ground):5} | Debug: {wireframe}\n"
                 f"Yaw: {yaw:6.1f} | Pitch: {pitch:6.1f} | Fwd: ({fwd.x:5.2f}, {fwd.y:5.2f}, {fwd.z:5.2f})"
             )
@@ -373,7 +394,7 @@ class TestFirstPersonCameraSandbox(Test):
         """Clean teardown: remove tasks, listeners, static bodies, nodes, and free player entity."""
         self.print_subtitle("First-Person Camera Sandbox stopping...")
 
-        Tasks.remove_task(self._task_name)
+        self.remove_task(self._task_name)
 
         if self.base is not None and hasattr(self.base, "ignore"):
             self.base.ignore("f12")

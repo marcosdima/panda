@@ -7,13 +7,19 @@ except ImportError:
     from tests.terminal.__terminal import TerminalTest
 
 import math
-from panda3d.core import NodePath, Vec2, Vec3
+from panda3d.core import NodePath, Vec3
 
 from src.entities.entity import Entity
 from src.handlers.camera.first_person import FirstPersonCameraHandler
 from src.handlers.camera.third_person import ThirdPersonCameraHandler
+from src.handlers.camera.presets import (
+    ADVENTURE_PRESET,
+    SHOOTER_PRESET,
+    ISOMETRIC_PRESET,
+    OVERHEAD_PRESET,
+)
 from src.handlers.input.base import InputHandler
-from src.handlers.physics.character import CharacterControllerHandler
+from src.handlers.physics.character import CharacterControllerHandler, CharacterOrientationMode
 
 
 class TestCameraHandler(TerminalTest):
@@ -59,6 +65,8 @@ class TestCameraHandler(TerminalTest):
 
         entity.start()
         entity.update(0.016)
+        if hasattr(entity, "update_post"):
+            entity.update_post(0.016)
 
         # Verify camera position updated
         assert not cam_node.isEmpty()
@@ -251,6 +259,8 @@ class TestCameraHandler(TerminalTest):
 
         # First update snaps/initializes camera position to ideal position
         entity.update(0.016)
+        if hasattr(entity, "update_post"):
+            entity.update_post(0.016)
         initial_ideal = handler.compute_ideal_position()
         assert (cam_node.getPos() - initial_ideal).length() < 1e-4
 
@@ -260,6 +270,8 @@ class TestCameraHandler(TerminalTest):
 
         # One small frame update: position should smoothly move towards new ideal
         entity.update(0.016)
+        if hasattr(entity, "update_post"):
+            entity.update_post(0.016)
         pos_after_1_frame = cam_node.getPos()
         dist_to_ideal = (new_ideal - pos_after_1_frame).length()
         assert dist_to_ideal > 0.0, "Camera should not instantly snap during smooth update"
@@ -436,6 +448,8 @@ class TestCameraHandler(TerminalTest):
         entity.start()
         handler.set_pointer_captured(False)
         entity.update(0.016)
+        if hasattr(entity, "update_post"):
+            entity.update_post(0.016)
 
         # Camera locked at entity position + eye offset
         expected_eye = Vec3(0.0, 0.0, 1.7)
@@ -449,6 +463,8 @@ class TestCameraHandler(TerminalTest):
         # Yaw = 90 turns the view towards -X
         handler.yaw = 90.0
         entity.update(0.016)
+        if hasattr(entity, "update_post"):
+            entity.update_post(0.016)
         cam_fwd = cam_node.getQuat().xform(Vec3(0.0, 1.0, 0.0))
         fwd = handler.get_forward_vector()
         assert abs(fwd.x - (-1.0)) < 1e-4
@@ -457,6 +473,8 @@ class TestCameraHandler(TerminalTest):
         # Moving the entity moves the locked eye position
         entity.node.setPos(10.0, -5.0, 2.0)
         entity.update(0.016)
+        if hasattr(entity, "update_post"):
+            entity.update_post(0.016)
         assert (cam_node.getPos() - Vec3(10.0, -5.0, 3.7)).length() < 1e-4
 
         entity.stop()
@@ -530,6 +548,8 @@ class TestCameraHandler(TerminalTest):
         assert (eye_pos - expected).length() < 1e-4, f"Expected {expected}, got {eye_pos}"
 
         entity.update(0.016)
+        if hasattr(entity, "update_post"):
+            entity.update_post(0.016)
         cam = cam_handler.camera
         assert (cam.getPos() - expected).length() < 1e-4, f"Expected {expected}, got {cam.getPos()}"
 
@@ -593,6 +613,8 @@ class TestCameraHandler(TerminalTest):
 
         entity.start()
         entity.update(0.016)
+        if hasattr(entity, "update_post"):
+            entity.update_post(0.016)
 
         ideal = handler.compute_ideal_position()
         ideal_distance = (ideal - handler.get_target_pos()).length()
@@ -631,6 +653,8 @@ class TestCameraHandler(TerminalTest):
         entity.add_handler(handler)
         entity.start()
         entity.update(0.016)
+        if hasattr(entity, "update_post"):
+            entity.update_post(0.016)
 
         target_pos = handler.get_target_pos()
         resolved = handler.resolve_collision_position(target_pos, handler.compute_ideal_position())
@@ -665,6 +689,8 @@ class TestCameraHandler(TerminalTest):
         entity.add_handler(handler)
         entity.start()
         entity.update(0.016)
+        if hasattr(entity, "update_post"):
+            entity.update_post(0.016)
 
         ideal = handler.compute_ideal_position()
         target_pos = handler.get_target_pos()
@@ -808,6 +834,8 @@ class TestCameraHandler(TerminalTest):
                 handler.yaw = yaw
                 handler.pitch = pitch
                 entity.update(0.016)
+                if hasattr(entity, "update_post"):
+                    entity.update_post(0.016)
                 assert lens.getNear() < 1.0, "near plane was never applied to the real lens"
                 for corner in self._near_plane_corners(cam_np, lens):
                     assert corner.y < wall_surface - 1e-3, (
@@ -832,8 +860,12 @@ class TestCameraHandler(TerminalTest):
             handler.pitch = pitch
             handler.yaw = 0.0
             entity.update(0.016)
+            if hasattr(entity, "update_post"):
+                entity.update_post(0.016)
             for corner in self._near_plane_corners(cam_np, lens):
                 assert corner.z < 1.1 - 1e-3, f"Near plane pokes through ceiling: z={corner.z:.4f}"
+        if hasattr(entity, "update_post"):
+            entity.update_post(0.016)
         assert cam_np.getZ() < 1.1 - 1e-3, f"Eye inside ceiling: z={cam_np.getZ():.4f}"
 
         # Moving the body diagonally against the pillar corner must keep the near plane outside it.
@@ -844,6 +876,8 @@ class TestCameraHandler(TerminalTest):
             handler.yaw = yaw
             handler.pitch = 0.0
             entity.update(0.016)
+            if hasattr(entity, "update_post"):
+                entity.update_post(0.016)
             for corner in self._near_plane_corners(cam_np, lens):
                 inside = 0.5 < corner.x < 1.5 and 0.5 < corner.y < 1.5
                 assert not inside, f"Near plane corner inside pillar (yaw={yaw}): {corner}"
@@ -869,6 +903,8 @@ class TestCameraHandler(TerminalTest):
         controller.controller_np.setPos(0.0, 0.0, 0.0)
 
         entity.update(0.016)
+        if hasattr(entity, "update_post"):
+            entity.update_post(0.016)
         expected = Vec3(0.0, 0.0, 1.2)
         assert (cam_np.getPos() - expected).length() < 1e-4, (
             f"Eye should be free of own capsule and trigger, got {cam_np.getPos()}"
@@ -891,6 +927,8 @@ class TestCameraHandler(TerminalTest):
 
         handler.yaw = 0.0
         entity.update(0.016)
+        if hasattr(entity, "update_post"):
+            entity.update_post(0.016)
         eye = cam_np.getPos()
         assert eye.y < 0.8 - 1e-3, f"Oversized margin pushed the eye into the wall: {eye}"
         assert (eye - controller.controller_np.getPos()).length() > 0.5, "Eye collapsed into the body pivot"
@@ -913,17 +951,105 @@ class TestCameraHandler(TerminalTest):
         handler.yaw = 0.0
         controller.controller_np.setPos(0.0, -3.0, 0.0)
         entity.update(0.016)
+        if hasattr(entity, "update_post"):
+            entity.update_post(0.016)
 
         # Teleport-like fast approach: smoothed eye lags, but is always validated.
         for i in range(30):
             controller.controller_np.setPos(0.0, -3.0 + i * 0.12, 0.0)  # ends at y=0.48 (inside wall zone)
             entity.update(0.016)
+            if hasattr(entity, "update_post"):
+                entity.update_post(0.016)
             assert cam_np.getY() < 0.8 - 1e-3, f"Frame {i}: eye reached the wall, y={cam_np.getY():.4f}"
 
         entity.stop()
         entity.free()
         self._remove_static_box(wall)
         self.p("FP smoothing validated against geometry.", color="green")
+        self.space_line()
+
+    def test_third_person_camera_presets(self):
+        self.print_subtitle("Testing ThirdPersonCameraHandler standard presets.")
+        cam = NodePath("preset_cam")
+        handler = ThirdPersonCameraHandler(camera=cam)
+
+        # 1. Apply ADVENTURE
+        handler.apply_preset(ADVENTURE_PRESET)
+        assert abs(handler.distance - ADVENTURE_PRESET.distance) < 1e-4
+        assert abs(handler.pitch - ADVENTURE_PRESET.pitch) < 1e-4
+        assert handler.shoulder_offset == ADVENTURE_PRESET.shoulder_offset
+
+        # 2. Apply SHOOTER by string
+        handler.apply_preset("shooter")
+        assert abs(handler.distance - SHOOTER_PRESET.distance) < 1e-4
+        assert abs(handler.pitch - SHOOTER_PRESET.pitch) < 1e-4
+        assert handler.shoulder_offset == SHOOTER_PRESET.shoulder_offset
+
+        # 3. Apply ISOMETRIC by string
+        handler.apply_preset("isometric")
+        assert abs(handler.distance - ISOMETRIC_PRESET.distance) < 1e-4
+        assert abs(handler.pitch - ISOMETRIC_PRESET.pitch) < 1e-4
+
+        # 4. Apply OVERHEAD
+        handler.apply_preset(OVERHEAD_PRESET)
+        assert abs(handler.distance - OVERHEAD_PRESET.distance) < 1e-4
+        assert abs(handler.pitch - OVERHEAD_PRESET.pitch) < 1e-4
+
+        self.p("Third-person standard presets verified successfully.", color="green")
+        self.space_line()
+
+    def test_character_orientation_modes(self):
+        self.print_subtitle("Testing CharacterOrientationMode MOVE_DIRECTION vs CAMERA_LOOK.")
+        entity = Entity("OrientationHero")
+        visual_node = entity.node.attachNewNode("visual")
+        cam_node = NodePath("orientation_cam")
+
+        input_handler = InputHandler()
+        cam_handler = ThirdPersonCameraHandler(camera=cam_node, yaw=0.0)
+        controller = CharacterControllerHandler(
+            walk_speed=5.0,
+            visual_node=visual_node,
+            turn_speed=0.0,
+            orientation_mode=CharacterOrientationMode.MOVE_DIRECTION,
+        )
+
+        entity.add_handler(input_handler)
+        entity.add_handler(cam_handler)
+        entity.add_handler(controller)
+        entity.start()
+
+        # Part 1: MOVE_DIRECTION
+        # Moving Backward (S) -> linear velocity is (0, -5, 0), visual faces -Y (heading = 180 deg)
+        input_handler.set_move_vector(0.0, -1.0)
+        entity.update(0.016)
+        assert abs((visual_node.getH() % 360.0) - 180.0) < 1e-4
+
+        # When stopped, character keeps facing 180 deg even if camera yaw changes
+        input_handler.set_move_vector(0.0, 0.0)
+        cam_handler.yaw = 90.0
+        entity.update(0.016)
+        assert abs((visual_node.getH() % 360.0) - 180.0) < 1e-4
+
+        # Part 2: CAMERA_LOOK
+        controller.orientation_mode = CharacterOrientationMode.CAMERA_LOOK
+        # Camera yaw = 90 -> camera looks along -X -> heading in Panda3D must be 90 deg
+        cam_handler.yaw = 90.0
+        entity.update(0.016)
+        assert abs((visual_node.getH() % 360.0) - 90.0) < 1e-4
+
+        # Camera yaw = 0 -> camera looks along +Y -> heading in Panda3D must be 0 deg
+        cam_handler.yaw = 0.0
+        entity.update(0.016)
+        assert abs((visual_node.getH() % 360.0) - 0.0) < 1e-4
+
+        # Backwards compatibility check
+        assert controller.body_follows_camera_yaw is True
+        controller.body_follows_camera_yaw = False
+        assert controller.orientation_mode == CharacterOrientationMode.MOVE_DIRECTION
+
+        entity.stop()
+        entity.free()
+        self.p("Orientation modes and backwards compatibility verified successfully.", color="green")
         self.space_line()
 
     def on_stop(self):

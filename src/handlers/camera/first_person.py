@@ -8,6 +8,8 @@ from panda3d.core import Camera as CameraNode
 from panda3d.core import Lens, MouseButton, NodePath, Vec3, WindowProperties
 
 from src.handlers.base import Handler
+from src.utils.math import clamp, normalize_angle
+from src.utils.position import world_position
 from src.handlers.physics.character import CharacterControllerHandler
 from src.handlers.physics.groups import CameraCollision
 
@@ -76,8 +78,8 @@ class FirstPersonCameraHandler(Handler):
 
         self.min_pitch: float = float(min_pitch)
         self.max_pitch: float = float(max_pitch)
-        self._pitch: float = max(self.min_pitch, min(self.max_pitch, float(pitch)))
-        self._yaw: float = float(yaw) % 360.0
+        self._pitch: float = clamp(float(pitch), self.min_pitch, self.max_pitch)
+        self._yaw: float = normalize_angle(float(yaw), 0.0)
 
         self.mouse_sensitivity: float = float(mouse_sensitivity)
         self.invert_yaw: bool = invert_yaw
@@ -89,7 +91,7 @@ class FirstPersonCameraHandler(Handler):
         self.far_plane: float = float(far_plane)
         self.pivot_offset: Vec3 | None = Vec3(pivot_offset) if pivot_offset is not None else None
 
-        self.smooth_factor: float = float(min(max(smooth_factor, 0.0), 1.0))
+        self.smooth_factor: float = clamp(smooth_factor, 0.0, 1.0)
         self._smoothed_eye: Vec3 | None = None
         self._effective_radius: float | None = None
         self._saved_near_far: tuple[float, float] | None = None
@@ -112,7 +114,7 @@ class FirstPersonCameraHandler(Handler):
 
     @pitch.setter
     def pitch(self, value: float) -> None:
-        self._pitch = max(self.min_pitch, min(self.max_pitch, float(value)))
+        self._pitch = clamp(float(value), self.min_pitch, self.max_pitch)
 
     @property
     def yaw(self) -> float:
@@ -120,7 +122,7 @@ class FirstPersonCameraHandler(Handler):
 
     @yaw.setter
     def yaw(self, value: float) -> None:
-        self._yaw = float(value) % 360.0
+        self._yaw = normalize_angle(float(value), 0.0)
 
     @property
     def camera(self) -> NodePath:
@@ -202,34 +204,20 @@ class FirstPersonCameraHandler(Handler):
         pitch_delta = dy * self.mouse_sensitivity
 
         if not self.invert_yaw:
-            self.yaw = (self.yaw - yaw_delta) % 360.0
+            self.yaw = normalize_angle(self.yaw - yaw_delta, 0.0)
         else:
-            self.yaw = (self.yaw + yaw_delta) % 360.0
+            self.yaw = normalize_angle(self.yaw + yaw_delta, 0.0)
 
         if not self.invert_pitch:
-            self.pitch = max(self.min_pitch, min(self.max_pitch, self.pitch - pitch_delta))
+            self.pitch = clamp(self.pitch - pitch_delta, self.min_pitch, self.max_pitch)
         else:
-            self.pitch = max(self.min_pitch, min(self.max_pitch, self.pitch + pitch_delta))
+            self.pitch = clamp(self.pitch + pitch_delta, self.min_pitch, self.max_pitch)
 
     def get_body_pos(self) -> Vec3:
         """Return the character's body position without the eye offset."""
-        if self.entity is not None:
-            ctrl = self.entity.get_handler(CharacterControllerHandler)
-            if ctrl is not None and ctrl.controller_np is not None and not ctrl.controller_np.isEmpty():
-                base = getattr(builtins, "base", None)
-                render = getattr(base, "render", None) if base else None
-                if render is not None and ctrl.controller_np.hasParent():
-                    return ctrl.controller_np.getPos(render)
-                return ctrl.controller_np.getPos()
-
-        if self.entity is None or self.entity.node is None or self.entity.node.isEmpty():
+        if self.entity is None:
             return Vec3(0.0, 0.0, 0.0)
-
-        base = getattr(builtins, "base", None)
-        render = getattr(base, "render", None) if base else None
-        if render is not None and self.entity.node.hasParent():
-            return self.entity.node.getPos(render)
-        return self.entity.node.getPos()
+        return world_position(self.entity)
 
     def get_target_pos(self) -> Vec3:
         """Return the eye position (body position + eye_offset)."""
@@ -242,6 +230,15 @@ class FirstPersonCameraHandler(Handler):
         fy = math.cos(pitch_rad) * math.cos(yaw_rad)
         fz = math.sin(pitch_rad)
         return Vec3(fx, fy, fz)
+
+    def get_body_yaw(self) -> float:
+        """Return the yaw angle the character body should face.
+
+        In Panda3D, heading 0 faces +Y, -90 faces +X (right), 90 faces -X (left).
+        Returns the body yaw normalized to [0, 360).
+        """
+        fwd = self.get_forward_vector()
+        return normalize_angle(-math.degrees(math.atan2(fwd.x, fwd.y)), 0.0)
 
     def _get_controller(self) -> CharacterControllerHandler | None:
         """Return the entity's character controller handler, if any."""
@@ -354,8 +351,8 @@ class FirstPersonCameraHandler(Handler):
         if lens is None:
             return _DEFAULT_EXTENT_FACTOR
         fov = lens.getFov()
-        half_h = math.radians(min(max(fov[0], 1.0), 170.0) / 2.0)
-        half_v = math.radians(min(max(fov[1], 1.0), 170.0) / 2.0)
+        half_h = math.radians(clamp(fov[0], 1.0, 170.0) / 2.0)
+        half_v = math.radians(clamp(fov[1], 1.0, 170.0) / 2.0)
         return math.sqrt(1.0 + math.tan(half_h) ** 2 + math.tan(half_v) ** 2)
 
     def _get_effective_near(self, lens: Lens | None) -> float:
@@ -401,7 +398,7 @@ class FirstPersonCameraHandler(Handler):
         if (desired - self._smoothed_eye).length() > _SMOOTH_SNAP_DISTANCE:
             self._smoothed_eye = Vec3(desired)
             return Vec3(desired)
-        keep = (1.0 - min(self.smooth_factor, 1.0)) ** (max(dt, 0.0) * 60.0)
+        keep = (1.0 - clamp(self.smooth_factor, 0.0, 1.0)) ** (max(dt, 0.0) * 60.0)
         self._smoothed_eye = desired + (self._smoothed_eye - desired) * keep
         return Vec3(self._smoothed_eye)
 
@@ -413,6 +410,22 @@ class FirstPersonCameraHandler(Handler):
         - Fits the near plane inside the collision sphere on the real lens.
         - Keeps the camera parented to the render scene (headless safe).
         """
+        cam = self.get_camera_node()
+        if cam is None or cam.isEmpty():
+            return
+
+        base = getattr(builtins, "base", None)
+        render = getattr(base, "render", None) if base else None
+        if render is not None and cam.getParent() != render:
+            cam.reparentTo(render)
+
+        eye = self._resolve_collision(self._smooth_eye(self.get_target_pos(), dt))
+        cam.setPos(eye)
+        cam.lookAt(eye + self.get_forward_vector())
+        self._apply_lens()
+
+    def _apply_camera_transform(self, dt: float = 1.0 / 60.0) -> None:
+        """Apply camera transform and lens planes using final frame positions."""
         cam = self.get_camera_node()
         if cam is None or cam.isEmpty():
             return
@@ -517,7 +530,11 @@ class FirstPersonCameraHandler(Handler):
             else:
                 self._last_mouse_pos = None
 
-        self.apply_view(dt)
+    def on_post_update(self, dt: float) -> None:
+        super().on_post_update(dt)
+        if self.entity is None or self.entity.node is None or self.entity.node.isEmpty():
+            return
+        self._apply_camera_transform(dt)
 
     def on_stop(self) -> None:
         self._show_entity_model()
