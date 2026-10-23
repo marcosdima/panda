@@ -2,7 +2,7 @@ import inspect
 from typing import TypeVar, Generic, Callable, TypeAlias
 
 
-T = TypeVar('T')
+T = TypeVar('T')  # annotation-only payload type, e.g. Event[Entity]
 CallbackMap: TypeAlias = dict[Callable[..., None], int]
 
 
@@ -12,12 +12,25 @@ class Event(Generic[T]):
             check: Callable[[], bool] = lambda: True,
         ):
         self.__callback: CallbackMap = {}
+        self.__takes_args: dict[Callable[..., None], bool] = {}
+        self.__once: set[Callable[..., None]] = set()
         self.__check = check
 
     
+    @staticmethod
+    def __accepts_args(cb: Callable[..., None]) -> bool:
+        ''' True unless the callback declares no parameters at all. '''
+        try:
+            return len(inspect.signature(cb).parameters) > 0
+        except (TypeError, ValueError):
+            return True
+
+
     def clear_callbacks(self) -> None:
         ''' Clear all callbacks. '''
         self.__callback.clear()
+        self.__takes_args.clear()
+        self.__once.clear()
 
 
     def add_callback(
@@ -27,6 +40,8 @@ class Event(Generic[T]):
     ) -> None:
         ''' Add a callback with an optional priority. '''
         self.__callback[cb] = priority
+        self.__once.discard(cb)
+        self.__takes_args[cb] = self.__accepts_args(cb)
         
         self.__callback = dict(
             sorted(
@@ -37,9 +52,21 @@ class Event(Generic[T]):
         )   
 
 
+    def add_once(
+        self,
+        cb: Callable[..., None],
+        priority: int = 0
+    ) -> None:
+        ''' Add a callback that is removed after its first execution. '''
+        self.add_callback(cb, priority)
+        self.__once.add(cb)
+
+
     def remove_callback(self, cb: Callable[..., None]) -> None:
         ''' Remove a callback. '''
         self.__callback.pop(cb, None)
+        self.__takes_args.pop(cb, None)
+        self.__once.discard(cb)
 
 
     def set_check(self, check: Callable[[], bool]) -> None:
@@ -62,12 +89,17 @@ class Event(Generic[T]):
         if not self.working():
             return
 
-        for cb in self.__callback:
-            sig = inspect.signature(cb)
-            if len(sig.parameters) == 0:
-                cb()
-            else:
+        # Snapshot so callbacks may add/remove callbacks while dispatching.
+        for cb in list(self.__callback):
+            if cb not in self.__callback:
+                continue
+            takes_args = self.__takes_args.get(cb, True)
+            if cb in self.__once:
+                self.remove_callback(cb)
+            if takes_args:
                 cb(*args, **kwargs)
+            else:
+                cb()
 
 
     def __len__(self) -> int:
