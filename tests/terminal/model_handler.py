@@ -7,7 +7,7 @@ except ImportError:
     from tests.terminal.__terminal import TerminalTest
 
 import builtins
-from panda3d.core import NodePath, Vec3
+from panda3d.core import Vec3
 
 from src.entities.entity import Entity
 from src.globals.loader import GlobalLoader

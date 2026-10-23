@@ -8,12 +8,28 @@ from panda3d.core import NodePath, Vec3, autoBind, AnimControlCollection
 from config import ASSETS_PATH
 from src.handlers.base import Handler
 from src.handlers.physics.character import CharacterControllerHandler
+from src.utils.state_machine import StateMachine
 
 if TYPE_CHECKING:
     from src.entities.entity import Entity
 
 
 logger = logging.getLogger(__name__)
+
+LOCOMOTION_TRANSITIONS: dict[str, tuple[str, ...]] = {
+    "Idle": ("Walk", "Run", "Jump"),
+    "Walk": ("Idle", "Run", "Jump"),
+    "Run": ("Idle", "Walk", "Jump"),
+    "Jump": ("Idle", "Walk", "Run"),
+}
+
+# Clip lookup order per locomotion state (first available clip wins).
+_STATE_CLIP_FALLBACK: dict[str, tuple[str, ...]] = {
+    "Idle": ("Idle",),
+    "Walk": ("Walk", "Run", "Idle"),
+    "Run": ("Run", "Walk", "Idle"),
+    "Jump": ("Jump",),
+}
 
 
 class ActorAnimationHandler(Handler):
@@ -73,6 +89,10 @@ class ActorAnimationHandler(Handler):
         self.model_root: NodePath | None = None
         self.anim_controls: AnimControlCollection = AnimControlCollection()
         self._current_anim: str | None = None
+        self.locomotion = StateMachine("Idle", LOCOMOTION_TRANSITIONS)
+        enter_hook = lambda _prev, _new: self._apply_state_clip()
+        for state in LOCOMOTION_TRANSITIONS:
+            self.locomotion.on_enter(state, enter_hook)
 
     @classmethod
     def kaykit_rig_medium(cls, character: str = "Knight", **kwargs: Any) -> ActorAnimationHandler:
@@ -92,6 +112,7 @@ class ActorAnimationHandler(Handler):
             "state_clips": {"Idle": "Idle_A", "Walk": "Walking_A", "Run": "Running_A", "Jump": "Jump_Idle"},
             "scale": 1.0,
             "offset": Vec3(0.0, 0.0, -1.0),
+            "hpr": Vec3(180.0, 0.0, 0.0),
         }
         options.update(kwargs)
         return cls(**options)
@@ -251,6 +272,7 @@ class ActorAnimationHandler(Handler):
 
         self._current_anim = None
         self._air_time = 0.0
+        self.locomotion.reset("Idle")
 
     def on_attach(self, entity: Entity) -> None:
         """Attach handler to entity, set up visual pivot and model."""
@@ -299,33 +321,34 @@ class ActorAnimationHandler(Handler):
                     airborne = False
 
         anim_names = self.get_anim_names()
+        if airborne and self._clip_for("Jump", anim_names) is not None:
+            desired = "Jump"
+        elif speed >= 0.1:
+            desired = "Run" if is_sprinting else "Walk"
+        else:
+            desired = "Idle"
+        self.locomotion.transition(desired)
+
+        # Entering a state plays its clip; reconcile every frame so manual
+        # play/loop calls or late-loaded clips fall back to the state's clip.
+        self._apply_state_clip()
+
+    def _state_clip(self, state: str, anim_names: list[str]) -> str | None:
+        """Return the clip for a locomotion state following its fallback order."""
+        for name in _STATE_CLIP_FALLBACK[state]:
+            clip = self._clip_for(name, anim_names)
+            if clip is not None:
+                return clip
+        return None
+
+    def _apply_state_clip(self) -> None:
+        """Loop the clip of the current locomotion state if it is not already playing."""
+        anim_names = self.get_anim_names()
         if not anim_names:
             return
-
-        target_anim: str | None = None
-        jump = self._clip_for("Jump", anim_names)
-        idle = self._clip_for("Idle", anim_names)
-        walk = self._clip_for("Walk", anim_names)
-        run = self._clip_for("Run", anim_names)
-
-        if airborne and jump is not None:
-            target_anim = jump
-        elif speed >= 0.1:
-            # Moving: prioritize Run (if sprinting) -> Walk -> Run -> maintain Idle
-            if is_sprinting and run is not None:
-                target_anim = run
-            elif walk is not None:
-                target_anim = walk
-            elif run is not None:
-                target_anim = run
-            else:
-                target_anim = idle
-        else:
-            # Stopped (speed < 0.1): ensure Idle is playing
-            target_anim = idle
-
-        if target_anim is not None and self._current_anim != target_anim:
-            self.loop_animation(target_anim)
+        target = self._state_clip(str(self.locomotion.state), anim_names)
+        if target is not None and self._current_anim != target:
+            self.loop_animation(target)
 
     def _clip_for(self, state: str, anim_names: list[str]) -> str | None:
         """Return the clip configured for a locomotion state if it is loaded, else None."""
