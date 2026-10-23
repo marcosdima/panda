@@ -1,3 +1,4 @@
+from .ai import AIPatrolHandler, PatrolState, FollowHandler, FollowState
 from .base import Handler
 from .camera import FirstPersonCameraHandler, ThirdPersonCameraHandler
 from .graphics import ActorAnimationHandler, ModelHandler
@@ -8,9 +9,14 @@ from .physics import (
     RigidBodyHandler,
     TriggerZoneHandler,
 )
+from .sensors import ProximitySensorHandler
 
 __all__ = [
     "Handler",
+    "AIPatrolHandler",
+    "PatrolState",
+    "FollowHandler",
+    "FollowState",
     "InputHandler",
     "WASDInputHandler",
     "CharacterControllerHandler",
@@ -21,4 +27,5 @@ __all__ = [
     "FirstPersonCameraHandler",
     "ActorAnimationHandler",
     "ModelHandler",
+    "ProximitySensorHandler",
 ]
