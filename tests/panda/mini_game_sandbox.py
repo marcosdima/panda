@@ -9,11 +9,11 @@ from __future__ import annotations
 from panda3d.bullet import BulletBoxShape
 from panda3d.core import Vec3
 
-from ..__test import Test
-from src.entities.entity import Entity
 from src.globals.lights import GlobalLights
 from src.globals.physics import Physics
-from src.prefabs import create_player, create_patrol_npc, create_static_prop
+from src.prefabs import create_patrol_npc, create_player, create_static_prop
+
+from ..__test import Test
 
 
 class TestMiniGameSandbox(Test):

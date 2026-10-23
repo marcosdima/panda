@@ -47,24 +47,24 @@ class EntityBuilder:
     # ------------------------------------------------------------------ #
     # Transforms
     # ------------------------------------------------------------------ #
-    def at(self, x: float, y: float, z: float) -> "EntityBuilder":
+    def at(self, x: float, y: float, z: float) -> EntityBuilder:
         self._position = Vec3(float(x), float(y), float(z))
         return self
 
-    def parented_to(self, node: NodePath) -> "EntityBuilder":
+    def parented_to(self, node: NodePath) -> EntityBuilder:
         self._parent = node
         return self
 
     # ------------------------------------------------------------------ #
     # Named handler helpers (thin pass-throughs)
     # ------------------------------------------------------------------ #
-    def with_input(self, handler: Any = None, **kwargs: Any) -> "EntityBuilder":
+    def with_input(self, handler: Any = None, **kwargs: Any) -> EntityBuilder:
         if handler is None:
             handler = WASDInputHandler(**kwargs)
         self._handlers.append(handler)
         return self
 
-    def with_character(self, handler: Any = None, **kwargs: Any) -> "EntityBuilder":
+    def with_character(self, handler: Any = None, **kwargs: Any) -> EntityBuilder:
         if handler is None:
             handler = CharacterControllerHandler(**kwargs)
         self._handlers.append(handler)
@@ -77,7 +77,7 @@ class EntityBuilder:
         kaykit: str | None = None,
         handler: Any = None,
         **kwargs: Any,
-    ) -> "EntityBuilder":
+    ) -> EntityBuilder:
         if handler is not None:
             self._handlers.append(handler)
             return self
@@ -92,7 +92,7 @@ class EntityBuilder:
 
     def with_camera(
         self, mode: str = "third_person", handler: Any = None, **kwargs: Any
-    ) -> "EntityBuilder":
+    ) -> EntityBuilder:
         if handler is not None:
             self._handlers.append(handler)
             return self
@@ -103,31 +103,31 @@ class EntityBuilder:
         self._handlers.append(handler)
         return self
 
-    def with_patrol(self, handler: Any = None, **kwargs: Any) -> "EntityBuilder":
+    def with_patrol(self, handler: Any = None, **kwargs: Any) -> EntityBuilder:
         if handler is None:
             handler = AIPatrolHandler(**kwargs)
         self._handlers.append(handler)
         return self
 
-    def with_follow(self, handler: Any = None, **kwargs: Any) -> "EntityBuilder":
+    def with_follow(self, handler: Any = None, **kwargs: Any) -> EntityBuilder:
         if handler is None:
             handler = FollowHandler(**kwargs)
         self._handlers.append(handler)
         return self
 
-    def with_model(self, handler: Any = None, **kwargs: Any) -> "EntityBuilder":
+    def with_model(self, handler: Any = None, **kwargs: Any) -> EntityBuilder:
         if handler is None:
             handler = ModelHandler(**kwargs)
         self._handlers.append(handler)
         return self
 
-    def with_rigid_body(self, handler: Any = None, **kwargs: Any) -> "EntityBuilder":
+    def with_rigid_body(self, handler: Any = None, **kwargs: Any) -> EntityBuilder:
         if handler is None:
             handler = RigidBodyHandler(**kwargs)
         self._handlers.append(handler)
         return self
 
-    def with_handler(self, handler: Any) -> "EntityBuilder":
+    def with_handler(self, handler: Any) -> EntityBuilder:
         """Generic escape hatch for any handler not covered above."""
         self._handlers.append(handler)
         return self
@@ -135,7 +135,7 @@ class EntityBuilder:
     # ------------------------------------------------------------------ #
     # Build
     # ------------------------------------------------------------------ #
-    def build(self, scene: "Scene | None" = None) -> Entity:
+    def build(self, scene: Scene | None = None) -> Entity:
         entity = Entity(self._name, node=self._node)
         if self._parent is not None:
             entity.node.reparentTo(self._parent)

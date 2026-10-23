@@ -7,8 +7,9 @@ telemetry or advanced control.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Sequence
+from typing import TYPE_CHECKING, Any
 
 from panda3d.bullet import BulletShape
 from panda3d.core import NodePath, Vec3
@@ -17,11 +18,9 @@ from src.entities.entity import Entity
 from src.handlers.ai import AIPatrolHandler, FollowHandler
 from src.handlers.camera import FirstPersonCameraHandler, ThirdPersonCameraHandler
 from src.handlers.graphics import ActorAnimationHandler
-from src.handlers.graphics.model import ModelHandler
 from src.handlers.input import WASDInputHandler
 from src.handlers.input.base import InputHandler
 from src.handlers.physics.character import CharacterControllerHandler
-from src.handlers.physics.rigid_body import RigidBodyHandler
 from src.prefabs.builder import EntityBuilder
 
 if TYPE_CHECKING:
@@ -50,7 +49,7 @@ def _kwargs(d: dict[str, Any] | None) -> dict[str, Any]:
 
 
 def create_player(
-    scene: "Scene | None" = None,
+    scene: Scene | None = None,
     *,
     name: str = "Player",
     model: str = "Knight",
@@ -89,7 +88,7 @@ def create_player(
 
 
 def create_patrol_npc(
-    scene: "Scene | None" = None,
+    scene: Scene | None = None,
     *,
     name: str = "Npc",
     model: str = "Knight",
@@ -120,7 +119,9 @@ def create_patrol_npc(
         ai = FollowHandler(target=target, **_kwargs(ai_kwargs))
         builder.with_follow(handler=ai)
     elif waypoints:
-        ai = AIPatrolHandler(waypoints=list(waypoints), target=target, **_kwargs(ai_kwargs))
+        ai = AIPatrolHandler(
+            waypoints=list(waypoints), target=target, **_kwargs(ai_kwargs)
+        )
         builder.with_patrol(handler=ai)
     # else: no AI, plain NPC
 
@@ -138,7 +139,7 @@ def create_patrol_npc(
 
 
 def create_static_prop(
-    scene: "Scene | None" = None,
+    scene: Scene | None = None,
     *,
     name: str = "Prop",
     model_path: str,
@@ -155,7 +156,9 @@ def create_static_prop(
     if parent is not None:
         builder.parented_to(parent)
     builder.at(*position)
-    builder.with_model(model_path=model_path, scale=scale, from_assets=from_assets, offset=offset)
+    builder.with_model(
+        model_path=model_path, scale=scale, from_assets=from_assets, offset=offset
+    )
     if shape is not None:
         builder.with_rigid_body(shape=shape, mass=mass)
     return builder.build(scene)

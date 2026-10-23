@@ -3,6 +3,7 @@ try:
 except ImportError:
     import sys
     from pathlib import Path
+
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
     from tests.terminal.__terminal import TerminalTest
 
@@ -10,15 +11,15 @@ from panda3d.bullet import BulletBoxShape
 from panda3d.core import Vec3
 
 from src.entities.entity import Entity
+from src.handlers.physics import CharacterControllerHandler
 from src.prefabs import (
     EntityBuilder,
-    PlayerRig,
     NpcRig,
-    create_player,
+    PlayerRig,
     create_patrol_npc,
+    create_player,
     create_static_prop,
 )
-from src.handlers.physics import CharacterControllerHandler
 
 
 class TestPrefabSmoke(TerminalTest):
@@ -66,9 +67,7 @@ class TestPrefabSmoke(TerminalTest):
     def test_prop_prefab(self) -> None:
         self.print_subtitle("Static prop prefab (with and without physics).")
         Entity.reset_ids()
-        prop = create_static_prop(
-            model_path="X Bot.glb", position=(1.0, 2.0, 0.0)
-        )
+        prop = create_static_prop(model_path="X Bot.glb", position=(1.0, 2.0, 0.0))
         assert prop is not None
         prop.start()
         for _ in range(2):

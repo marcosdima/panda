@@ -11,9 +11,9 @@ from .common import (
 
 __all__ = [
     "EntityBuilder",
-    "PlayerRig",
     "NpcRig",
-    "create_player",
+    "PlayerRig",
     "create_patrol_npc",
+    "create_player",
     "create_static_prop",
 ]
