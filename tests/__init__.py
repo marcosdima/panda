@@ -9,6 +9,7 @@ from .terminal.camera_handler import TestCameraHandler
 from .terminal.actor_animation import TestActorAnimation
 from .terminal.physics_handlers import TestPhysicsHandlers
 from .terminal.model_handler import TestModelHandler
+from .terminal.scene_tasks_test import TestSceneTasks
 from .panda import *
 
 
@@ -25,6 +26,10 @@ TargetType: TypeAlias = Literal[
     'triggers',
     'model_handler',
     'camera_fp',
+    'scene_tasks',
+    'ai',
+    'follow',
+    'proximity',
 ] | None
 
 
@@ -60,6 +65,14 @@ class Tests:
             self.__target = TestModelHandler()
         elif TARGET == 'camera_fp':
             self.__target = TestFirstPersonCameraSandbox()
+        elif TARGET == 'scene_tasks':
+            self.__target = TestSceneTasks()
+        elif TARGET == 'ai':
+            self.__target = TestAISandbox()
+        elif TARGET == 'follow':
+            self.__target = TestFollowSandbox()
+        elif TARGET == 'proximity':
+            self.__target = TestProximitySandbox()
 
 
     def get_target(self) -> Scene | None:

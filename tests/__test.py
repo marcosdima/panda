@@ -2,6 +2,8 @@ from src.scenes import Scene
 
 
 class Test(Scene):
+    __test__ = False  # not a pytest test class
+
     def p(
         self,
         msg: str,
