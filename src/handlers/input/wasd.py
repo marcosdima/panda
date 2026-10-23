@@ -2,8 +2,16 @@ from __future__ import annotations
 
 import builtins
 from typing import TYPE_CHECKING
-from panda3d.core import ButtonHandle, KeyboardButton, Vec2
+from panda3d.core import Vec2
 
+from .action_map import (
+    MOVE_BACK,
+    MOVE_FORWARD,
+    MOVE_LEFT,
+    MOVE_RIGHT,
+    MOVEMENT_ACTIONS,
+    ActionMap,
+)
 from .base import InputHandler
 
 if TYPE_CHECKING:
@@ -11,21 +19,11 @@ if TYPE_CHECKING:
 
 
 class WASDInputHandler(InputHandler):
-    """Input handler polling WASD, arrow keys, jump (Space), and sprint (LShift)."""
+    """Input handler polling an ``ActionMap`` (defaults: WASD/arrows, Space=jump, LShift=sprint)."""
 
-    def __init__(self) -> None:
+    def __init__(self, action_map: ActionMap | None = None) -> None:
         super().__init__()
-        # Pre-cache ButtonHandles for fast per-frame polling
-        self._btn_w: ButtonHandle = KeyboardButton.ascii_key("w")
-        self._btn_s: ButtonHandle = KeyboardButton.ascii_key("s")
-        self._btn_a: ButtonHandle = KeyboardButton.ascii_key("a")
-        self._btn_d: ButtonHandle = KeyboardButton.ascii_key("d")
-        self._btn_up: ButtonHandle = KeyboardButton.up()
-        self._btn_down: ButtonHandle = KeyboardButton.down()
-        self._btn_left: ButtonHandle = KeyboardButton.left()
-        self._btn_right: ButtonHandle = KeyboardButton.right()
-        self._btn_space: ButtonHandle = KeyboardButton.space()
-        self._btn_lshift: ButtonHandle = KeyboardButton.lshift()
+        self.action_map: ActionMap = action_map if action_map is not None else ActionMap.default()
 
     def _get_mouse_watcher(self):
         """Retrieve MouseWatcher node if engine is initialized with an active window/input node."""
@@ -54,18 +52,19 @@ class WASDInputHandler(InputHandler):
         self._previous_actions = set(self._current_actions)
 
         is_down = watcher.is_button_down
+        amap = self.action_map
 
         # Directional input polling
         x = 0.0
         y = 0.0
 
-        if is_down(self._btn_w) or is_down(self._btn_up):
+        if amap.is_down(MOVE_FORWARD, is_down):
             y += 1.0
-        if is_down(self._btn_s) or is_down(self._btn_down):
+        if amap.is_down(MOVE_BACK, is_down):
             y -= 1.0
-        if is_down(self._btn_a) or is_down(self._btn_left):
+        if amap.is_down(MOVE_LEFT, is_down):
             x -= 1.0
-        if is_down(self._btn_d) or is_down(self._btn_right):
+        if amap.is_down(MOVE_RIGHT, is_down):
             x += 1.0
 
         vec = Vec2(x, y)
@@ -73,11 +72,9 @@ class WASDInputHandler(InputHandler):
             vec.normalize()
         self.move_vector = vec
 
-        # Action polling
-        new_actions: set[str] = set()
-        if is_down(self._btn_space):
-            new_actions.add("jump")
-        if is_down(self._btn_lshift):
-            new_actions.add("sprint")
-
-        self._current_actions = new_actions
+        # Action polling (every non-movement action in the map, e.g. jump, sprint, interact)
+        self._current_actions = {
+            action
+            for action in amap.actions
+            if action not in MOVEMENT_ACTIONS and amap.is_down(action, is_down)
+        }
