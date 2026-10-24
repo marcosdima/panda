@@ -91,18 +91,18 @@ class ActorAnimationHandler(Handler):
 
         self.blend_duration: float = max(0.0, float(blend_duration))
         self.blend_durations: dict[str, float] = {
-            "Idle->Walk": 0.14,
-            "Idle->Run": 0.16,
-            "Walk->Run": 0.12,
-            "Run->Walk": 0.14,
-            "Walk->Idle": 0.16,
-            "Run->Idle": 0.18,
-            "Idle->Jump": 0.08,
-            "Walk->Jump": 0.08,
-            "Run->Jump": 0.08,
-            "Jump->Idle": 0.16,
-            "Jump->Walk": 0.14,
-            "Jump->Run": 0.14,
+            "Idle->Walk": 0.10,
+            "Idle->Run": 0.12,
+            "Walk->Run": 0.10,
+            "Run->Walk": 0.12,
+            "Walk->Idle": 0.14,
+            "Run->Idle": 0.16,
+            "Idle->Jump": 0.07,
+            "Walk->Jump": 0.07,
+            "Run->Jump": 0.07,
+            "Jump->Idle": 0.14,
+            "Jump->Walk": 0.12,
+            "Jump->Run": 0.12,
         }
         if blend_durations:
             self.blend_durations.update(blend_durations)
@@ -328,15 +328,19 @@ class ActorAnimationHandler(Handler):
         if idle is None and "idle" in anim_names:
             idle = "idle"
         if idle is not None:
-            self._cancel_blend(reset_weights=False)
-            ctrl = self.anim_controls.findAnim(idle)
-            if ctrl is not None:
-                try:
-                    ctrl.loop(True)
-                except Exception:
-                    pass
-                self._set_control_weight(ctrl, 1.0)
-                self._current_anim = idle
+            # Try to crossfade from any playing animation if exists
+            if self.blend_duration > 0.0 and self._current_anim and self._current_anim != idle:
+                self._start_crossfade(idle, duration=min(0.12, self.blend_duration))
+            else:
+                self._cancel_blend(reset_weights=False)
+                ctrl = self.anim_controls.findAnim(idle)
+                if ctrl is not None:
+                    try:
+                        ctrl.loop(True)
+                    except Exception:
+                        pass
+                    self._set_control_weight(ctrl, 1.0)
+                    self._current_anim = idle
             self._last_locomotion_state = "Idle"
 
     def on_update(self, dt: float) -> None:
@@ -385,7 +389,12 @@ class ActorAnimationHandler(Handler):
 
         # Entering a state plays its clip; reconcile every frame so manual
         # play/loop calls or late-loaded clips fall back to the state's clip.
-        self._apply_state_clip()
+        if prev_state == "Idle" and curr_state == "Walk" and not self._blend_active:
+            target = self._state_clip(curr_state, anim_names)
+            if target is not None and (self._current_anim != target or True):
+                self._start_crossfade(target, duration=min(0.08, self.blend_durations.get("Idle->Walk", 0.1)))
+        else:
+            self._apply_state_clip()
 
     def _state_clip(self, state: str, anim_names: list[str]) -> str | None:
         """Return the clip for a locomotion state following its fallback order."""
