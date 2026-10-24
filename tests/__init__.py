@@ -30,10 +30,11 @@ TargetType: TypeAlias = Literal[
     'ai',
     'follow',
     'proximity',
+    'anim_blend',
 ] | None
 
 
-TARGET: TargetType = 'camera_fp' # Change this to run different test suites.
+TARGET: TargetType = 'anim_blend'  # Change this to run different test suites.
 #TARGET: TargetType = None
 
 
@@ -73,6 +74,8 @@ class Tests:
             self.__target = TestFollowSandbox()
         elif TARGET == 'proximity':
             self.__target = TestProximitySandbox()
+        elif TARGET == 'anim_blend':
+            self.__target = TestAnimationBlendSandbox()
 
 
     def get_target(self) -> Scene | None:

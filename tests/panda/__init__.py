@@ -1,3 +1,4 @@
+from .animation_blend_sandbox import TestAnimationBlendSandbox
 from .character_sandbox import TestCharacterSandbox
 from .camera_sandbox import TestFirstPersonCameraSandbox
 from .ai_sandbox import TestAISandbox
@@ -11,6 +12,7 @@ from .mini_game_sandbox import TestMiniGameSandbox
 
 __all__ = [
     'TestAISandbox',
+    'TestAnimationBlendSandbox',
     'TestCharacterSandbox',
     'TestFirstPersonCameraSandbox',
     'TestFollowSandbox',
