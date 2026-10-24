@@ -53,8 +53,18 @@ class Game(ShowBase):
             self.main_scene.on_start()
 
     def set_paused(self, paused: bool) -> None:
-        ''' Pause or resume the per-frame update of the main scene. '''
-        self.paused = paused
+        ''' Pause or resume the per-frame update and physics simulation of the main scene. '''
+        self.paused = bool(paused)
+        from .globals.physics import Physics
+        from src.utils import bus
+
+        Physics.set_paused(self.paused)
+        bus.publish("game_paused", self.paused)
+
+    def toggle_paused(self) -> bool:
+        ''' Toggle the paused state of the game and return the new state. '''
+        self.set_paused(not self.paused)
+        return self.paused
 
     def _update_main_scene(self, task) -> int:
         ''' Dispatch on_update(dt) to the active scene unless the game is paused. '''

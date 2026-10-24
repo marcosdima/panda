@@ -58,7 +58,7 @@ class ModelHandler(Handler):
         full_path = self._resolve_path()
         try:
             template = GlobalLoader.load(full_path)
-        except (IOError, OSError):
+        except Exception:
             logger.warning("Failed to load model '%s'.", full_path, exc_info=True)
             return None
         if template is None or template.isEmpty():
@@ -66,23 +66,43 @@ class ModelHandler(Handler):
             return None
         return template
 
+    def _target_parent(self) -> NodePath | None:
+        """Return the authoritative parent NodePath (dynamic body_np if present, else entity.node)."""
+        if self.entity is None:
+            return None
+        from src.handlers.physics.rigid_body import RigidBodyHandler
+
+        rigid = self.entity.get_handler(RigidBodyHandler)
+        if (
+            rigid is not None
+            and rigid.is_dynamic
+            and rigid.body_np is not None
+            and not rigid.body_np.isEmpty()
+        ):
+            return rigid.body_np
+        return self.entity.node
+
     def _setup_nodes(self) -> None:
-        """Create the model instance under entity.node and apply configured transforms."""
+        """Create the model instance under the authoritative parent and apply configured transforms."""
         if self.entity is None:
             return
 
+        target_parent = self._target_parent()
+        if target_parent is None or target_parent.isEmpty():
+            return
+
         if self.model_np is not None and not self.model_np.isEmpty():
-            if self.model_np.getParent() != self.entity.node:
-                self.model_np.reparentTo(self.entity.node)
+            if self.model_np.getParent() != target_parent:
+                self.model_np.reparentTo(target_parent)
             return
 
         template = self._load_template()
         if template is None:
             self.model_np = NodePath("ModelFallback")
-            self.model_np.reparentTo(self.entity.node)
+            self.model_np.reparentTo(target_parent)
             return
 
-        self.model_np = template.copyTo(self.entity.node)
+        self.model_np = template.copyTo(target_parent)
         self.model_np.setScale(self.scale)
         self.model_np.setPos(self.offset)
         self.model_np.setHpr(self.hpr)
@@ -99,17 +119,16 @@ class ModelHandler(Handler):
         self._setup_nodes()
 
     def on_start(self) -> None:
-        """Called when the active scene or entity starts; rebuilds the model if missing."""
+        """Called when the active scene or entity starts; rebuilds or reparents the model if needed."""
         super().on_start()
-        if self.model_np is None or self.model_np.isEmpty():
-            self._setup_nodes()
+        self._setup_nodes()
 
     def on_stop(self) -> None:
         """Called when the scene stops or the entity is deactivated; removes the model."""
-        self._cleanup_nodes()
         super().on_stop()
+        self._cleanup_nodes()
 
     def on_detach(self) -> None:
         """Detach handler cleanly and remove the model instance."""
-        self._cleanup_nodes()
         super().on_detach()
+        self._cleanup_nodes()

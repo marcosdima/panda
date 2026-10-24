@@ -8,11 +8,19 @@ class CollisionGroup(Enum):
 
     Groups are Python-side labels stored on handlers; trigger volumes use
     them to filter which overlapping entities trigger enter/exit events.
+    Each group also exposes a corresponding ``BitMask32`` bit via :attr:`bitmask`.
     """
 
     DEFAULT = 0
     PLAYER = 2
     ENEMY = 3
+    INTERACTABLE = 4
+    PROP = 5
+
+    @property
+    def bitmask(self) -> BitMask32:
+        """Return the ``BitMask32`` bit corresponding to this collision group."""
+        return BitMask32.bit(int(self.value))
 
 
 class CameraCollision:

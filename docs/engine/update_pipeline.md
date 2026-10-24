@@ -32,11 +32,11 @@ Both engine tasks use `GlobalClock.get_dt()`, the delta time of the global Panda
 
 ## Pausing
 
-`Game.set_paused(True)` stops the dispatch of both phases for the main scene. The physics task is a separate global task and keeps running, so a paused scene freezes its handlers while the world stays consistent. `PauseHandler` drives that flag from the pause menu (see [../handlers/components.md](../handlers/components.md)).
+`Game.set_paused(True)` (or `Game.toggle_paused()`) stops the dispatch of both phases for the main scene, pauses the Bullet simulation via `Physics.set_paused(True)`, and publishes `"game_paused"` on the global event bus so camera handlers and pause overlays can release or restore pointer capture in sync. `PauseHandler` and the `Test` sandbox inspector drive that state from the pause menu (see [../handlers/components.md](../handlers/components.md)).
 
 ## Scenes
 
-Only the main scene is dispatched. `Game.set_main_scene(scene_id)` stops the previous scene, which frees its entities and removes the tasks it owned, and starts the new one.
+Only the main scene is dispatched. `Game.set_main_scene(scene_id)` stops the previous scene, which frees its entities, removes its registered tasks and physics bodies, detaches its `root_np`, and starts the new one.
 
 Source: `src/game.py`, `src/scenes/__scene.py`, `src/entities/entity.py`, `src/globals/physics.py`
-Tests: `tests/terminal/game_update_test.py`, `tests/terminal/post_update_test.py`
+Tests: `tests/terminal/game_update_test.py`, `tests/terminal/post_update_test.py`, `tests/terminal/phase1_stabilization_test.py`

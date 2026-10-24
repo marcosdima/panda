@@ -57,6 +57,8 @@ class TestTriggersSandbox(Test):
         self.enemy: Entity | None = None
         self.enemy_rigid: RigidBodyHandler | None = None
         self._enemy_time: float = 0.0
+        self.enemy_sweep_amplitude: float = 6.0
+        self.enemy_sweep_period: float = 8.0
 
         self.zone_entities: list[Entity] = []
         self.zone_handlers: list[TriggerZoneHandler] = []
@@ -94,7 +96,13 @@ class TestTriggersSandbox(Test):
             self.base.accept("f12", self._toggle_physics_debug)
 
         self._setup_osd()
+        self._setup_inspector()
         self.add_task(self._task_name, self._on_frame_update)
+
+    def _setup_inspector(self) -> None:
+        """Register enemy oscillator and player parameters for live editing in the pause inspector."""
+        self.expose_field("Enemy Sweep Amp (m)", self, "enemy_sweep_amplitude", 0.0, 12.0, 0.5)
+        self.expose_field("Enemy Sweep Period (s)", self, "enemy_sweep_period", 1.0, 20.0, 0.5)
 
     def _print_controls_banner(self) -> None:
         """Print formatted ANSI startup banner with control and zone instructions."""
@@ -338,7 +346,8 @@ class TestTriggersSandbox(Test):
 
         if self.enemy is not None and not self.enemy.is_freed:
             self._enemy_time += dt
-            x = 6.0 * math.sin(math.tau * self._enemy_time / 8.0)
+            period = max(0.5, float(self.enemy_sweep_period))
+            x = float(self.enemy_sweep_amplitude) * math.sin(math.tau * self._enemy_time / period)
             self.enemy.node.setPos(x, 8.0, 0.5)
 
         self._update_osd(task.time)
@@ -374,7 +383,7 @@ class TestTriggersSandbox(Test):
             from panda3d.core import TextNode
 
             self.osd_instructions = OnscreenText(
-                text="WASD: Move | SPACE: Jump | Mouse: Look | F12: Wireframe | Walk through the glowing zones",
+                text="WASD: Move | SPACE: Jump | Mouse: Look | Esc/P: Pause & Inspector | F12: Wireframe",
                 pos=(-1.28, 0.92),
                 scale=0.045,
                 fg=(1.0, 1.0, 1.0, 1.0),

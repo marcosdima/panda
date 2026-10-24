@@ -68,8 +68,8 @@ class CharacterControllerHandler(Handler):
         self.step_height: float = step_height
         self.walk_speed: float = walk_speed
         self.sprint_speed: float = sprint_speed
-        self.jump_speed: float = jump_speed
-        self.gravity: float = gravity
+        self._jump_speed: float = float(jump_speed)
+        self._gravity: float = float(gravity)
         self._visual_node: NodePath | None = visual_node
         self.turn_speed: float = turn_speed
         self.camera_handler: Any = camera_handler
@@ -105,6 +105,28 @@ class CharacterControllerHandler(Handler):
         self.orientation_mode = (
             CharacterOrientationMode.CAMERA_LOOK if value else CharacterOrientationMode.MOVE_DIRECTION
         )
+
+    @property
+    def jump_speed(self) -> float:
+        """Return the character jump speed."""
+        return self._jump_speed
+
+    @jump_speed.setter
+    def jump_speed(self, value: float) -> None:
+        self._jump_speed = float(value)
+        if self.controller_node is not None:
+            self.controller_node.setJumpSpeed(self._jump_speed)
+
+    @property
+    def gravity(self) -> float:
+        """Return the character controller downward gravity."""
+        return self._gravity
+
+    @gravity.setter
+    def gravity(self, value: float) -> None:
+        self._gravity = float(value)
+        if self.controller_node is not None:
+            self.controller_node.setGravity(self._gravity)
 
     @property
     def visual_node(self) -> NodePath | None:
@@ -256,9 +278,8 @@ class CharacterControllerHandler(Handler):
             elif (
                 self.orientation_mode == CharacterOrientationMode.MOVE_DIRECTION
                 and self._linear_velocity.length_squared() > 1e-4
-                and not is_local
             ):
-                # Face movement direction
+                # Face movement direction (both camera-relative players and camera-less NPCs)
                 target_h = -math.degrees(math.atan2(self._linear_velocity.x, self._linear_velocity.y))
 
             if target_h is not None:
@@ -288,12 +309,12 @@ class CharacterControllerHandler(Handler):
 
     def on_detach(self) -> None:
         """Cleanly remove character controller from BulletWorld and detach nodes upon detach."""
+        super().on_detach()
         self._detach_from_world()
         if self.controller_np is not None and not self.controller_np.isEmpty():
             self.controller_np.removeNode()
             self.controller_np = None
         self.controller_node = None
-        super().on_detach()
 
     @property
     def is_on_ground(self) -> bool:

@@ -21,10 +21,14 @@ logger = logging.getLogger(__name__)
 class Physics(Global):
     """A singleton class to manage the Bullet Physics world."""
 
+    FIXED_TIMESTEP: float = 1.0 / 60.0
+    MAX_SUBSTEPS: int = 10
+
     _world: BulletWorld | None = None
     _bodies: dict[str, BulletRigidBodyNode] = {}
     _ghosts: dict[str, BulletGhostNode] = {}
     _debug_np: NodePath | None = None
+    _paused: bool = False
 
     def __init__(self) -> None:
         super().__init__()
@@ -111,10 +115,21 @@ class Physics(Global):
             return not cls._debug_np.isHidden()
         return False
 
+    @classmethod
+    def set_paused(cls, paused: bool) -> None:
+        """Pause or resume the Bullet physics simulation step."""
+        cls._paused = bool(paused)
+
+    @classmethod
+    def is_paused(cls) -> bool:
+        """Return True if the Bullet physics simulation is paused."""
+        return cls._paused
+
     def _update_world(self, task: Task) -> int:
         dt = GlobalClock.get_dt()
-        if Physics._world is not None:
-            Physics._world.doPhysics(dt)
+        paused = Physics._paused or bool(getattr(self.base, "paused", False))
+        if not paused and Physics._world is not None:
+            Physics._world.doPhysics(dt, Physics.MAX_SUBSTEPS, Physics.FIXED_TIMESTEP)
         return task.cont
 
     @classmethod
@@ -170,6 +185,19 @@ class Physics(Global):
                     del cls._ghosts[k]
 
     @classmethod
+    def clear_all_bodies(cls) -> None:
+        """Remove all registered rigid bodies and ghosts from the physics world."""
+        world = cls._ensure_world()
+        for name in list(cls._bodies.keys()):
+            body = cls._bodies.pop(name, None)
+            if body is not None:
+                world.removeRigidBody(body)
+        for name in list(cls._ghosts.keys()):
+            ghost = cls._ghosts.pop(name, None)
+            if ghost is not None:
+                world.removeGhost(ghost)
+
+    @classmethod
     def attach_character(cls, node: BulletCharacterControllerNode) -> None:
         """Attach a Bullet character controller to the physics world."""
         world = cls._ensure_world()
@@ -181,14 +209,13 @@ class Physics(Global):
         from_pos: Vec3,
         to_pos: Vec3,
         mask: "BitMask32 | None" = None,
-        step_physics: bool = True,
+        step_physics: bool = False,
     ) -> tuple[Vec3, NodePath | None] | None:
         """Cast a ray and return the closest hit position and node, or None if unobstructed.
 
-        When `step_physics` is True (default), the Bullet world is stepped a tiny
-        amount before the query so dynamic bodies are up to date. Set to False
-        when the caller already steps the world (e.g. per-frame camera raycasts)
-        to avoid advancing the simulation more than once per frame.
+        By default `step_physics` is False so spatial queries never mutate simulation
+        state. Set `step_physics=True` only in standalone setups where the caller has
+        modified body transforms without stepping the world yet.
         """
         world = cls._ensure_world()
         if mask is None:

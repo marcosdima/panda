@@ -20,7 +20,8 @@ class GlobalLoader(Global):
         '''Get the global loader object.'''
         if not hasattr(cls, '_instance'):
             cls()
-        loader = cls._instance.base.loader
+        base = cls._instance.base
+        loader = getattr(base, 'loader', None) if base is not None else None
         if loader is None:
             raise Exception('Loader is not initialized.')
         return loader
@@ -30,11 +31,25 @@ class GlobalLoader(Global):
     def load(cls, asset_path: str) -> NodePath:
         '''Internal loader with caching.'''
         if asset_path in cls.__models:
-            return cls.__models[asset_path]
+            cached = cls.__models[asset_path]
+            if cached is not None and not cached.isEmpty():
+                return cached
 
         model = cls.get_global_loader().loadModel(asset_path)
         cls.__models[asset_path] = model
         return model
+
+
+    @classmethod
+    def load_copy(cls, asset_path: str, parent: NodePath | None = None) -> NodePath:
+        '''Load a cached model template and return a fresh deep-copied NodePath instance.'''
+        template = cls.load(asset_path)
+        if parent is not None and not parent.isEmpty():
+            return template.copyTo(parent)
+        temp_parent = NodePath("loader_copy_root")
+        instance = template.copyTo(temp_parent)
+        instance.detachNode()
+        return instance
     
 
     @classmethod

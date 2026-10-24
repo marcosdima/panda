@@ -60,10 +60,44 @@ class TestAnimationBlendSandbox(Test):
             self.base.accept("[", self._blend_down)
             self.base.accept("]", self._blend_up)
             self.base.accept("g", self._toggle_accel)
-            self.base.accept("p", self._toggle_pause)
 
         self._setup_osd()
+        self._setup_inspector()
         self.add_task(self._task_name, self._on_frame_update)
+
+    def _setup_inspector(self) -> None:
+        """Register animation blending parameters and one-shot action clips in the pause inspector."""
+        self.expose_property(
+            "Idle->Walk Blend (s)",
+            lambda: self._blend_tuning,
+            self._set_idle_walk_blend,
+            0.02,
+            0.60,
+            0.02,
+        )
+        self.expose_toggle(
+            "Acceleration Ramp (G)",
+            lambda: self._accel_enabled,
+            lambda _v: self._toggle_accel(),
+        )
+        if self.player_rig is not None and self.player_rig.animation is not None:
+            self.expose_action(
+                "Action: Interact",
+                lambda: self.player_rig.animation.play_action("Interact")
+                if self.player_rig and self.player_rig.animation
+                else None,
+            )
+            self.expose_action(
+                "Action: PickUp",
+                lambda: self.player_rig.animation.play_action("PickUp")
+                if self.player_rig and self.player_rig.animation
+                else None,
+            )
+
+    def _set_idle_walk_blend(self, val: float) -> None:
+        self._blend_tuning = max(0.02, min(0.60, float(val)))
+        if self.player_rig is not None and self.player_rig.animation is not None:
+            self.player_rig.animation.blend_durations["Idle->Walk"] = self._blend_tuning
 
     def _print_controls_banner(self) -> None:
         self.print_subtitle("Controls", color="yellow")

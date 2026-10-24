@@ -85,6 +85,22 @@ class RigidBodyHandler(Handler):
             Physics.get_world().removeRigidBody(self.body_node)
             self._is_attached_to_world = False
 
+    def _sync_sibling_model_parent(self, to_body: bool) -> None:
+        """Reparent sibling ModelHandler to body_np (when dynamic) or back to entity.node."""
+        if self.entity is None or not self.is_dynamic:
+            return
+        from src.handlers.graphics.model import ModelHandler
+
+        model_handler = self.entity.get_handler(ModelHandler)
+        if model_handler is None or model_handler.model_np is None or model_handler.model_np.isEmpty():
+            return
+        if to_body and self.body_np is not None and not self.body_np.isEmpty():
+            if model_handler.model_np.getParent() != self.body_np:
+                model_handler.model_np.reparentTo(self.body_np)
+        elif not to_body and self.entity.node is not None and not self.entity.node.isEmpty():
+            if model_handler.model_np.getParent() == self.body_np:
+                model_handler.model_np.reparentTo(self.entity.node)
+
     def on_attach(self, entity: Entity) -> None:
         """Create the rigid body node, parent it to the entity, and join the world."""
         super().on_attach(entity)
@@ -103,6 +119,7 @@ class RigidBodyHandler(Handler):
             self._last_parent_net = self.body_np.getParent().getNetTransform()
 
         self._attach_to_world()
+        self._sync_sibling_model_parent(to_body=True)
 
     def on_start(self) -> None:
         """Called when active scene or entity starts."""
@@ -112,6 +129,7 @@ class RigidBodyHandler(Handler):
                 self.body_np = self.entity.node.attachNewNode(self.body_node)
                 self._last_parent_net = self.body_np.getParent().getNetTransform()
         self._attach_to_world()
+        self._sync_sibling_model_parent(to_body=True)
 
     def on_update(self, dt: float) -> None:
         """Propagate moves of `entity.node` into the Bullet simulation.
@@ -134,6 +152,7 @@ class RigidBodyHandler(Handler):
     def on_stop(self) -> None:
         """Detach the body from the world and remove its NodePath."""
         super().on_stop()
+        self._sync_sibling_model_parent(to_body=False)
         self._detach_from_world()
         if self.body_np is not None and not self.body_np.isEmpty():
             self.body_np.removeNode()
@@ -142,10 +161,11 @@ class RigidBodyHandler(Handler):
 
     def on_detach(self) -> None:
         """Fully release the body node when the handler is removed from its entity."""
+        super().on_detach()
+        self._sync_sibling_model_parent(to_body=False)
         self._detach_from_world()
         if self.body_np is not None and not self.body_np.isEmpty():
             self.body_np.removeNode()
         self.body_np = None
         self.body_node = None
         self._last_parent_net = None
-        super().on_detach()

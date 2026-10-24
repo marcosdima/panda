@@ -25,7 +25,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT" || exit 1
 
-PYTHON="./venv/bin/python"
+if [[ -x "./.venv/bin/python" ]]; then
+    PYTHON="./.venv/bin/python"
+elif [[ -x "./venv/bin/python" ]]; then
+    PYTHON="./venv/bin/python"
+else
+    PYTHON="python3"
+fi
 RUN_SUITE=1
 STRICT=0
 SCOPE_PATHS=()

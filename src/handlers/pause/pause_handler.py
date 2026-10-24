@@ -64,8 +64,13 @@ class PauseHandler(Handler):
             return
 
         # Find an attached camera handler for later cursor control.
+        from src.handlers.camera.first_person import FirstPersonCameraHandler
         from src.handlers.camera.third_person import ThirdPersonCameraHandler
-        self._camera_handler = self.entity.get_handler(ThirdPersonCameraHandler)  # type: ignore[arg-type]
+
+        if self.entity is not None:
+            self._camera_handler = self.entity.get_handler(
+                ThirdPersonCameraHandler
+            ) or self.entity.get_handler(FirstPersonCameraHandler)  # type: ignore[assignment]
 
         # Register the key that toggles pause.
         if hasattr(base, "accept"):
@@ -83,17 +88,33 @@ class PauseHandler(Handler):
         else:
             self._enter_pause()
 
+    def _sync_engine_pause(self, paused: bool) -> None:
+        """Propagate pause state to Game, Physics, and the global event bus."""
+        from src.globals.physics import Physics
+        from src.utils import bus
+
+        base = getattr(builtins, "base", None)
+        if base is not None and hasattr(base, "set_paused"):
+            base.set_paused(paused)
+        else:
+            if base is not None:
+                base.paused = paused
+            Physics.set_paused(paused)
+            bus.publish("game_paused", paused)
+
     def _enter_pause(self) -> None:
-        """Activate pause mode: release mouse and show UI."""
+        """Activate pause mode: freeze game/physics, release mouse, and show UI."""
         self.is_paused = True
+        self._sync_engine_pause(True)
         self._release_mouse()
         self._show_ui()
         logger.info("Game paused.")
 
     def _resume(self) -> None:
-        """Deactivate pause mode: capture mouse and hide UI."""
+        """Deactivate pause mode: hide UI, resume game/physics, and capture mouse."""
         self.is_paused = False
         self._hide_ui()
+        self._sync_engine_pause(False)
         self._capture_mouse()
         logger.info("Game resumed.")
 
@@ -189,6 +210,9 @@ class PauseHandler(Handler):
     def on_stop(self) -> None:
         """Unregister key bindings and clean UI when the entity stops."""
         super().on_stop()
+        if self.is_paused:
+            self.is_paused = False
+            self._sync_engine_pause(False)
         base = getattr(builtins, "base", None)
         if base is not None and hasattr(base, "ignore"):
             base.ignore(self._pause_key)
@@ -197,7 +221,5 @@ class PauseHandler(Handler):
 
     def on_detach(self) -> None:
         """Delegate to ``on_stop`` and clear the entity reference."""
-        self.on_stop()
-        if hasattr(self, "entity"):
-            del self.entity
         super().on_detach()
+        self.on_stop()

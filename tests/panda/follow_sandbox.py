@@ -131,7 +131,21 @@ class TestFollowSandbox(Test):
             self.base.accept("l", self._toggle_leash)
 
         self._setup_osd()
+        self._setup_inspector()
         self.add_task(self._task_name, self._on_frame_update)
+
+    def _setup_inspector(self) -> None:
+        """Register follow and target controls for live editing in the pause inspector."""
+        self.expose_toggle(
+            "Target Auto Route (T)",
+            lambda: self._target_auto,
+            lambda _v: self._toggle_target_control(),
+        )
+        self.expose_toggle(
+            "Leash Enabled (L)",
+            lambda: self._leash_enabled,
+            lambda _v: self._toggle_leash(),
+        )
 
     def on_stop(self) -> None:
         """Clean teardown: remove tasks, listeners, entities, nodes, and lights."""
@@ -501,7 +515,7 @@ class TestFollowSandbox(Test):
             from panda3d.core import TextNode
 
             self.osd_instructions = OnscreenText(
-                text="WASD: Move Target | Mouse: Look | T: Target Mode | L: Leash | F12: Wireframe",
+                text="WASD: Move Target | Mouse: Look | T: Target Mode | L: Leash | Esc/P: Pause & Inspector | F12: Wireframe",
                 pos=(-1.28, 0.92),
                 scale=0.045,
                 fg=(1.0, 1.0, 1.0, 1.0),

@@ -33,19 +33,19 @@ class TestMiniGameSandbox(Test):
     def _build_ground(self) -> None:
         body = Physics.create_body("ground", mass=0.0)
         body.addShape(BulletBoxShape(Vec3(30.0, 30.0, 0.25)))
-        np = self.base.render.attachNewNode(body)
+        np = self.root_np.attachNewNode(body)
         np.setPos(0.0, 0.0, -0.25)
-        Physics.get_world().attachRigidBody(body)
+        self.register_body("ground")
 
     def _spawn_entities(self) -> None:
         rig = create_player(position=(0.0, 0.0, 2.0))
         self.player = rig.entity
-        self.player.node.reparentTo(self.base.render)
+        self.player.node.reparentTo(self.root_np)
         self.add_entity(self.player)
 
         waypoints = [Vec3(5.0, 5.0, 0.0), Vec3(-5.0, 5.0, 0.0)]
         npc = create_patrol_npc(waypoints=waypoints, position=(5.0, 5.0, 0.0))
-        npc.entity.node.reparentTo(self.base.render)
+        npc.entity.node.reparentTo(self.root_np)
         self.add_entity(npc.entity)
         self.npcs.append(npc)
 
@@ -57,10 +57,14 @@ class TestMiniGameSandbox(Test):
             offset=Vec3(-0.5, -0.5, -0.5),
             shape=BulletBoxShape(Vec3(0.5, 0.5, 0.5)),
         )
-        prop.node.reparentTo(self.base.render)
+        prop.node.reparentTo(self.root_np)
         self.add_entity(prop)
 
     def on_stop(self) -> None:
+        super().on_stop()
+        GlobalLights.clear_lights()
+        self.npcs.clear()
+        self.player = None
         self.print_subtitle("Mini-Game Sandbox stopped.")
 
 

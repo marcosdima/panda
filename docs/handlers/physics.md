@@ -59,9 +59,9 @@ Behaviour:
 
 ## `CollisionGroup`
 
-`src/handlers/physics/groups.py` defines the semantic labels stored on the physics handlers: `DEFAULT`, `PLAYER`, `ENEMY`. They are Python-side labels used by the trigger filters; they are not Bullet masks.
+`src/handlers/physics/groups.py` defines the semantic labels stored on the physics handlers: `DEFAULT`, `PLAYER`, `ENEMY`, `INTERACTABLE`, `PROP`. They are used by trigger filters and also expose a corresponding `BitMask32` bit via `group.bitmask`.
 
 The same module defines the two query masks, `CameraCollision` and `LineOfSight`, which share a single blocker bit so that both queries ignore characters and trigger volumes. The convention and the query API are documented in [../engine/physics_world.md](../engine/physics_world.md).
 
 Source: `src/handlers/physics/`
-Tests: `tests/terminal/physics_handlers.py`, `tests/terminal/character_controller.py`, `tests/terminal/ai_test.py`
+Tests: `tests/terminal/physics_handlers.py`, `tests/terminal/character_controller.py`, `tests/terminal/ai_test.py`, `tests/terminal/phase1_stabilization_test.py`

@@ -105,6 +105,7 @@ class FirstPersonCameraHandler(Handler):
         base = getattr(builtins, "base", None)
         win = getattr(base, "win", None) if base else None
         self.is_pointer_captured: bool = win is not None
+        self._captured_before_pause: bool = self.is_pointer_captured
         self._skip_first_mouse_delta: bool = True
         self._btn_mouse3 = MouseButton.three()
 
@@ -175,6 +176,9 @@ class FirstPersonCameraHandler(Handler):
             win.requestProperties(props)
 
     def _on_toggle_cursor(self) -> None:
+        base = getattr(builtins, "base", None)
+        if getattr(base, "paused", False):
+            return
         self.set_pointer_captured(not self.is_pointer_captured)
 
     def _on_unlock_cursor(self) -> None:
@@ -182,8 +186,22 @@ class FirstPersonCameraHandler(Handler):
             self.set_pointer_captured(False)
 
     def _on_lock_cursor(self) -> None:
+        base = getattr(builtins, "base", None)
+        if getattr(base, "paused", False):
+            return
         if not self.is_pointer_captured:
             self.set_pointer_captured(True)
+
+    def _on_game_paused(self, paused: bool) -> None:
+        if paused:
+            self._captured_before_pause = self.is_pointer_captured
+            if self.is_pointer_captured:
+                self.set_pointer_captured(False)
+        else:
+            base = getattr(builtins, "base", None)
+            win = getattr(base, "win", None) if base else None
+            if win is not None and self._captured_before_pause:
+                self.set_pointer_captured(True)
 
     def _get_mouse_watcher(self):
         base = getattr(builtins, "base", None)
@@ -477,11 +495,14 @@ class FirstPersonCameraHandler(Handler):
         base = getattr(builtins, "base", None)
         if base is not None and hasattr(base, "accept"):
             base.accept("tab", self._on_toggle_cursor)
-            base.accept("escape", self._on_unlock_cursor)
             base.accept("mouse1", self._on_lock_cursor)
 
+        from src.utils import bus
+
+        bus.subscribe("game_paused", self._on_game_paused)
+
         win = getattr(base, "win", None) if base else None
-        if win is not None:
+        if win is not None and not getattr(base, "paused", False):
             self.set_pointer_captured(True)
 
     def on_update(self, dt: float) -> None:
@@ -537,6 +558,10 @@ class FirstPersonCameraHandler(Handler):
         self._apply_camera_transform(dt)
 
     def on_stop(self) -> None:
+        super().on_stop()
+        from src.utils import bus
+
+        bus.unsubscribe("game_paused", self._on_game_paused)
         self._show_entity_model()
         self._restore_lens()
         self._smoothed_eye = None
@@ -544,7 +569,6 @@ class FirstPersonCameraHandler(Handler):
         base = getattr(builtins, "base", None)
         if base is not None and hasattr(base, "ignore"):
             base.ignore("tab")
-            base.ignore("escape")
             base.ignore("mouse1")
 
         win = getattr(base, "win", None) if base else None
@@ -563,13 +587,12 @@ class FirstPersonCameraHandler(Handler):
                 cam.setHpr(self._saved_cam_hpr)
 
         self._last_mouse_pos = None
-        super().on_stop()
 
     def on_detach(self) -> None:
+        super().on_detach()
         self._show_entity_model()
         self.on_stop()
         self._camera_node = None
         self._saved_cam_pos = None
         self._saved_cam_hpr = None
         self._hidden_nodes.clear()
-        super().on_detach()

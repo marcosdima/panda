@@ -45,11 +45,13 @@ def world_position(entity: "Entity") -> Vec3:
     """Return the authoritative world position of an entity.
 
     Prefers the character controller's node when one is attached and valid,
-    because the controller moves that node instead of ``entity.node``. Falls
+    then a rigid body's node when one is attached and valid, because physics
+    handlers move their own Bullet nodes instead of ``entity.node``. Falls
     back to ``entity.node`` for every other entity. Returns the origin for an
     entity whose node is empty.
     """
     from src.handlers.physics.character import CharacterControllerHandler
+    from src.handlers.physics.rigid_body import RigidBodyHandler
 
     base = getattr(builtins, "base", None)
     render = getattr(base, "render", None) if base is not None else None
@@ -59,6 +61,12 @@ def world_position(entity: "Entity") -> Vec3:
         controller_np = controller.controller_np
         if not controller_np.isEmpty():
             return _resolve(controller_np, render)
+
+    rigid = entity.get_handler(RigidBodyHandler)
+    if rigid is not None and rigid.body_np is not None:
+        body_np = rigid.body_np
+        if not body_np.isEmpty():
+            return _resolve(body_np, render)
 
     node = entity.node
     if node is None or node.isEmpty():

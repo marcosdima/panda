@@ -94,9 +94,25 @@ class TestCharacterSandbox(Test):
 
         # Setup On-Screen Display (OSD)
         self._setup_osd()
+        self._setup_inspector()
 
         # Register per-frame update and telemetry task
         self.add_task(self._task_name, self._on_frame_update)
+
+    def _setup_inspector(self) -> None:
+        """Register live-editable sandbox controls for the pause inspector (Esc / P)."""
+        if self.controller is not None:
+            self.expose_toggle(
+                "Body Follows Cam Yaw",
+                lambda: self.controller.body_follows_camera_yaw if self.controller else False,
+                lambda v: setattr(self.controller, "body_follows_camera_yaw", bool(v)) if self.controller else None,
+            )
+        self.expose_action("Cycle Camera Preset (C)", self._cycle_camera_preset)
+        if self.actor_handler is not None:
+            self.expose_action(
+                "Action: Interact",
+                lambda: self.actor_handler.play_action("Interact") if self.actor_handler else None,
+            )
 
     def _print_controls_banner(self) -> None:
         """Print formatted ANSI startup banner with control instructions."""
@@ -356,7 +372,7 @@ class TestCharacterSandbox(Test):
             from panda3d.core import TextNode
 
             self.osd_instructions = OnscreenText(
-                text="WASD: Move | SPACE: Jump | 1-4: Camera Presets | C: Cycle Cam | B: Body Mode | Wheel: Zoom | F12: Wireframe",
+                text="WASD: Move | SPACE: Jump | 1-4/C: Cam Presets | B: Body Mode | Esc/P: Pause & Inspector | F12: Wireframe",
                 pos=(-1.28, 0.92),
                 scale=0.040,
                 fg=(1.0, 1.0, 1.0, 1.0),

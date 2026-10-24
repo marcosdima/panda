@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import logging
 import math
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable
 from panda3d.core import NodePath, Vec3, autoBind, AnimControlCollection
 
 from config import ASSETS_PATH
+from src.globals.loader import GlobalLoader
 from src.handlers.base import Handler
 from src.handlers.physics.character import CharacterControllerHandler
 from src.utils.state_machine import StateMachine
@@ -93,8 +94,8 @@ class ActorAnimationHandler(Handler):
 
         self.blend_duration: float = max(0.0, float(blend_duration))
         self.blend_durations: dict[str, float] = {
-            "Idle->Walk": 0.20,
-            "Idle->Run": 0.22,
+            "Idle->Walk": 0.24,
+            "Idle->Run": 0.26,
             "Walk->Run": 0.14,
             "Run->Walk": 0.16,
             "Walk->Idle": 0.18,
@@ -131,6 +132,11 @@ class ActorAnimationHandler(Handler):
         self._blend_to_ctrl = None
         self._part_bundles: list = []
 
+        # One-shot action override state
+        self._action_anim: str | None = None
+        self._action_time_left: float = 0.0
+        self._action_on_complete: Callable[[], None] | None = None
+
     @classmethod
     def kaykit_rig_medium(cls, character: str = "Knight", **kwargs: Any) -> ActorAnimationHandler:
         """Build a handler for a KayKit Adventurers character that uses the shared ``Rig_Medium`` clips.
@@ -158,6 +164,11 @@ class ActorAnimationHandler(Handler):
     def current_animation(self) -> str | None:
         """Return the name of the currently active animation clip, or None."""
         return self._current_anim
+
+    @property
+    def is_playing_action(self) -> bool:
+        """Return True if a one-shot action animation override is currently active."""
+        return self._action_anim is not None
 
     def get_anim_names(self) -> list[str]:
         """Return the list of available animation names."""
@@ -206,11 +217,15 @@ class ActorAnimationHandler(Handler):
             )
 
             if loader is not None:
-                self.model_root = loader.loadModel(full_model_path)
+                try:
+                    self.model_root = GlobalLoader.load_copy(full_model_path, parent=self.visual_pivot)
+                except Exception:
+                    self.model_root = loader.loadModel(full_model_path)
+                    self.model_root.reparentTo(self.visual_pivot)
             else:
                 self.model_root = NodePath("ModelFallback")
+                self.model_root.reparentTo(self.visual_pivot)
 
-            self.model_root.reparentTo(self.visual_pivot)
             self.model_root.setScale(self.scale)
             self.model_root.setPos(self.offset)
             self.model_root.setHpr(self.hpr)
@@ -259,7 +274,10 @@ class ActorAnimationHandler(Handler):
             else rel_path
         )
         try:
-            anim_model = loader.loadModel(full_path)
+            try:
+                anim_model = GlobalLoader.load_copy(full_path)
+            except Exception:
+                anim_model = loader.loadModel(full_path)
         except (IOError, OSError):
             logger.warning("Failed to load animation file %s.", full_path, exc_info=True)
             return
@@ -311,6 +329,9 @@ class ActorAnimationHandler(Handler):
         self._current_anim = None
         self._air_time = 0.0
         self._last_locomotion_state = None
+        self._action_anim = None
+        self._action_time_left = 0.0
+        self._action_on_complete = None
         self._cancel_blend(reset_weights=False)
         self.locomotion.reset("Idle")
 
@@ -391,6 +412,20 @@ class ActorAnimationHandler(Handler):
         elif self._last_locomotion_state is None:
             self._last_locomotion_state = prev_state
 
+        # If a one-shot action animation is active, keep playing it until its timer expires
+        if self._action_anim is not None:
+            self._action_time_left -= float(dt)
+            if self._action_time_left > 0.0:
+                return
+            self._action_anim = None
+            self._action_time_left = 0.0
+            callback = self._action_on_complete
+            self._action_on_complete = None
+            if callback is not None:
+                callback()
+            self._apply_state_clip()
+            return
+
         # Entering a state plays its clip; reconcile every frame so manual
         # play/loop calls or late-loaded clips fall back to the state's clip.
         if prev_state == "Idle" and curr_state in ("Walk", "Run") and not self._blend_active:
@@ -411,6 +446,8 @@ class ActorAnimationHandler(Handler):
 
     def _apply_state_clip(self) -> None:
         """Loop the clip of the current locomotion state if it is not already playing."""
+        if self._action_anim is not None:
+            return
         anim_names = self.get_anim_names()
         if not anim_names:
             return
@@ -625,18 +662,23 @@ class ActorAnimationHandler(Handler):
                 except Exception:
                     pass
 
-        # Align walk/run phase to reduce start pop from idle
+        # Align walk/run phase to reduce start pop
         try:
             if from_ctrl is not None and from_ctrl != to_ctrl and target_name in ("Walking_A", "Running_A", "Walk", "Run"):
-                phase = getattr(self, "start_walk_phase", 0.15)
-                if hasattr(to_ctrl, "getNumFrames"):
-                    n = to_ctrl.getNumFrames()
-                    if n and n > 0:
-                        f = int(max(0, min(n - 1, round(n * phase))))
-                        try:
-                            to_ctrl.pose(f)
-                        except Exception:
-                            pass
+                from_name_check = from_name or ""
+                # Skip phase alignment when transitioning from Idle - causes snap
+                if from_name_check in ("Idle", "Idle_A"):
+                    pass
+                else:
+                    phase = getattr(self, "start_walk_phase", 0.15)
+                    if hasattr(to_ctrl, "getNumFrames"):
+                        n = to_ctrl.getNumFrames()
+                        if n and n > 0:
+                            f = int(max(0, min(n - 1, round(n * phase))))
+                            try:
+                                to_ctrl.pose(f)
+                            except Exception:
+                                pass
         except Exception:
             pass
 
@@ -709,13 +751,16 @@ class ActorAnimationHandler(Handler):
         self._set_control_weight(self._blend_to_ctrl, w_to)
 
         if t >= 1.0:
-            # Finish blend: stop from clip, keep to clip looping
+            # Finish blend: keep to clip looping, fade out from clip
             if self._blend_from_ctrl is not None and self._blend_from_ctrl != self._blend_to_ctrl:
+                try:
+                    self._set_control_weight(self._blend_from_ctrl, 0.0)
+                except Exception:
+                    pass
                 try:
                     self._blend_from_ctrl.stop()
                 except Exception:
                     pass
-                self._set_control_weight(self._blend_from_ctrl, 0.0)
             if self._blend_to_ctrl is not None:
                 try:
                     self._blend_to_ctrl.loop(True)
@@ -725,8 +770,52 @@ class ActorAnimationHandler(Handler):
             self._current_anim = self._blend_to_name
             self._cancel_blend()
 
-    def play_animation(self, anim_name: str) -> bool:
+    def play_action(
+        self,
+        anim_name: str,
+        duration: float | None = None,
+        on_complete: Callable[[], None] | None = None,
+    ) -> bool:
+        """Play a one-shot action clip (e.g. 'Interact', 'PickUp') and lock locomotion until it finishes."""
+        if self.anim_controls is None:
+            return False
+        ctrl = self.anim_controls.findAnim(anim_name)
+        if ctrl is None:
+            return False
+
+        if duration is None:
+            clip_dur = 0.6
+            try:
+                num_frames = ctrl.getNumFrames() if hasattr(ctrl, "getNumFrames") else 0
+                frame_rate = ctrl.getFrameRate() if hasattr(ctrl, "getFrameRate") else 0.0
+                if num_frames and frame_rate and frame_rate > 0.0:
+                    clip_dur = float(num_frames) / float(frame_rate)
+            except Exception:
+                pass
+        else:
+            clip_dur = float(duration)
+
+        if not self.play_animation(anim_name):
+            return False
+
+        self._action_anim = anim_name
+        self._action_time_left = max(0.01, clip_dur)
+        self._action_on_complete = on_complete
+        return True
+
+    def stop_action(self) -> None:
+        """Cancel any active one-shot action animation and return to the current locomotion clip."""
+        if self._action_anim is None:
+            return
+        self._action_anim = None
+        self._action_time_left = 0.0
+        self._action_on_complete = None
+        self._apply_state_clip()
+
+    def play_animation(self, anim_name: str, lock_locomotion: bool = False) -> bool:
         """Explicitly play an animation clip once by name."""
+        if lock_locomotion:
+            return self.play_action(anim_name)
         self._enable_blending()
         old_from = self._blend_from_ctrl
         old_to = self._blend_to_ctrl
@@ -745,6 +834,14 @@ class ActorAnimationHandler(Handler):
                     old_to.stop()
                 except Exception:
                     pass
+            if self._current_anim and self._current_anim != anim_name:
+                prev_ctrl = self.anim_controls.findAnim(self._current_anim)
+                if prev_ctrl is not None and prev_ctrl != ctrl:
+                    try:
+                        self._set_control_weight(prev_ctrl, 0.0)
+                        prev_ctrl.stop()
+                    except Exception:
+                        pass
             try:
                 ctrl.play()
             except Exception:
@@ -797,6 +894,9 @@ class ActorAnimationHandler(Handler):
 
     def stop_animation(self) -> None:
         """Explicitly stop any active animation playback."""
+        self._action_anim = None
+        self._action_time_left = 0.0
+        self._action_on_complete = None
         old_from = self._blend_from_ctrl
         old_to = self._blend_to_ctrl
         self._cancel_blend(reset_weights=False)
@@ -816,10 +916,10 @@ class ActorAnimationHandler(Handler):
 
     def on_stop(self) -> None:
         """Clean teardown on scene or entity stop."""
-        self._cleanup_nodes()
         super().on_stop()
+        self._cleanup_nodes()
 
     def on_detach(self) -> None:
         """Clean teardown on handler detach."""
-        self._cleanup_nodes()
         super().on_detach()
+        self._cleanup_nodes()

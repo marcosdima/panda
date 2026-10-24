@@ -6,7 +6,7 @@
 
 - `Physics.get_world()` returns the world, creating it on first use.
 - The world is created with gravity `(0, 0, -9.81)`.
-- The physics task `physics_world_updater` steps the world once per frame, between the two engine phases (see [update_pipeline.md](update_pipeline.md)).
+- The physics task `physics_world_updater` steps the world once per frame with fixed substeps (`doPhysics(dt, MAX_SUBSTEPS, FIXED_TIMESTEP)`) between the two engine phases unless paused via `Physics.set_paused(True)` (see [update_pipeline.md](update_pipeline.md)).
 
 ## Bodies
 
@@ -16,6 +16,7 @@
 | `Physics.create_ghost(name)` | Creates a ghost body, attaches it and returns the node. |
 | `Physics.remove_body(name_or_node)` | Removes a rigid body. |
 | `Physics.remove_ghost(name_or_node)` | Removes a ghost body. |
+| `Physics.clear_all_bodies()` | Removes all tracked rigid bodies and ghosts. |
 | `Physics.attach_character(node)` | Attaches a character controller to the world. |
 | `Physics.remove_character(node)` | Detaches a character controller. |
 
@@ -23,12 +24,12 @@
 
 ## Queries
 
-### `raycast_closest(from_pos, to_pos, mask=None, step_physics=True)`
+### `raycast_closest(from_pos, to_pos, mask=None, step_physics=False)`
 
 Returns `(hit_pos, hit_node)` for the closest hit, or `None` when the path is clear.
 
-- `step_physics=True` (default) advances the world by a tiny amount before the query so dynamic bodies are up to date.
-- `step_physics=False` skips that step. **Use it when the caller already steps the world**, such as a per-frame camera or line-of-sight ray: the default would advance the simulation twice in the same frame.
+- `step_physics=False` (default) keeps spatial queries pure and never advances the simulation.
+- `step_physics=True` advances the world by a tiny amount before the query for standalone setups where transforms were modified without stepping the world.
 - `mask=None` means every bit collides (`BitMask32.all_on()`).
 
 ### `sweep_sphere_closest(from_pos, to_pos, radius, mask=None)`
@@ -60,7 +61,7 @@ How it works in Bullet:
 - Character controllers and trigger volumes use `CameraCollision.non_blocking_mask()`, which clears bit `31` from their into-collide mask. They are therefore invisible to camera and sight queries.
 - Ordinary physical collisions are unaffected: Bullet only requires the masks of two bodies to overlap in *any* bit, and every other bit still matches.
 
-`CollisionGroup` (`DEFAULT`, `PLAYER`, `ENEMY`) is a different concept: it is a Python-side label used by the trigger filters, not a Bullet mask.
+`CollisionGroup` (`DEFAULT`, `PLAYER`, `ENEMY`, `INTERACTABLE`, `PROP`) is a semantic label used by trigger filters and also exposes a corresponding `BitMask32` bit via `group.bitmask`.
 
 ## Debug view
 
@@ -69,4 +70,4 @@ How it works in Bullet:
 - The wireframe requires a display; in headless mode it is simply not created.
 
 Source: `src/globals/physics.py`, `src/handlers/physics/groups.py`
-Tests: `tests/terminal/physics_handlers.py`, `tests/terminal/ai_test.py`, `tests/terminal/camera_handler.py`
+Tests: `tests/terminal/physics_handlers.py`, `tests/terminal/ai_test.py`, `tests/terminal/camera_handler.py`, `tests/terminal/phase1_stabilization_test.py`

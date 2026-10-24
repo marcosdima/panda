@@ -82,6 +82,7 @@ class ThirdPersonCameraHandler(Handler):
         base = getattr(builtins, "base", None)
         win = getattr(base, "win", None) if base else None
         self.is_pointer_captured: bool = win is not None
+        self._captured_before_pause: bool = self.is_pointer_captured
         self._skip_first_mouse_delta: bool = True
         self.force_orbit: bool = False
         self._btn_mouse3 = MouseButton.three()
@@ -188,17 +189,35 @@ class ThirdPersonCameraHandler(Handler):
 
     def _on_toggle_cursor(self) -> None:
         """Toggle pointer capture mode (bound to Tab key)."""
+        base = getattr(builtins, "base", None)
+        if getattr(base, "paused", False):
+            return
         self.set_pointer_captured(not self.is_pointer_captured)
 
     def _on_unlock_cursor(self) -> None:
-        """Unlock pointer capture and show cursor (bound to Escape key)."""
+        """Unlock pointer capture and show cursor."""
         if self.is_pointer_captured:
             self.set_pointer_captured(False)
 
     def _on_lock_cursor(self) -> None:
-        """Lock pointer capture and hide cursor on click (bound to mouse1)."""
+        """Lock pointer capture and hide cursor on click (bound to mouse1) when not paused."""
+        base = getattr(builtins, "base", None)
+        if getattr(base, "paused", False):
+            return
         if not self.is_pointer_captured:
             self.set_pointer_captured(True)
+
+    def _on_game_paused(self, paused: bool) -> None:
+        """Release pointer capture on pause and restore it on resume."""
+        if paused:
+            self._captured_before_pause = self.is_pointer_captured
+            if self.is_pointer_captured:
+                self.set_pointer_captured(False)
+        else:
+            base = getattr(builtins, "base", None)
+            win = getattr(base, "win", None) if base else None
+            if win is not None and self._captured_before_pause:
+                self.set_pointer_captured(True)
 
     def zoom(self, delta: float) -> None:
         """Adjust camera distance by delta, clamped between min_distance and max_distance.
@@ -423,11 +442,14 @@ class ThirdPersonCameraHandler(Handler):
             base.accept("wheel_up", self._on_wheel_up)
             base.accept("wheel_down", self._on_wheel_down)
             base.accept("tab", self._on_toggle_cursor)
-            base.accept("escape", self._on_unlock_cursor)
             base.accept("mouse1", self._on_lock_cursor)
 
+        from src.utils import bus
+
+        bus.subscribe("game_paused", self._on_game_paused)
+
         win = getattr(base, "win", None) if base else None
-        if win is not None:
+        if win is not None and not getattr(base, "paused", False):
             self.set_pointer_captured(True)
 
     def on_update(self, dt: float) -> None:
@@ -507,12 +529,15 @@ class ThirdPersonCameraHandler(Handler):
 
     def on_stop(self) -> None:
         """Restore camera defaults, mouse mode, and unregister input listeners."""
+        super().on_stop()
+        from src.utils import bus
+
+        bus.unsubscribe("game_paused", self._on_game_paused)
         base = getattr(builtins, "base", None)
         if base is not None and hasattr(base, "ignore"):
             base.ignore("wheel_up")
             base.ignore("wheel_down")
             base.ignore("tab")
-            base.ignore("escape")
             base.ignore("mouse1")
 
         win = getattr(base, "win", None) if base else None
@@ -532,12 +557,11 @@ class ThirdPersonCameraHandler(Handler):
 
         self._last_mouse_pos = None
         self._has_updated = False
-        super().on_stop()
 
     def on_detach(self) -> None:
         """Restore defaults and detach cleanly from entity."""
+        super().on_detach()
         self.on_stop()
         self._camera_node = None
         self._saved_cam_pos = None
         self._saved_cam_hpr = None
-        super().on_detach()

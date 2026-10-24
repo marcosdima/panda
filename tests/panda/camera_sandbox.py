@@ -80,7 +80,25 @@ class TestFirstPersonCameraSandbox(Test):
             self.base.accept("f12", self._toggle_physics_debug)
 
         self._setup_osd()
+        self._setup_inspector()
         self.add_task(self._task_name, self._on_frame_update)
+
+    def _setup_inspector(self) -> None:
+        """Register live-editable camera & movement controls for the pause inspector."""
+        self.expose_toggle(
+            "First-Person Mode (V)",
+            lambda: self.first_person_active,
+            lambda v: self._activate_camera_mode(bool(v)),
+        )
+        if self.controller is not None:
+            self.expose_toggle(
+                "Body Follows Cam Yaw (B)",
+                lambda: self.controller.body_follows_camera_yaw if self.controller else False,
+                lambda v: setattr(self.controller, "body_follows_camera_yaw", bool(v)) if self.controller else None,
+            )
+        if self.tp_handler is not None:
+            self.expose_field("TP Distance", self.tp_handler, "distance", 1.5, 20.0, 0.5)
+            self.expose_field("TP Smooth Speed", self.tp_handler, "smooth_speed", 0.0, 25.0, 1.0)
 
     def _print_controls_banner(self) -> None:
         """Print formatted ANSI startup banner with control instructions."""
@@ -282,7 +300,7 @@ class TestFirstPersonCameraSandbox(Test):
             from panda3d.core import TextNode
 
             self.osd_instructions = OnscreenText(
-                text="WASD: Move | SPACE: Jump | LSHIFT: Sprint | Mouse: Look | V: Toggle Camera | B: Toggle Body Mode | Tab/Esc: Cursor | F12: Wireframe",
+                text="WASD: Move | SPACE: Jump | V: Toggle Camera | B: Body Mode | Esc/P: Pause & Inspector | F12: Wireframe",
                 pos=(-1.28, 0.92),
                 scale=0.045,
                 fg=(1.0, 1.0, 1.0, 1.0),

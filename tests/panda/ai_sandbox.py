@@ -102,6 +102,7 @@ class TestAISandbox(Test):
         self._route_index: int = 0
         self._target_auto: bool = True
         self._los_injected: bool = False
+        self.target_speed: float = float(self.TARGET_SPEED)
         self._counters: dict[str, int] = {"enter": 0, "stay": 0, "exit": 0}
         self._last_state: PatrolState | None = None
 
@@ -134,7 +135,22 @@ class TestAISandbox(Test):
             self.base.accept("t", self._toggle_target_control)
 
         self._setup_osd()
+        self._setup_inspector()
         self.add_task(self._task_name, self._on_frame_update)
+
+    def _setup_inspector(self) -> None:
+        """Register AI patrol and target parameters for live editing in the pause inspector."""
+        self.expose_toggle(
+            "Target Auto Route (T)",
+            lambda: self._target_auto,
+            lambda _v: self._toggle_target_control(),
+        )
+        self.expose_toggle(
+            "Injected LOS (L)",
+            lambda: self._los_injected,
+            lambda _v: self._toggle_line_of_sight(),
+        )
+        self.expose_field("Target Speed", self, "target_speed", 0.5, 12.0, 0.5)
 
     def on_stop(self) -> None:
         """Clean teardown: remove tasks, listeners, entities, nodes, and lights."""
@@ -415,7 +431,7 @@ class TestAISandbox(Test):
             return
 
         position = self.target.node.getPos()
-        position += direction * (self.TARGET_SPEED * dt)
+        position += direction * (self.target_speed * dt)
         position.z = self.TARGET_HEIGHT
         self.target.node.setPos(position)
 
@@ -528,7 +544,7 @@ class TestAISandbox(Test):
             from panda3d.core import TextNode
 
             self.osd_instructions = OnscreenText(
-                text="WASD: Move Target | Mouse: Look | L: Toggle LOS | T: Target Mode | F12: Wireframe",
+                text="WASD: Move Target | Mouse: Look | L: Toggle LOS | T: Target Mode | Esc/P: Pause & Inspector | F12: Wireframe",
                 pos=(-1.28, 0.92),
                 scale=0.045,
                 fg=(1.0, 1.0, 1.0, 1.0),

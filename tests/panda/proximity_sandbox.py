@@ -50,6 +50,8 @@ class TestProximitySandbox(Test):
 
         self._orbit_angle: float = 0.0
         self._orbiting: bool = True
+        self.orbit_radius: float = float(self.ORBIT_RADIUS)
+        self.orbit_speed: float = float(self.ORBIT_SPEED)
         self._enter_count: int = 0
         self._exit_count: int = 0
         self._last_inside: bool = False
@@ -91,7 +93,58 @@ class TestProximitySandbox(Test):
             self.base.accept("r", self._reset_phase)
 
         self._setup_osd()
+        self._setup_inspector()
         self.add_task(self._task_name, self._on_frame_update)
+
+    def _rebuild_rings(self, _val: Any = None) -> None:
+        """Rebuild the cyan and magenta visual radius rings when sensor radii change."""
+        for ring in self._rings:
+            if not ring.isEmpty():
+                ring.removeNode()
+        self._rings.clear()
+        enter_r = self.sensor_handler.radius if self.sensor_handler is not None else self.ENTER_RADIUS
+        exit_r = (
+            self.sensor_handler.exit_radius
+            if self.sensor_handler is not None and self.sensor_handler.exit_radius is not None
+            else self.EXIT_RADIUS
+        )
+        self._create_ring(enter_r, (0.2, 0.9, 1.0, 1.0))
+        self._create_ring(exit_r, (0.95, 0.35, 0.95, 1.0))
+
+    def _setup_inspector(self) -> None:
+        """Register proximity sensor and orbit fields for live editing in the pause inspector."""
+        self.expose_toggle(
+            "Orbit Running (Space)",
+            lambda: self._orbiting,
+            lambda _v: self._toggle_orbit(),
+        )
+        if self.sensor_handler is not None:
+            self.expose_toggle(
+                "Sensor Enabled (L)",
+                lambda: self.sensor_handler.is_enabled if self.sensor_handler else False,
+                lambda _v: self._toggle_sensor(),
+            )
+            self.expose_field(
+                "Enter Radius (m)",
+                self.sensor_handler,
+                "radius",
+                1.0,
+                14.0,
+                0.5,
+                on_change=self._rebuild_rings,
+            )
+            self.expose_field(
+                "Exit Radius (m)",
+                self.sensor_handler,
+                "exit_radius",
+                1.5,
+                18.0,
+                0.5,
+                on_change=self._rebuild_rings,
+            )
+        self.expose_field("Orbit Radius (m)", self, "orbit_radius", 1.5, 14.0, 0.5)
+        self.expose_field("Orbit Speed (rad/s)", self, "orbit_speed", 0.1, 3.0, 0.1)
+        self.expose_action("Reset Phase (R)", self._reset_phase)
 
     def on_stop(self) -> None:
         """Remove tasks, listeners, overlays, rings, entities and lights."""
@@ -334,11 +387,11 @@ class TestProximitySandbox(Test):
     def _on_frame_update(self, task: Any) -> int:
         """Advance the orbit, then refresh the telemetry."""
         if self._orbiting and self.target is not None and not self.target.is_freed:
-            self._orbit_angle += self.ORBIT_SPEED * task.dt
+            self._orbit_angle += self.orbit_speed * task.dt
             self._orbit_angle %= 2.0 * math.pi
             self.target.node.setPos(
-                self.ORBIT_RADIUS * math.cos(self._orbit_angle),
-                self.ORBIT_RADIUS * math.sin(self._orbit_angle),
+                self.orbit_radius * math.cos(self._orbit_angle),
+                self.orbit_radius * math.sin(self._orbit_angle),
                 self.TARGET_HEIGHT,
             )
 
@@ -390,7 +443,7 @@ class TestProximitySandbox(Test):
             from panda3d.core import TextNode
 
             self.osd_instructions = OnscreenText(
-                text="SPACE: Pause Orbit | L: Toggle Sensor | R: Reset Phase",
+                text="SPACE: Pause Orbit | L: Toggle Sensor | R: Reset Phase | Esc/P: Pause & Inspector",
                 pos=(-1.28, 0.92),
                 scale=0.045,
                 fg=(1.0, 1.0, 1.0, 1.0),

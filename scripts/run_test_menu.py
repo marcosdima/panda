@@ -23,8 +23,14 @@ import subprocess
 import sys
 from pathlib import Path
 
-TESTS_ROOT = Path(__file__).resolve().parents[1] / "tests" / "terminal"
-PYTHON_EXEC = Path("./venv/bin/python").resolve()  # use the project venv
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+TESTS_ROOT = PROJECT_ROOT / "tests" / "terminal"
+if (PROJECT_ROOT / ".venv" / "bin" / "python").exists():
+    PYTHON_EXEC = (PROJECT_ROOT / ".venv" / "bin" / "python").resolve()
+elif (PROJECT_ROOT / "venv" / "bin" / "python").exists():
+    PYTHON_EXEC = (PROJECT_ROOT / "venv" / "bin" / "python").resolve()
+else:
+    PYTHON_EXEC = Path(sys.executable)
 PYTEST_CMD = [str(PYTHON_EXEC), "-m", "pytest", "-q"]
 
 def discover_tests() -> list[Path]:
