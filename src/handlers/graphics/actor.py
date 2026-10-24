@@ -51,8 +51,10 @@ class ActorAnimationHandler(Handler):
         animation_files: list[str] | None = None,
         state_clips: dict[str, str] | None = None,
         air_threshold: float = 0.12,
-        blend_duration: float = 0.18,
+        blend_duration: float = 0.22,
         blend_durations: dict[str, float] | None = None,
+        blend_easing: bool = True,
+        start_walk_phase: float = 0.15,
     ) -> None:
         """Create an ActorAnimationHandler.
 
@@ -91,21 +93,23 @@ class ActorAnimationHandler(Handler):
 
         self.blend_duration: float = max(0.0, float(blend_duration))
         self.blend_durations: dict[str, float] = {
-            "Idle->Walk": 0.10,
-            "Idle->Run": 0.12,
-            "Walk->Run": 0.10,
-            "Run->Walk": 0.12,
-            "Walk->Idle": 0.14,
-            "Run->Idle": 0.16,
-            "Idle->Jump": 0.07,
-            "Walk->Jump": 0.07,
-            "Run->Jump": 0.07,
-            "Jump->Idle": 0.14,
-            "Jump->Walk": 0.12,
-            "Jump->Run": 0.12,
+            "Idle->Walk": 0.20,
+            "Idle->Run": 0.22,
+            "Walk->Run": 0.14,
+            "Run->Walk": 0.16,
+            "Walk->Idle": 0.18,
+            "Run->Idle": 0.20,
+            "Idle->Jump": 0.08,
+            "Walk->Jump": 0.08,
+            "Run->Jump": 0.08,
+            "Jump->Idle": 0.18,
+            "Jump->Walk": 0.16,
+            "Jump->Run": 0.16,
         }
         if blend_durations:
             self.blend_durations.update(blend_durations)
+        self.blend_easing: bool = bool(blend_easing)
+        self.start_walk_phase: float = max(0.0, min(0.5, float(start_walk_phase)))
 
         self.visual_pivot: NodePath | None = None
         self.model_root: NodePath | None = None
@@ -389,10 +393,11 @@ class ActorAnimationHandler(Handler):
 
         # Entering a state plays its clip; reconcile every frame so manual
         # play/loop calls or late-loaded clips fall back to the state's clip.
-        if prev_state == "Idle" and curr_state == "Walk" and not self._blend_active:
+        if prev_state == "Idle" and curr_state in ("Walk", "Run") and not self._blend_active:
             target = self._state_clip(curr_state, anim_names)
-            if target is not None and (self._current_anim != target or True):
-                self._start_crossfade(target, duration=min(0.08, self.blend_durations.get("Idle->Walk", 0.1)))
+            if target is not None:
+                dur = self.blend_durations.get(f"Idle->{curr_state}", self.blend_duration)
+                self._start_crossfade(target, duration=dur)
         else:
             self._apply_state_clip()
 
@@ -620,6 +625,21 @@ class ActorAnimationHandler(Handler):
                 except Exception:
                     pass
 
+        # Align walk/run phase to reduce start pop from idle
+        try:
+            if from_ctrl is not None and from_ctrl != to_ctrl and target_name in ("Walking_A", "Running_A", "Walk", "Run"):
+                phase = getattr(self, "start_walk_phase", 0.15)
+                if hasattr(to_ctrl, "getNumFrames"):
+                    n = to_ctrl.getNumFrames()
+                    if n and n > 0:
+                        f = int(max(0, min(n - 1, round(n * phase))))
+                        try:
+                            to_ctrl.pose(f)
+                        except Exception:
+                            pass
+        except Exception:
+            pass
+
         try:
             to_ctrl.loop(True)
         except Exception:
@@ -678,9 +698,13 @@ class ActorAnimationHandler(Handler):
         if t >= 1.0:
             t = 1.0
 
-        # Interpolate weights
-        w_to = t
-        w_from = 1.0 - t
+        # Interpolate weights with easing
+        if getattr(self, "blend_easing", True):
+            t_eased = t * t * (3.0 - 2.0 * t)
+        else:
+            t_eased = t
+        w_to = t_eased
+        w_from = 1.0 - t_eased
         self._set_control_weight(self._blend_from_ctrl, w_from)
         self._set_control_weight(self._blend_to_ctrl, w_to)
 

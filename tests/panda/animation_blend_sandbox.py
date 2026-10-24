@@ -31,10 +31,15 @@ class TestAnimationBlendSandbox(Test):
         self.player_rig = None
         self.osd_instructions: OnscreenText | None = None
         self.osd_telemetry: OnscreenText | None = None
+        self.osd_blend: OnscreenText | None = None
         self._task_name: str = "animation_blend_sandbox_update_task"
 
         self.static_bodies: list[str] = []
         self.static_nodes: list[NodePath] = []
+
+        self._blend_tuning: float = 0.20
+        self._accel_enabled: bool = True
+        self._paused: bool = False
 
     def on_start(self) -> None:
         self.print_title("Animation Blending Sandbox", color="cyan")
@@ -52,6 +57,10 @@ class TestAnimationBlendSandbox(Test):
 
         if self.base is not None and hasattr(self.base, "accept"):
             self.base.accept("f12", self._toggle_physics_debug)
+            self.base.accept("[", self._blend_down)
+            self.base.accept("]", self._blend_up)
+            self.base.accept("g", self._toggle_accel)
+            self.base.accept("p", self._toggle_pause)
 
         self._setup_osd()
         self.add_task(self._task_name, self._on_frame_update)
@@ -64,6 +73,9 @@ class TestAnimationBlendSandbox(Test):
         self.p(" Mouse:     Look around", color="green")
         self.p(" Zoom:      Mouse Wheel", color="green")
         self.p(" Wireframe: F12", color="magenta")
+        self.p(" Blend:     [ / ]  (tune Idle->Walk)", color="magenta")
+        self.p(" Accel:     G     (toggle acceleration ramp)", color="magenta")
+        self.p(" Pause:     P     (toggle)", color="magenta")
         self.space_line()
         self.p("Testing smooth crossfades between Idle/Walk/Run/Jump", color="cyan", bold=True)
         self.space_line()
@@ -124,9 +136,16 @@ class TestAnimationBlendSandbox(Test):
             camera="third_person",
             position=(0.0, 0.0, 2.0),
             parent=parent,
-            animation_kwargs={"blend_duration": 0.25},
+            animation_kwargs={"blend_duration": 0.22, "blend_easing": True},
             camera_kwargs={"distance": 8.0, "target_offset": Vec3(0.0, 0.0, 2.0)},
+            controller_kwargs={"acceleration": 20.0, "deceleration": 25.0},
         )
+        try:
+            if self.player_rig is not None and self.player_rig.animation is not None:
+                self._blend_tuning = float(self.player_rig.animation.blend_durations.get("Idle->Walk", self.player_rig.animation.blend_duration))
+                self.player_rig.animation.blend_durations["Idle->Walk"] = self._blend_tuning
+        except Exception:
+            pass
 
     def _setup_osd(self) -> None:
         try:
@@ -162,7 +181,12 @@ class TestAnimationBlendSandbox(Test):
                 anim_name = getattr(self.player_rig.animation, "current_animation", None)
                 state = getattr(self.player_rig.animation.locomotion, "state", None)
                 blending = getattr(self.player_rig.animation, "_blend_active", False)
-                self.osd_telemetry.setText(f"State: {state} | Anim: {anim_name} | Blending: {blending}")
+                fw = getattr(self.player_rig.animation, "_blend_from_name", None)
+                tw = getattr(self.player_rig.animation, "_blend_to_name", None)
+                self.osd_telemetry.setText(f"State: {state} | Anim: {anim_name} | Blending: {blending} ({fw}->{tw})")
+            if self.player_rig is not None and self.player_rig.animation is not None and self.osd_blend is not None:
+                acc = getattr(self.player_rig.controller, "acceleration", 0.0) if self.player_rig.controller is not None else 0.0
+                self.osd_blend.setText(f"Idle->Walk: {self.player_rig.animation.blend_durations.get('Idle->Walk',0):.2f}s | accel: {acc:.0f} | paused: {self._paused}")
         except Exception:
             pass
         return task.cont
@@ -177,6 +201,33 @@ class TestAnimationBlendSandbox(Test):
             except Exception:
                 pass
 
+    def _blend_down(self) -> None:
+        self._blend_tuning = max(0.05, self._blend_tuning - 0.01)
+        if self.player_rig is not None and self.player_rig.animation is not None:
+            self.player_rig.animation.blend_durations["Idle->Walk"] = self._blend_tuning
+
+    def _blend_up(self) -> None:
+        self._blend_tuning = min(0.6, self._blend_tuning + 0.01)
+        if self.player_rig is not None and self.player_rig.animation is not None:
+            self.player_rig.animation.blend_durations["Idle->Walk"] = self._blend_tuning
+
+    def _toggle_accel(self) -> None:
+        self._accel_enabled = not self._accel_enabled
+        if self.player_rig is not None and self.player_rig.controller is not None:
+            if self._accel_enabled:
+                self.player_rig.controller.acceleration = 20.0
+                self.player_rig.controller.deceleration = 25.0
+            else:
+                self.player_rig.controller.acceleration = 0.0
+                self.player_rig.controller.deceleration = 0.0
+
+    def _toggle_pause(self) -> None:
+        self._paused = not self._paused
+        try:
+            self.manager.set_paused(self._paused)
+        except Exception:
+            pass
+
     def on_stop(self) -> None:
         self.print_subtitle("Animation Blending Sandbox stopping...")
         self.remove_task(self._task_name)
@@ -184,6 +235,10 @@ class TestAnimationBlendSandbox(Test):
         if self.base is not None and hasattr(self.base, "ignore"):
             try:
                 self.base.ignore("f12")
+                self.base.ignore("[")
+                self.base.ignore("]")
+                self.base.ignore("g")
+                self.base.ignore("p")
             except Exception:
                 pass
 
@@ -199,6 +254,12 @@ class TestAnimationBlendSandbox(Test):
             except Exception:
                 pass
             self.osd_instructions = None
+        if getattr(self, "osd_blend", None) is not None:
+            try:
+                self.osd_blend.destroy()
+            except Exception:
+                pass
+            self.osd_blend = None
 
         for body_name in list(getattr(self, "static_bodies", [])):
             try:
