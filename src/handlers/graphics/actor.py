@@ -51,7 +51,8 @@ class ActorAnimationHandler(Handler):
         animation_files: list[str] | None = None,
         state_clips: dict[str, str] | None = None,
         air_threshold: float = 0.12,
-        blend_duration: float = 0.2,
+        blend_duration: float = 0.18,
+        blend_durations: dict[str, float] | None = None,
     ) -> None:
         """Create an ActorAnimationHandler.
 
@@ -89,11 +90,28 @@ class ActorAnimationHandler(Handler):
         self._loaded_clips: set[str] = set()
 
         self.blend_duration: float = max(0.0, float(blend_duration))
+        self.blend_durations: dict[str, float] = {
+            "Idle->Walk": 0.14,
+            "Idle->Run": 0.16,
+            "Walk->Run": 0.12,
+            "Run->Walk": 0.14,
+            "Walk->Idle": 0.16,
+            "Run->Idle": 0.18,
+            "Idle->Jump": 0.08,
+            "Walk->Jump": 0.08,
+            "Run->Jump": 0.08,
+            "Jump->Idle": 0.16,
+            "Jump->Walk": 0.14,
+            "Jump->Run": 0.14,
+        }
+        if blend_durations:
+            self.blend_durations.update(blend_durations)
 
         self.visual_pivot: NodePath | None = None
         self.model_root: NodePath | None = None
         self.anim_controls: AnimControlCollection = AnimControlCollection()
         self._current_anim: str | None = None
+        self._last_locomotion_state: str | None = None
         self.locomotion = StateMachine("Idle", LOCOMOTION_TRANSITIONS)
         enter_hook = lambda _prev, _new: self._apply_state_clip()
         for state in LOCOMOTION_TRANSITIONS:
@@ -288,6 +306,7 @@ class ActorAnimationHandler(Handler):
 
         self._current_anim = None
         self._air_time = 0.0
+        self._last_locomotion_state = None
         self._cancel_blend(reset_weights=False)
         self.locomotion.reset("Idle")
 
@@ -318,6 +337,7 @@ class ActorAnimationHandler(Handler):
                     pass
                 self._set_control_weight(ctrl, 1.0)
                 self._current_anim = idle
+            self._last_locomotion_state = "Idle"
 
     def on_update(self, dt: float) -> None:
         """Per-frame update managing animation states based on character movement speed."""
@@ -355,7 +375,13 @@ class ActorAnimationHandler(Handler):
             desired = "Run" if is_sprinting else "Walk"
         else:
             desired = "Idle"
+        prev_state = str(self.locomotion.state)
         self.locomotion.transition(desired)
+        curr_state = str(self.locomotion.state)
+        if curr_state != prev_state:
+            self._last_locomotion_state = prev_state
+        elif self._last_locomotion_state is None:
+            self._last_locomotion_state = prev_state
 
         # Entering a state plays its clip; reconcile every frame so manual
         # play/loop calls or late-loaded clips fall back to the state's clip.
@@ -374,14 +400,18 @@ class ActorAnimationHandler(Handler):
         anim_names = self.get_anim_names()
         if not anim_names:
             return
-        target = self._state_clip(str(self.locomotion.state), anim_names)
+        curr = str(self.locomotion.state)
+        target = self._state_clip(curr, anim_names)
         if target is None:
             return
         if self._blend_active and self._blend_to_name == target:
             return
         if not self._blend_active and self._current_anim == target:
             return
-        self._start_crossfade(target)
+        prev = self._last_locomotion_state or curr
+        key = f"{prev}->{curr}"
+        dur = self.blend_durations.get(key, self.blend_duration)
+        self._start_crossfade(target, duration=dur)
 
     def _clip_for(self, state: str, anim_names: list[str]) -> str | None:
         """Return the clip configured for a locomotion state if it is loaded, else None."""
