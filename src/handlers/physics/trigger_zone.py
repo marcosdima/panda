@@ -7,9 +7,7 @@ from src.entities.entity import Entity
 from src.globals.physics import Physics
 from src.handlers.base import Handler
 from src.utils.event import Event
-from .character import CharacterControllerHandler
-from .groups import CameraCollision, CollisionGroup
-from .rigid_body import RigidBodyHandler
+from .groups import CameraCollision, CollisionGroup, resolve_collision_group
 
 
 class TriggerZoneHandler(Handler):
@@ -129,7 +127,7 @@ class TriggerZoneHandler(Handler):
             entity = node.getPythonTag("entity")
             if not isinstance(entity, Entity):
                 continue
-            group = self._resolve_group(entity)
+            group = resolve_collision_group(entity)
             if self._is_ambient(group):
                 continue
             if self._validate(group):
@@ -177,17 +175,6 @@ class TriggerZoneHandler(Handler):
             CollisionGroup.DEFAULT not in self.target_groups
             and CollisionGroup.DEFAULT not in self.avoid_groups
         )
-
-    @staticmethod
-    def _resolve_group(entity: Entity) -> CollisionGroup:
-        """Resolve the collision group of an entity via its physics handlers."""
-        rigid = entity.get_handler(RigidBodyHandler)
-        if rigid is not None:
-            return rigid.collision_group
-        character = entity.get_handler(CharacterControllerHandler)
-        if character is not None:
-            return character.collision_group
-        return CollisionGroup.DEFAULT
 
     def on_stop(self) -> None:
         """Detach the ghost from the world, remove its NodePath, and reset state."""

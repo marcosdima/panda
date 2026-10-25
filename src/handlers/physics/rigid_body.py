@@ -35,11 +35,17 @@ class RigidBodyHandler(Handler):
         self.body_np: NodePath | None = None
         self._is_attached_to_world: bool = False
         self._last_parent_net: TransformState | None = None
+        self._suspended: bool = False
 
     @property
     def is_dynamic(self) -> bool:
         """Return True if this body has mass and is affected by forces."""
         return self.mass > 0.0
+
+    @property
+    def is_suspended(self) -> bool:
+        """Return True while the body is temporarily detached from the simulation."""
+        return self._suspended
 
     @property
     def linear_velocity(self) -> Vec3:
@@ -63,18 +69,82 @@ class RigidBodyHandler(Handler):
 
     def apply_impulse(self, impulse: Vec3) -> None:
         """Apply a one-shot central impulse to a dynamic body."""
-        if self.body_node is not None and self.is_dynamic:
+        if self.body_node is not None and self.is_dynamic and not self._suspended:
             self.body_node.setActive(True)
             self.body_node.applyCentralImpulse(impulse)
 
     def apply_force(self, force: Vec3) -> None:
         """Apply a persistent central force for the next physics step (dynamic bodies only)."""
-        if self.body_node is not None and self.is_dynamic:
+        if self.body_node is not None and self.is_dynamic and not self._suspended:
             self.body_node.setActive(True)
             self.body_node.applyCentralForce(force)
 
+    def suspend(self, preserve_motion: bool = False) -> None:
+        """Temporarily remove the body from the physics world without destroying it.
+
+        The node hierarchy stays intact, so a carriable prop can be reparented to
+        a hand socket and moved by its owner. Gravity, collisions and impulses do
+        not affect a suspended body. ``resume`` restores the simulation and
+        adopts the current node transform, which makes suspend/resume safe for
+        pick-up and drop flows.
+
+        By default the body's linear/angular velocity and accumulated forces are
+        cleared, so a prop held for a while is not released with the motion it
+        had when it was picked up. Pass ``preserve_motion=True`` to keep the
+        current velocity and forces across the suspension.
+        """
+        if self._suspended:
+            return
+        self._suspended = True
+        if not preserve_motion and self.body_node is not None:
+            self.body_node.setLinearVelocity(Vec3(0.0, 0.0, 0.0))
+            self.body_node.setAngularVelocity(Vec3(0.0, 0.0, 0.0))
+            self.body_node.clearForces()
+        self._detach_from_world()
+
+    def resume(self) -> None:
+        """Re-attach a suspended body and adopt its current transform.
+
+        The parent chain may have moved while the body was out of the world
+        (e.g. while it was carried). Flagging the body as transform-dirty makes
+        Bullet read the new transform on the next step instead of restoring the
+        position it had when it was suspended.
+        """
+        if not self._suspended:
+            return
+        if self.body_np is None or self.body_np.isEmpty():
+            return
+        self._suspended = False
+        parent = self.body_np.getParent()
+        if parent is not None and not parent.isEmpty():
+            self._last_parent_net = parent.getNetTransform()
+        if self.body_node is not None:
+            self.body_node.setTransformDirty()
+        self._attach_to_world()
+
+    def rebase(self, offset: Vec3 = Vec3(0.0, 0.0, 0.0), hpr: Vec3 = Vec3(0.0, 0.0, 0.0)) -> None:
+        """Move the body node to a new local transform under its current parent.
+
+        Bullet keeps the simulated transform in ``body_np``, so moving only
+        ``entity.node`` while the body is suspended would leave the body at its
+        old local offset. A carry flow reparents the entity and then calls
+        ``rebase()`` so the body (and its sibling model) sits exactly at the
+        socket. Marks the transform dirty so the next step adopts it.
+        """
+        if self.body_np is None or self.body_np.isEmpty():
+            return
+        self.body_np.setPos(offset)
+        self.body_np.setHpr(hpr)
+        parent = self.body_np.getParent()
+        if parent is not None and not parent.isEmpty():
+            self._last_parent_net = parent.getNetTransform()
+        if self.body_node is not None:
+            self.body_node.setTransformDirty()
+
     def _attach_to_world(self) -> None:
         """Attach the rigid body node to the active Bullet physics world."""
+        if self._suspended:
+            return
         if not self._is_attached_to_world and self.body_node is not None:
             Physics.get_world().attachRigidBody(self.body_node)
             self._is_attached_to_world = True
@@ -142,6 +212,8 @@ class RigidBodyHandler(Handler):
         bodies stay under Bullet's control (gravity, impulses, write-backs).
         """
         super().on_update(dt)
+        if self._suspended:
+            return
         if self.body_node is None or self.body_np is None or self.body_np.isEmpty():
             return
         parent_net = self.body_np.getParent().getNetTransform()
@@ -169,3 +241,4 @@ class RigidBodyHandler(Handler):
         self.body_np = None
         self.body_node = None
         self._last_parent_net = None
+        self._suspended = False

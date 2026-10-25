@@ -61,6 +61,7 @@ Rules that keep the suites usable headless:
 | `actor_animation.py` | `ActorAnimationHandler` (visual pivot, animation binding, locomotion states, teardown). |
 | `actor_locomotion_test.py` | Velocity-driven clip selection (Idle → Walk → Run), clip fallbacks, manual override reconciliation, cleanup. |
 | `physics_handlers.py` | `RigidBodyHandler` + `TriggerZoneHandler` (config, gravity, impulses, entity-node transform sync, enter/stay/exit edges, group filters, lifecycle leaks). |
+| `rigid_body_suspend_test.py` | `RigidBodyHandler` suspension contract: detach/freeze, motion and force clearing (and `preserve_motion`), resume adopting a transform acquired while carried, `rebase` after drift, stop/start persistence, idempotency and the shared `resolve_collision_group` resolver. |
 | `model_handler.py` | `ModelHandler` (parameters, entity attachment and transforms, `GlobalLoader` template caching, per-entity instances, graceful missing asset, lifecycle leaks). |
 | `action_map_test.py` | `ActionMap` default bindings, bind/unbind/rebind, unknown key errors, custom maps on `WASDInputHandler`. |
 | `ai_test.py` | `AIPatrolHandler` (patrol cycle, ping-pong, chase and lose, injected sight) and line-of-sight semantics (no hit, target body, observer body, world geometry, other entity, `arrive_radius` independence, default mask, injectable source precedence, runtime source toggle). |

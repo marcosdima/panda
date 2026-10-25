@@ -1,6 +1,10 @@
 from enum import Enum
+from typing import TYPE_CHECKING
 
 from panda3d.core import BitMask32
+
+if TYPE_CHECKING:
+    from src.entities.entity import Entity
 
 
 class CollisionGroup(Enum):
@@ -68,3 +72,27 @@ class LineOfSight:
     def non_blocking_mask(cls) -> BitMask32:
         """Return an into-collide mask that never occludes a line-of-sight ray."""
         return CameraCollision.non_blocking_mask()
+
+
+def resolve_collision_group(entity: "Entity") -> CollisionGroup:
+    """Return the semantic collision group of an entity.
+
+    Prefers the rigid body's group, then the character controller's, and falls
+    back to ``DEFAULT`` for entities without a physics handler. Trigger zones,
+    interactors and any other group-aware query share this single resolver so
+    they cannot drift apart.
+
+    Imports are function-local: ``src.handlers.physics`` imports this module and
+    the physics handlers import their peers, so a module-level import would
+    close the cycle.
+    """
+    from src.handlers.physics.character import CharacterControllerHandler
+    from src.handlers.physics.rigid_body import RigidBodyHandler
+
+    rigid = entity.get_handler(RigidBodyHandler)
+    if rigid is not None:
+        return rigid.collision_group
+    character = entity.get_handler(CharacterControllerHandler)
+    if character is not None:
+        return character.collision_group
+    return CollisionGroup.DEFAULT

@@ -36,6 +36,8 @@ Behaviour:
 - **`linear_velocity`** — read and write the body velocity.
 - **`add_shape(shape)`** — attach a collision shape.
 - **`apply_impulse(vec)` / `apply_force(vec)`** — act on the body.
+- **`suspend(preserve_motion=False)` / `resume()`** — temporarily remove the body from the simulation and re-attach it. Suspension keeps the node hierarchy alive, clears velocity and forces by default, and is what a carry/attachment flow uses to disable a prop's physics. `is_suspended` reports the state, and the state survives a stop/start cycle until the handler is detached.
+- **`rebase(offset, hpr)`** — move the body node to a new local transform under its current parent and mark it dirty. Required after reparenting a suspended body, because Bullet writes the simulated transform into `body_np`, not into `entity.node`.
 - The body node is parented under the entity node, so the transform stays composed.
 - Each `on_update` detects a parent change and marks the Bullet transform dirty, so a scene-driven move is adopted on the next physics step while untouched bodies stay under Bullet's control.
 - The body is tagged with its entity (`setPythonTag("entity", entity)`), which is how line-of-sight queries recognise a hit on a character instead of on scenery.
@@ -59,9 +61,9 @@ Behaviour:
 
 ## `CollisionGroup`
 
-`src/handlers/physics/groups.py` defines the semantic labels stored on the physics handlers: `DEFAULT`, `PLAYER`, `ENEMY`, `INTERACTABLE`, `PROP`. They are used by trigger filters and also expose a corresponding `BitMask32` bit via `group.bitmask`.
+`src/handlers/physics/groups.py` defines the semantic labels stored on the physics handlers: `DEFAULT`, `PLAYER`, `ENEMY`, `INTERACTABLE`, `PROP`. They are used by trigger filters and also expose a corresponding `BitMask32` bit via `group.bitmask`. `resolve_collision_group(entity)` is the single resolver every group-aware query uses: it prefers the rigid body's group, then the character controller's, then `DEFAULT`.
 
 The same module defines the two query masks, `CameraCollision` and `LineOfSight`, which share a single blocker bit so that both queries ignore characters and trigger volumes. The convention and the query API are documented in [../engine/physics_world.md](../engine/physics_world.md).
 
 Source: `src/handlers/physics/`
-Tests: `tests/terminal/physics_handlers.py`, `tests/terminal/character_controller.py`, `tests/terminal/ai_test.py`, `tests/terminal/phase1_stabilization_test.py`
+Tests: `tests/terminal/physics_handlers.py`, `tests/terminal/rigid_body_suspend_test.py`, `tests/terminal/character_controller.py`, `tests/terminal/ai_test.py`, `tests/terminal/phase1_stabilization_test.py`
