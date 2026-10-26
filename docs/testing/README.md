@@ -95,11 +95,7 @@ windowType=none ./venv/bin/python -m tests.terminal.run_all
 | `follow_sandbox.py` | `FollowHandler` + `InputHandler` + `CharacterControllerHandler` (follower) + `WASDInputHandler`/`_TargetDriverHandler` + `CharacterControllerHandler` (target) + `ThirdPersonCameraHandler` on a separate rig | Follow-at-distance behaviour, world-space intent vs. camera-on-follower constraint, `T` target AUTO/MANUAL, `L` leash toggle (`out_of_range`), OSD telemetry (`state`, `move_vector`), clean Bullet-teardown check. |
 | `proximity_sandbox.py` | `ProximitySensorHandler` | Enter (cyan) and exit (magenta) rings, orbiting target crossing the hysteresis window, `SPACE` pause, `L` enable/disable, `R` phase reset, OSD telemetry (state, distance, nearest, enter/exit counters). |
 
-### Planned sandboxes (not yet implemented)
-
-| Sandbox | Target | Objectives |
-| :--- | :--- | :--- |
-| `animation_sandbox.py` | `ActorAnimationHandler` | Velocity-driven state transitions (Idle → Walk → Run) in isolation. |
+| `animation_sandbox.py` | `InputHandler` + `CharacterControllerHandler` + `ActorAnimationHandler` + `ThirdPersonCameraHandler` | Velocity-driven state transitions (Idle → Walk → Run) in isolation: scripted ramp writes the movement vector and sprint flag, `A` auto sequence toggle, `J` jump request, phase index and per-transition blend durations in the inspector, OSD telemetry (phase, state, animation, real velocity, blend pair). |
 
 ## Execution modes
 

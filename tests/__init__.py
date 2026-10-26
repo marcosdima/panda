@@ -31,6 +31,7 @@ TargetType: TypeAlias = Literal[
     'follow',
     'proximity',
     'anim_blend',
+    'animation_state',
 ] | None
 
 
@@ -76,6 +77,8 @@ class Tests:
             self.__target = TestProximitySandbox()
         elif TARGET == 'anim_blend':
             self.__target = TestAnimationBlendSandbox()
+        elif TARGET == 'animation_state':
+            self.__target = TestAnimationSandbox()
 
 
     def get_target(self) -> Scene | None:
