@@ -663,6 +663,7 @@ class ActorAnimationHandler(Handler):
                     pass
 
         # Align walk/run phase to reduce start pop
+        phase_applied = False
         try:
             if from_ctrl is not None and from_ctrl != to_ctrl and target_name in ("Walking_A", "Running_A", "Walk", "Run"):
                 from_name_check = from_name or ""
@@ -677,13 +678,18 @@ class ActorAnimationHandler(Handler):
                             f = int(max(0, min(n - 1, round(n * phase))))
                             try:
                                 to_ctrl.pose(f)
+                                phase_applied = True
                             except Exception:
                                 pass
         except Exception:
             pass
 
         try:
-            to_ctrl.loop(True)
+            if phase_applied:
+                # Preserve the posed start frame instead of restarting at 0.
+                to_ctrl.loop(False)
+            else:
+                to_ctrl.loop(True)
         except Exception:
             try:
                 to_ctrl.play()
@@ -763,7 +769,9 @@ class ActorAnimationHandler(Handler):
                     pass
             if self._blend_to_ctrl is not None:
                 try:
-                    self._blend_to_ctrl.loop(True)
+                    # Continue from the current frame instead of restarting at
+                    # frame 0, which would snap the animation at blend end.
+                    self._blend_to_ctrl.loop(False)
                 except Exception:
                     pass
                 self._set_control_weight(self._blend_to_ctrl, 1.0)
