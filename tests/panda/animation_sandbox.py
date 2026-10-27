@@ -298,8 +298,22 @@ class TestAnimationSandbox(Test):
         self.input_h.set_move_vector(phase.move, 0.0)
         self.input_h.set_action_state(SPRINT, phase.sprint)
 
+    def _replay_dt(self) -> float:
+        if self._replay_mode is not None and self._replay_recorder is not None:
+            return float(self._replay_recorder.fixed_dt)
+        if self._replay_mode is not None and self._replay_player is not None:
+            return float(self._replay_player.fixed_dt)
+        try:
+            if hasattr(GlobalClock, "get_dt"):
+                return float(GlobalClock.get_dt())
+        except Exception:  # noqa: BLE001
+            pass
+        return 1.0 / 60.0
+
     def _on_frame_update(self, task):
-        dt = GlobalClock.get_dt() if hasattr(GlobalClock, "get_dt") else 0.016
+        dt = self._replay_dt() if self._replay_mode is not None else (
+            float(GlobalClock.get_dt()) if hasattr(GlobalClock, "get_dt") else 0.016
+        )
         try:
             if self._replay_mode is not None:
                 self._replay_elapsed += dt
@@ -310,7 +324,7 @@ class TestAnimationSandbox(Test):
 
             self._hold_jump()
             if self._auto:
-                self._advance_sequence()
+                self._advance_sequence(dt)
                 phase = self._SEQUENCE[self._phase_index]
                 self._apply_phase(phase)
             elif self.input_h is not None:
@@ -339,8 +353,11 @@ class TestAnimationSandbox(Test):
             self.input_h.set_action_state(JUMP, False)
             self._jump_requested = None
 
-    def _advance_sequence(self) -> None:
-        dt = GlobalClock.get_dt() if hasattr(GlobalClock, "get_dt") else 0.016
+    def _advance_sequence(self, dt: float | None = None) -> None:
+        if dt is None:
+            dt = self._replay_dt() if self._replay_mode is not None else (
+                float(GlobalClock.get_dt()) if hasattr(GlobalClock, "get_dt") else 0.016
+            )
         self._phase_time += dt
         phase = self._SEQUENCE[self._phase_index]
         if self._phase_time >= phase.duration:
