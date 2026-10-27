@@ -75,6 +75,8 @@ Rules that keep the suites usable headless:
 | `state_machine_test.py` | `StateMachine` transitions and validation, same-state no-op, hook order, reentrant transition guard, reset semantics. |
 | `math_test.py` | `clamp`, `lerp`, `smoothstep`, `normalize_angle`, `lerp_angle`, `remap`. |
 | `paths_test.py` | `get_project_root` detection strategies, `resolve_asset_path` with multi-segment and path-like inputs. |
+| `physics_cleanup_test.py` | `Physics` cleanup and diagnostics: `clear_all`, counts, idempotency, orphan detection. |
+| `replay_test.py` | Replay helpers: file roundtrip, ordered event dispatch, snapshot and assertion validation. |
 
 Run every suite in one isolated subprocess pass (PASS/FAIL summary with durations, non-zero exit on failure):
 
