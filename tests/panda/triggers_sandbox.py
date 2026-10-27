@@ -339,9 +339,51 @@ class TestTriggersSandbox(Test):
         state = "ENABLED" if active else "DISABLED"
         self.p(f"[Physics Debug] Bullet Wireframe {state}", color="cyan", bold=True)
 
+    def capture_replay_state(self) -> dict:
+        counters = getattr(self, "_counters", {}) or {}
+        state = {
+            "enemy_time": round(float(getattr(self, "_enemy_time", 0.0)), 6),
+            "frame_count": int(getattr(self, "_frame_count", 0)),
+            "player_enter": int(counters.get("zone_player", {}).get("enter", 0)) if isinstance(counters.get("zone_player"), dict) else 0,
+            "player_exit": int(counters.get("zone_player", {}).get("exit", 0)) if isinstance(counters.get("zone_player"), dict) else 0,
+            "enemy_enter": int(counters.get("zone_enemy", {}).get("enter", 0)) if isinstance(counters.get("zone_enemy"), dict) else 0,
+            "enemy_exit": int(counters.get("zone_enemy", {}).get("exit", 0)) if isinstance(counters.get("zone_enemy"), dict) else 0,
+        }
+        self._replay_phase = "triggers"
+        return state
+
+    def apply_replay_event(self, event: dict) -> None:
+        return None
+
+        return None
+
+    def _replay_dt(self) -> float:
+        if self._replay_mode is not None and self._replay_recorder is not None:
+            return float(self._replay_recorder.fixed_dt)
+        if self._replay_mode is not None and self._replay_player is not None:
+            return float(self._replay_player.fixed_dt)
+        try:
+            import builtins
+
+            base = getattr(builtins, "base", None)
+            if base is not None and hasattr(base, "globalClock"):
+                return float(base.globalClock.getDt())
+        except Exception:  # noqa: BLE001
+            pass
+        return 1.0 / 60.0
+
     def _on_frame_update(self, task: Any) -> int:
         """Per-frame update driving the enemy oscillator, scene entities, and telemetry."""
-        dt = GlobalClock.get_dt() if hasattr(GlobalClock, "get_dt") else 0.016
+        dt = self._replay_dt() if self._replay_mode is not None else (
+            float(GlobalClock.get_dt()) if hasattr(GlobalClock, "get_dt") else 0.016
+        )
+        if self._replay_mode is not None:
+            self._replay_elapsed += dt
+            if self._replay_mode == "record" and self._replay_recorder is not None:
+                self._replay_recorder.tick(dt)
+            elif self._replay_mode == "replay" and self._replay_player is not None:
+                self._replay_player.tick(dt, self)
+
         self._frame_count += 1
 
         if self.enemy is not None and not self.enemy.is_freed:
@@ -351,6 +393,14 @@ class TestTriggersSandbox(Test):
             self.enemy.node.setPos(x, 8.0, 0.5)
 
         self._update_osd(task.time)
+        if self._replay_mode is not None and self._replay_elapsed >= self._replay_duration:
+            self.finalize_replay()
+            import builtins
+
+            base = getattr(builtins, "base", None)
+            if base is not None and hasattr(base, "userExit"):
+                base.userExit()
+            return task.done
         return task.cont
 
     def _update_osd(self, current_time: float) -> None:
@@ -443,9 +493,24 @@ class TestTriggersSandbox(Test):
 
 
 if __name__ == "__main__":
+    import argparse
+    import sys
+
     from src.game import Game
+
+    parser = argparse.ArgumentParser(description="Trigger Zones Sandbox")
+    parser.add_argument("--record", metavar="PATH", help="Record a replay to PATH.")
+    parser.add_argument("--replay", metavar="PATH", help="Replay a recorded scenario from PATH.")
+    parser.add_argument("--duration", type=float, default=5.0, help="Replay/record duration in seconds.")
+    args = parser.parse_args()
 
     app = Game()
     sandbox = TestTriggersSandbox()
+    sandbox._replay_scene_name = "triggers_state"
+    if args.record:
+        sandbox.enable_replay_record(args.record, duration=args.duration)
+    elif args.replay:
+        sandbox.enable_replay_replay(args.replay, duration=args.duration)
     app.add_scene(sandbox, set_as_main=True)
     app.run()
+    sys.exit(getattr(sandbox, "_replay_exit_code", 0))
