@@ -66,6 +66,62 @@ class Test(Scene):
         self._inspector_page: int = 0
         self._updating_inspector_ui: bool = False
         self.auto_discover_inspector_fields: bool = True
+        self._replay_mode: str | None = None
+        self._replay_path: str | None = None
+        self._replay_duration: float = 0.0
+        self._replay_elapsed: float = 0.0
+        self._replay_recorder: Any = None
+        self._replay_player: Any = None
+        self._replay_exit_code: int = 0
+    # ------------------------------------------------------------------
+    # Replay helpers
+    # ------------------------------------------------------------------
+    def enable_replay_record(self, path: str, duration: float = 5.0, fixed_dt: float = 0.016) -> None:
+        from src.utils.replay import ReplayRecorder
+
+        self._replay_mode = "record"
+        self._replay_path = path
+        self._replay_duration = float(duration)
+        self._replay_recorder = ReplayRecorder(self, fixed_dt=fixed_dt)
+        setattr(self, "_replay_scene_name", type(self).__name__)
+
+    def enable_replay_replay(self, path: str, duration: float = 5.0) -> None:
+        from src.utils.replay import ReplayPlayer
+
+        self._replay_mode = "replay"
+        self._replay_path = path
+        self._replay_player = ReplayPlayer(path)
+        self._replay_duration = float(duration)
+        self._replay_exit_code = 0
+
+    def record_replay_event(self, event_type: str, **payload) -> None:
+        recorder = self._replay_recorder
+        if recorder is not None:
+            recorder.record_event(event_type, **payload)
+
+    def capture_replay_state(self) -> dict:
+        return {}
+
+    def apply_replay_event(self, event: dict) -> None:
+        return None
+
+    def finalize_replay(self) -> list[str]:
+        errors: list[str] = []
+        if self._replay_mode == "record" and self._replay_recorder is not None and self._replay_path is not None:
+            self._replay_recorder.record_snapshot(self._replay_elapsed, self.capture_replay_state())
+            self._replay_recorder.add_assertion("end", "_replay_phase", getattr(self, "_replay_phase", None))
+            self._replay_recorder.save(self._replay_path)
+            self.p(f"Replay recorded: {self._replay_path}", color="green")
+        elif self._replay_mode == "replay" and self._replay_player is not None:
+            errors = self._replay_player.finalize(self)
+            if errors:
+                self._replay_exit_code = 1
+                for error in errors:
+                    self.p(f"Replay mismatch: {error}", color="red")
+            else:
+                self.p("Replay OK", color="green")
+        return errors
+
 
     @property
     def is_sandbox_paused(self) -> bool:

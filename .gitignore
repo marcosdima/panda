@@ -222,3 +222,6 @@ assets/KayKit_Adventurers_2.0_FREE/*.url
 /.opencode/
 /.test_default
 /opencode.json
+
+# replay artifacts
+tests/artifacts/
