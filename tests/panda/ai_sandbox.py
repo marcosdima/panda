@@ -482,6 +482,7 @@ class TestAISandbox(Test):
         self.p(f"[Target] Control mode: {mode}", color="yellow", bold=True)
     def _toggle_obstacle(self) -> None:
         """Toggle a barrier in the central gap and force the AI to replan."""
+        print("[DEBUG] _toggle_obstacle called", flush=True)
         self.p("[Obstacle] Toggle requested", color="magenta", bold=True)
         self._obstacle_closed = not self._obstacle_closed
         if self.ai_handler is None or self.ai_handler.nav_grid is None:
