@@ -15,4 +15,4 @@ Pathfinder = GridPathfinder
 AStar = GridPathfinder
 PathFinder = GridPathfinder
 
-__all__ = ["NavGrid", "GridPathfinder", "smooth_path", "Pathfinder", "AStar", "PathFinder"]
+__all__ = ["AStar", "GridPathfinder", "NavGrid", "PathFinder", "Pathfinder", "smooth_path"]

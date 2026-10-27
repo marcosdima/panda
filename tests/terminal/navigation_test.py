@@ -70,7 +70,7 @@ def test_smooth_path():
 
 
 def test_navigation_without_grid_moves_toward_waypoint():
-    entity, inp, ai, grid = make_nav(waypoints=[Vec3(10, 0, 0)], nav_grid=None)
+    entity, inp, ai, _ = make_nav(waypoints=[Vec3(10, 0, 0)], nav_grid=None)
     entity.update(0.1)
     assert inp.move_vector.x == pytest.approx(1.0)
     assert ai.state == NavigationState.PATROL
@@ -78,13 +78,13 @@ def test_navigation_without_grid_moves_toward_waypoint():
 
 def test_navigation_with_grid_creates_path():
     grid = NavGrid(40, 40, 1.0, origin=Vec3(-20, -20, 0))
-    entity, inp, ai, _ = make_nav(waypoints=[Vec3(5, 0, 0)], grid=grid)
+    entity, _, ai, _ = make_nav(waypoints=[Vec3(5, 0, 0)], grid=grid)
     entity.update(0.1)
     assert ai.current_path is not None
 
 
 def test_navigation_avoidance_detects_obstacle():
-    entity, inp, ai, grid = make_nav(
+    entity, _, ai, _ = make_nav(
         waypoints=[Vec3(10, 0, 0)],
         nav_grid=None,
         avoidance_check=lambda a, b: False,
@@ -96,7 +96,7 @@ def test_navigation_avoidance_detects_obstacle():
 def test_navigation_search_state():
     target = Entity("Player")
     target.node.setPos(3, 0, 0)
-    entity, inp, ai, grid = make_nav(
+    entity, _, ai, _ = make_nav(
         waypoints=[Vec3(-10, 0, 0)],
         target=target,
         sight_range=8.0,

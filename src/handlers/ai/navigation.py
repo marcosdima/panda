@@ -1,18 +1,16 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Sequence
 from enum import Enum
-from typing import TYPE_CHECKING, Callable, Sequence
+from typing import TYPE_CHECKING
 
 from panda3d.core import Vec3
 
 from src.handlers.ai.patrol import AIPatrolHandler
 from src.handlers.base import Handler
-from src.handlers.input.base import InputHandler
-from src.handlers.input.action_map import SPRINT
 from src.navigation.grid import NavGrid
 from src.navigation.pathfinder import GridPathfinder
 from src.navigation.smoothing import smooth_path
-from src.utils.position import world_position
 from src.utils.state_machine import StateMachine
 
 if TYPE_CHECKING:
@@ -48,7 +46,7 @@ class AINavigationHandler(AIPatrolHandler):
         arrive_radius: float = 0.5,
         wait_time: float = 1.0,
         ping_pong: bool = False,
-        target: "Entity | None" = None,
+        target: Entity | None = None,
         sight_range: float = 8.0,
         lose_range: float | None = None,
         chase_sprint: bool = True,
@@ -220,14 +218,13 @@ class AINavigationHandler(AIPatrolHandler):
                 if pt is None:
                     pt = Vec3(goal)
                 to_goal = self._planar(pt - self._position())
-            if (pt - goal).length_squared() < 1e-8:
-                if self._planar(goal - self._position()).length() <= self.arrive_radius:
-                    self._advance_waypoint()
-                    self._wait_left = self.wait_time
-                    self._drive(Vec3(0, 0, 0), sprint=False)
-                    if self._wait_left > 0.0:
-                        self.machine.transition(NavigationState.WAIT)
-                    return
+            if (pt - goal).length_squared() < 1e-8 and self._planar(goal - self._position()).length() <= self.arrive_radius:
+                self._advance_waypoint()
+                self._wait_left = self.wait_time
+                self._drive(Vec3(0, 0, 0), sprint=False)
+                if self._wait_left > 0.0:
+                    self.machine.transition(NavigationState.WAIT)
+                return
         else:
             to_goal = self._planar(goal - self._position())
             if to_goal.length() <= self.arrive_radius:
@@ -304,9 +301,8 @@ class AINavigationHandler(AIPatrolHandler):
     def _ensure_path(self, goal: Vec3) -> None:
         if self.nav_grid is None or self.pathfinder is None:
             return
-        if self._current_path and self._path_index < len(self._current_path) and self._path_goal is not None:
-            if (self._path_goal - goal).length() < max(0.25, self.nav_grid.cell_size * 0.5):
-                return
+        if self._current_path and self._path_index < len(self._current_path) and self._path_goal is not None and (self._path_goal - goal).length() < max(0.25, self.nav_grid.cell_size * 0.5):
+            return
         self._path_goal = Vec3(goal)
         path = self.pathfinder.find_path(self._position(), goal)
         if path is None:
@@ -357,7 +353,7 @@ class AINavigationHandler(AIPatrolHandler):
         if self.avoidance_check is not None:
             try:
                 return bool(self.avoidance_check(a, b))
-            except Exception:
+            except (RuntimeError, TypeError, AttributeError, ImportError, ValueError):
                 return True
         try:
             from src.globals.physics import Physics
@@ -369,5 +365,5 @@ class AINavigationHandler(AIPatrolHandler):
                 step_physics=False,
             )
             return hit is None
-        except Exception:
+        except (RuntimeError, TypeError, AttributeError, ImportError, ValueError):
             return True

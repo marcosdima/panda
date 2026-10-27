@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import Iterable, Sequence
+from collections.abc import Iterable, Sequence
 
 from panda3d.core import Vec3
 
