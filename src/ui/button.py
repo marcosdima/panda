@@ -15,6 +15,7 @@ class UIButton(UIComponent):
         text: str = "",
         command=None,
         theme: UITheme | None = None,
+        owner: object = None,
         pos: tuple[float, ...] = (0.0, 0.0),
         scale: float = 0.05,
         enabled: bool = True,
@@ -33,11 +34,12 @@ class UIButton(UIComponent):
             command=self._on_click,
             pos=self._pos,
             scale=scale,
-            frameColor=self.theme.button_frame_color(self._enabled),
+            frameColor=self.theme.button_state_colors(self._enabled),
             text_fg=self.theme.text_color,
+            pad=(0.18, 0.10),
             **kwargs,
         )
-        super().__init__(node=widget, theme=self.theme)
+        super().__init__(node=widget, theme=self.theme, owner=owner)
         self.set_enabled(self._enabled)
 
     @staticmethod
@@ -73,7 +75,7 @@ class UIButton(UIComponent):
             return
         try:
             self.node["state"] = "normal" if self._enabled else "disabled"
-            self.node["frameColor"] = self.theme.button_frame_color(self._enabled)
+            self.node["frameColor"] = self.theme.button_state_colors(self._enabled)
         except Exception:  # noqa: BLE001
             pass
 

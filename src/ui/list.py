@@ -16,6 +16,7 @@ class UIList(UIComponent):
         items: list[tuple[str, object]] | None = None,
         on_select=None,
         theme: UITheme | None = None,
+        owner: object = None,
         pos: tuple[float, ...] = (0.0, 0.0),
         item_height: float = 0.06,
         scale: float = 0.05,
@@ -39,7 +40,7 @@ class UIList(UIComponent):
         except Exception:  # noqa: BLE001
             pass
 
-        super().__init__(node=self._root, theme=self.theme)
+        super().__init__(node=self._root, theme=self.theme, owner=owner)
 
         for label, value in (items or []):
             self.add_item(str(label), value)

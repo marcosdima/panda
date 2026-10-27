@@ -16,6 +16,7 @@ class UIScrollContainer(UIComponent):
         height: float = 0.8,
         canvas_height: float | None = None,
         theme: UITheme | None = None,
+        owner: object = None,
         pos: tuple[float, ...] = (0.0, 0.0),
     ) -> None:
         from direct.gui.DirectGui import DirectScrolledFrame
@@ -41,7 +42,7 @@ class UIScrollContainer(UIComponent):
             pos=self._pos,
             frameColor=self.theme.frame_color,
         )
-        super().__init__(node=widget, theme=self.theme)
+        super().__init__(node=widget, theme=self.theme, owner=owner)
 
     @staticmethod
     def _normalize_pos(pos: tuple[float, ...]) -> tuple[float, float, float]:

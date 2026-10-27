@@ -32,5 +32,21 @@ button = UIButton(parent=base.aspect2d, text="Run", command=run, theme=theme)
 Components do not create `ShowBase`. Tests bootstrap `ShowBase(windowType="none")`
 when needed, as the rest of the terminal suites do.
 
+## Layout containers
+
+- `UIPanel`: framed container with title and padded `content_parent`.
+- `UIRow`: horizontal layout with automatic spacing.
+- `UIColumn`: vertical layout with automatic spacing.
+- `UIGrid`: simple grid layout with fixed columns.
+
+Example:
+
+```python
+panel = UIPanel(parent=base.aspect2d, title="Controls", width=0.6, height=0.8)
+column = UIColumn(parent=panel.content_parent, spacing=0.02)
+for label in ("Pause", "Reset"):
+    column.add(UIButton(parent=column.node, text=label))
+```
+
 Source: `src/ui/`
-Tests: `tests/terminal/ui_components_test.py`
+Tests: `tests/terminal/ui_components_test.py`, `tests/terminal/ui_layout_test.py`
