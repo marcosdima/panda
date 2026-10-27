@@ -24,6 +24,7 @@ from src.entities.entity import Entity
 from src.globals.lights import GlobalLights
 from src.globals.loader import GlobalLoader
 from src.handlers.sensors import ProximitySensorHandler
+from src.ui import UIButton, UITheme
 
 if TYPE_CHECKING:
     from direct.gui.OnscreenText import OnscreenText
@@ -61,6 +62,9 @@ class TestProximitySandbox(Test):
         self._last_console_telemetry_time: float = 0.0
         self._console_interval: float = 1.0
 
+        self._ui_components: list = []
+        self._ui_theme = UITheme()
+
         self._task_name: str = "proximity_sandbox_update_task"
 
     # --- lifecycle -------------------------------------------------------
@@ -93,6 +97,7 @@ class TestProximitySandbox(Test):
             self.base.accept("r", self._reset_phase)
 
         self._setup_osd()
+        self._setup_ui()
         self._setup_inspector()
         self.add_task(self._task_name, self._on_frame_update)
 
@@ -177,6 +182,13 @@ class TestProximitySandbox(Test):
         self.sensor = None
         self.target = None
         self.ground = None
+
+        for component in list(self._ui_components):
+            try:
+                component.destroy()
+            except Exception:  # noqa: BLE001
+                pass
+        self._ui_components.clear()
 
         if self.base is not None:
             GlobalLights.clear_lights()
@@ -435,6 +447,38 @@ class TestProximitySandbox(Test):
                 f"exit={self._exit_count}",
                 color="blue",
             )
+
+    def _setup_ui(self) -> None:
+        """Create reusable UI controls for the sandbox."""
+        if self.base is None or getattr(self.base, "aspect2d", None) is None:
+            return
+        try:
+            UIButton(
+                parent=self.base.aspect2d,
+                text="Space: Pause",
+                command=self._toggle_orbit,
+                theme=self._ui_theme,
+                pos=(-1.28, -0.72),
+                scale=0.04,
+            )
+            UIButton(
+                parent=self.base.aspect2d,
+                text="L: Toggle Sensor",
+                command=self._toggle_sensor,
+                theme=self._ui_theme,
+                pos=(-1.28, -0.78),
+                scale=0.04,
+            )
+            UIButton(
+                parent=self.base.aspect2d,
+                text="R: Reset Phase",
+                command=self._reset_phase,
+                theme=self._ui_theme,
+                pos=(-1.28, -0.84),
+                scale=0.04,
+            )
+        except Exception as exc:  # noqa: BLE001
+            self.p(f"UI not available ({exc}); skipping controls.", color="yellow")
 
     def _setup_osd(self) -> None:
         """Create the controls reminder and the live telemetry overlay."""
