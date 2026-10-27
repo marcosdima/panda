@@ -74,3 +74,12 @@ class TestModels(Test):
         if actor is not None and not actor.isEmpty():
             actor.removeNode()
         self.actor = None
+
+if __name__ == "__main__":
+    from src import game
+
+    app = game.Game()
+    sandbox = TestModels()
+    app.add_scene(sandbox, set_as_main=True)
+    app.run()
+

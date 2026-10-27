@@ -65,3 +65,12 @@ class TestPhysics(Test):
             node_path = getattr(self, np_name, None)
             if node_path is not None and not node_path.isEmpty():
                 node_path.removeNode()
+
+if __name__ == "__main__":
+    from src import game
+
+    app = game.Game()
+    sandbox = TestPhysics()
+    app.add_scene(sandbox, set_as_main=True)
+    app.run()
+

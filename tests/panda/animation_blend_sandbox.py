@@ -329,10 +329,8 @@ class TestAnimationBlendSandbox(Test):
 
 if __name__ == "__main__":
     from src import game
-    from tests import Tests
 
     app = game.Game()
-    test = Tests().get_target()
-    if test is not None:
-        app.add_scene(test, set_as_main=True)
+    sandbox = TestAnimationBlendSandbox()
+    app.add_scene(sandbox, set_as_main=True)
     app.run()
