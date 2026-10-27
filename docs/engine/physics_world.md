@@ -16,7 +16,9 @@
 | `Physics.create_ghost(name)` | Creates a ghost body, attaches it and returns the node. |
 | `Physics.remove_body(name_or_node)` | Removes a rigid body. |
 | `Physics.remove_ghost(name_or_node)` | Removes a ghost body. |
-| `Physics.clear_all_bodies()` | Removes all tracked rigid bodies and ghosts. |
+| `Physics.clear_all()` | Removes all tracked and untracked bodies, ghosts and constraints. Returns counts. |
+| `Physics.clear_all_bodies()` | Backward-compatible alias for `clear_all()`. |
+| `Physics.debug_dump()` | Returns diagnostic counts and orphan node count. |
 | `Physics.attach_character(node)` | Attaches a character controller to the world. |
 | `Physics.remove_character(node)` | Detaches a character controller. |
 
@@ -67,6 +69,15 @@ How it works in Bullet:
 
 - `Physics.toggle_debug()` switches the Bullet wireframe on and off.
 - `Physics.is_debug_enabled()` reports whether the wireframe is visible.
+## Diagnostics
+
+- `Physics.clear_all()` removes every rigid body, ghost and constraint present in the world, including unregistered (orphan) objects, and returns `{"bodies": ..., "ghosts": ..., "constraints": ...}`.
+- `Physics.debug_dump()` returns `{"bodies", "ghosts", "constraints", "orphan_nodes"}`.
+- CLI: `./venv/bin/python -m src.globals.physics --dump` prints the diagnostic snapshot as JSON.
+
+Source: `src/globals/physics.py`
+Tests: `tests/terminal/physics_cleanup_test.py`
+
 - The wireframe requires a display; in headless mode it is simply not created.
 
 Source: `src/globals/physics.py`, `src/handlers/physics/groups.py`

@@ -29,6 +29,12 @@ class Physics(Global):
     _ghosts: dict[str, BulletGhostNode] = {}
     _debug_np: NodePath | None = None
     _paused: bool = False
+    _registry: dict[str, set] = {
+        "bodies": set(),
+        "ghosts": set(),
+        "constraints": set(),
+    }
+    _constraints: dict[str, object] = {}
 
     def __init__(self) -> None:
         super().__init__()
@@ -145,6 +151,7 @@ class Physics(Global):
         node.setMass(mass)
         world.attachRigidBody(node)
         cls._bodies[name] = node
+        cls._registry["bodies"].add(node)
         return node
 
     @classmethod
@@ -154,48 +161,123 @@ class Physics(Global):
         node = BulletGhostNode(name)
         world.attachGhost(node)
         cls._ghosts[name] = node
+        cls._registry["ghosts"].add(node)
         return node
 
     @classmethod
     def remove_body(cls, name_or_node: BulletRigidBodyNode | str) -> None:
         """Remove a rigid body from the world by name or node reference."""
         world = cls._ensure_world()
+        node: BulletRigidBodyNode | None = None
         if isinstance(name_or_node, str):
-            if name_or_node in cls._bodies:
-                world.removeRigidBody(cls._bodies[name_or_node])
-                del cls._bodies[name_or_node]
+            node = cls._bodies.pop(name_or_node, None)
         else:
-            world.removeRigidBody(name_or_node)
-            for k, v in list(cls._bodies.items()):
-                if v == name_or_node:
-                    del cls._bodies[k]
+            node = name_or_node
+            for key, value in list(cls._bodies.items()):
+                if value == node:
+                    cls._bodies.pop(key, None)
+        if node is None and not isinstance(name_or_node, str):
+            node = name_or_node
+        if node is not None:
+            cls._registry["bodies"].discard(node)
+            try:
+                world.removeRigidBody(node)
+            except Exception:
+                pass
 
     @classmethod
     def remove_ghost(cls, name_or_node: BulletGhostNode | str) -> None:
         """Remove a ghost body from the world by name or node reference."""
         world = cls._ensure_world()
+        node: BulletGhostNode | None = None
         if isinstance(name_or_node, str):
-            if name_or_node in cls._ghosts:
-                world.removeGhost(cls._ghosts[name_or_node])
-                del cls._ghosts[name_or_node]
+            node = cls._ghosts.pop(name_or_node, None)
         else:
-            world.removeGhost(name_or_node)
-            for k, v in list(cls._ghosts.items()):
-                if v == name_or_node:
-                    del cls._ghosts[k]
+            node = name_or_node
+            for key, value in list(cls._ghosts.items()):
+                if value == node:
+                    cls._ghosts.pop(key, None)
+        if node is None and not isinstance(name_or_node, str):
+            node = name_or_node
+        if node is not None:
+            cls._registry["ghosts"].discard(node)
+            try:
+                world.removeGhost(node)
+            except Exception:
+                pass
+
+    @classmethod
+    def clear_all(cls) -> dict[str, int]:
+        """Remove all tracked and untracked bodies, ghosts and constraints from the world.
+
+        Returns a dict with the number of removed objects by category. The method is
+        idempotent and tolerates objects that were destroyed already.
+        """
+        world = cls._ensure_world()
+        removed = {"bodies": 0, "ghosts": 0, "constraints": 0}
+
+        all_bodies = set(cls._registry["bodies"]) | set(world.getRigidBodies())
+        cls._registry["bodies"].clear()
+        for node in all_bodies:
+            try:
+                world.removeRigidBody(node)
+            except Exception:
+                pass
+            removed["bodies"] += 1
+
+        all_ghosts = set(cls._registry["ghosts"]) | set(world.getGhosts())
+        cls._registry["ghosts"].clear()
+        for node in all_ghosts:
+            try:
+                world.removeGhost(node)
+            except Exception:
+                pass
+            removed["ghosts"] += 1
+
+        all_constraints = set(cls._registry["constraints"]) | set(world.getConstraints())
+        cls._registry["constraints"].clear()
+        for node in all_constraints:
+            try:
+                world.removeConstraint(node)
+            except Exception:
+                pass
+            removed["constraints"] += 1
+
+        cls._bodies.clear()
+        cls._ghosts.clear()
+        cls._constraints.clear()
+        return removed
 
     @classmethod
     def clear_all_bodies(cls) -> None:
-        """Remove all registered rigid bodies and ghosts from the physics world."""
+        """Backward-compatible alias for :meth:`clear_all`."""
+        cls.clear_all()
+
+    @classmethod
+    def _detect_orphans(cls) -> int:
         world = cls._ensure_world()
-        for name in list(cls._bodies.keys()):
-            body = cls._bodies.pop(name, None)
-            if body is not None:
-                world.removeRigidBody(body)
-        for name in list(cls._ghosts.keys()):
-            ghost = cls._ghosts.pop(name, None)
-            if ghost is not None:
-                world.removeGhost(ghost)
+        orphan_count = 0
+        for node in world.getRigidBodies():
+            if node not in cls._registry["bodies"]:
+                orphan_count += 1
+        for node in world.getGhosts():
+            if node not in cls._registry["ghosts"]:
+                orphan_count += 1
+        for node in world.getConstraints():
+            if node not in cls._registry["constraints"]:
+                orphan_count += 1
+        return orphan_count
+
+    @classmethod
+    def debug_dump(cls) -> dict[str, object]:
+        """Return a small diagnostic snapshot of the physics world."""
+        cls._ensure_world()
+        return {
+            "bodies": len(cls._registry["bodies"]),
+            "ghosts": len(cls._registry["ghosts"]),
+            "constraints": len(cls._registry["constraints"]),
+            "orphan_nodes": cls._detect_orphans(),
+        }
 
     @classmethod
     def attach_character(cls, node: BulletCharacterControllerNode) -> None:
@@ -275,3 +357,15 @@ class Physics(Global):
         world = cls._ensure_world()
         world.removeCharacter(node)
 
+
+
+if __name__ == "__main__":
+    import argparse
+    import json
+
+    parser = argparse.ArgumentParser(description="Physics diagnostics")
+    parser.add_argument("--dump", action="store_true", help="Print a JSON diagnostic snapshot and exit.")
+    args = parser.parse_args()
+
+    if args.dump:
+        print(json.dumps(Physics.debug_dump(), indent=2, default=str))

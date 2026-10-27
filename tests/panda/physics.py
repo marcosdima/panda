@@ -10,6 +10,7 @@ class TestPhysics(Test):
         self.print_title('TestPhysics started.', color='cyan')
 
         super().on_start()
+        self.physics_debug = True
 
         # Test collision between two bodies
         self._create_collision_test()

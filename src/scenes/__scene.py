@@ -26,6 +26,8 @@ class Scene(ABC):
         self.root_np: NodePath = NodePath(f"scene_{self.id}")
         self._owned_bodies: list[Any] = []
         self._owned_ghosts: list[Any] = []
+        self.physics_debug: bool = False
+
 
     @property
     def is_started(self) -> bool:
@@ -132,6 +134,16 @@ class Scene(ABC):
             for ghost in self._owned_ghosts:
                 Physics.remove_ghost(ghost)
             self._owned_ghosts.clear()
+
+        if getattr(self, "physics_debug", False):
+            try:
+                from src.globals.physics import Physics
+
+                import logging
+
+                logging.getLogger(__name__).info("Physics debug dump: %s", Physics.debug_dump())
+            except Exception:
+                pass
 
         if self.root_np is not None and not self.root_np.isEmpty():
             for child in self.root_np.getChildren():
