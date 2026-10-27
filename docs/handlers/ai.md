@@ -109,3 +109,35 @@ Position resolution follows the same controller-or-node rule as `AIPatrolHandler
 
 Source: `src/handlers/ai/`
 Tests: `tests/terminal/ai_test.py`, `tests/terminal/follow_handler_test.py`
+
+## `AINavigationHandler`
+
+`src/handlers/ai/navigation.py` extends the patrol behaviour with grid-based
+pathfinding, local obstacle avoidance and a short search state. It is a
+dedicated handler so `AIPatrolHandler` keeps its original contract.
+
+| Parameter | Default | Meaning |
+| --- | --- | --- |
+| `nav_grid` | `None` | `NavGrid` used for A* routing. When `None`, movement is direct (patrol-like). |
+| `pathfinder` | auto | Optional `GridPathfinder` override. |
+| `avoidance` | `True` | Enable local obstacle avoidance. |
+| `avoidance_check` | `None` | Callable `(a, b) -> bool` replacing the raycast. |
+| `search_time` | `2.0` | Seconds spent investigating the last known target position. |
+
+### States
+
+`NavigationState` adds `SEARCH` and `BLOCKED` to the patrol states:
+
+| State | Behaviour |
+| --- | --- |
+| `PATROL` | Walk the planned path toward the current waypoint. |
+| `WAIT` | Stand still for `wait_time` seconds. |
+| `CHASE` | Follow the planned path toward the target. |
+| `SEARCH` | Investigate the last known target position before resuming patrol. |
+| `BLOCKED` | No clear path/avoidance; replan and recover. |
+
+### Navigation grid
+
+`src/navigation/` provides `NavGrid`, `GridPathfinder` (A*) and `smooth_path`.
+The grid is manual: blocked cells are marked explicitly, which keeps routing
+deterministic and testable headless.

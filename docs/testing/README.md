@@ -65,6 +65,7 @@ Rules that keep the suites usable headless:
 | `model_handler.py` | `ModelHandler` (parameters, entity attachment and transforms, `GlobalLoader` template caching, per-entity instances, graceful missing asset, lifecycle leaks). |
 | `action_map_test.py` | `ActionMap` default bindings, bind/unbind/rebind, unknown key errors, custom maps on `WASDInputHandler`. |
 | `ai_test.py` | `AIPatrolHandler` (patrol cycle, ping-pong, chase and lose, injected sight) and line-of-sight semantics (no hit, target body, observer body, world geometry, other entity, `arrive_radius` independence, default mask, injectable source precedence, runtime source toggle). |
+| `navigation_test.py` | `NavGrid`, `GridPathfinder`, `smooth_path`, `AINavigationHandler` (direct movement, path creation, obstacle avoidance, search state, exports). |
 | `scene_tasks_test.py` | `Scene` task ownership (per-scene registration, same-name isolation between scenes, `remove_task` scoping, no orphan on name reuse, automatic cleanup on `on_stop`). |
 | `game_update_test.py` | `Game` update dispatch (started scene only, paused behaviour, missing or stopped scene, switching scenes). |
 | `global_event_bus_test.py` | Engine-wide `GlobalEventBus` on top of `Event` (subscribe/publish/unsubscribe/has_listeners/clear, callable-equality matching, mandatory unsubscribe on `on_stop`, `"events"` service-locator registration). |

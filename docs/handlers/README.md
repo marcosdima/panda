@@ -13,7 +13,7 @@ The contract every handler follows is in [pattern.md](pattern.md). This page is 
 | Physics | [physics.md](physics.md) | `CharacterControllerHandler`, `RigidBodyHandler`, `TriggerZoneHandler`, `CollisionGroup`. |
 | Camera | [camera.md](camera.md) | `FirstPersonCameraHandler`, `ThirdPersonCameraHandler`, camera presets. |
 | Graphics | [graphics.md](graphics.md) | `ModelHandler`, `ActorAnimationHandler`. |
-| AI | [ai.md](ai.md) | `AIPatrolHandler`, `PatrolState`, `FollowHandler`, `FollowState`. |
+| AI | [ai.md](ai.md) | `AIPatrolHandler`, `PatrolState`, `AINavigationHandler`, `NavigationState`, `FollowHandler`, `FollowState`. |
 | Sensors | [sensors.md](sensors.md) | `ProximitySensorHandler`: distance-based enter/stay/exit detection without physics. |
 | Components | [components.md](components.md) | `PauseHandler`, `CameraControlComponent`, `CameraSettingsComponent`, `HealthHandler`, `SpawnerHandler`. |
 
