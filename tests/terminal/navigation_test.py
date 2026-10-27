@@ -109,6 +109,22 @@ def test_navigation_search_state():
     assert ai.state == NavigationState.SEARCH
 
 
+def test_navigation_replans_when_path_blocked():
+    grid = NavGrid(20, 20, 1.0, origin=Vec3(-10, -10, 0))
+    entity, _, ai, _ = make_nav(
+        waypoints=[Vec3(8, 0, 0)],
+        grid=grid,
+    )
+    entity.update(0.1)
+    assert ai.current_path
+    before = ai.replan_count
+    cell = grid.world_to_cell(ai.current_path[ai.path_index])
+    assert cell is not None
+    grid.block(cell)
+    entity.update(0.1)
+    assert ai.replan_count > before
+
+
 def test_navigation_state_export():
     import src.handlers as h
 

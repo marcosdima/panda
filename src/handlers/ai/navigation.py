@@ -301,8 +301,17 @@ class AINavigationHandler(AIPatrolHandler):
     def _ensure_path(self, goal: Vec3) -> None:
         if self.nav_grid is None or self.pathfinder is None:
             return
-        if self._current_path and self._path_index < len(self._current_path) and self._path_goal is not None and (self._path_goal - goal).length() < max(0.25, self.nav_grid.cell_size * 0.5):
-            return
+        if self._current_path and self._path_index < len(self._current_path) and self._path_goal is not None:
+            blocked = False
+            for pt in self._current_path[self._path_index :]:
+                cell = self.nav_grid.world_to_cell(pt)
+                if cell is None or not self.nav_grid.is_walkable(cell):
+                    blocked = True
+                    break
+            if not blocked and (self._path_goal - goal).length() < max(0.25, self.nav_grid.cell_size * 0.5):
+                return
+            if blocked:
+                self.request_replan()
         self._path_goal = Vec3(goal)
         path = self.pathfinder.find_path(self._position(), goal)
         if path is None:

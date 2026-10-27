@@ -22,13 +22,11 @@ from typing import TYPE_CHECKING, Any
 from panda3d.bullet import BulletBoxShape
 from panda3d.core import NodePath, TransparencyAttrib, Vec3
 
-from ..__test import Test
 from src.entities.entity import Entity
-from src.globals.clock import GlobalClock
 from src.globals.lights import GlobalLights
 from src.globals.loader import GlobalLoader
 from src.globals.physics import Physics
-from src.handlers.ai import AIPatrolHandler, PatrolState
+from src.handlers.ai import AINavigationHandler, NavigationState
 from src.handlers.base import Handler
 from src.handlers.camera import ThirdPersonCameraHandler
 from src.handlers.input.base import InputHandler
@@ -39,6 +37,9 @@ from src.handlers.physics import (
     RigidBodyHandler,
     TriggerZoneHandler,
 )
+from src.navigation import generate_nav_grid
+
+from ..__test import Test
 
 if TYPE_CHECKING:
     from direct.gui.OnscreenText import OnscreenText
@@ -51,7 +52,7 @@ class _TargetMoverHandler(Handler):
     propagated to Bullet within the same frame.
     """
 
-    def __init__(self, sandbox: "TestAISandbox") -> None:
+    def __init__(self, sandbox: TestAISandbox) -> None:
         super().__init__()
         self._sandbox = sandbox
 
@@ -85,7 +86,7 @@ class TestAISandbox(Test):
 
         self.npc: Entity | None = None
         self.npc_controller: CharacterControllerHandler | None = None
-        self.ai_handler: AIPatrolHandler | None = None
+        self.ai_handler: AINavigationHandler | None = None
         self.npc_input: InputHandler | None = None
 
         self.target: Entity | None = None
@@ -104,7 +105,7 @@ class TestAISandbox(Test):
         self._los_injected: bool = False
         self.target_speed: float = float(self.TARGET_SPEED)
         self._counters: dict[str, int] = {"enter": 0, "stay": 0, "exit": 0}
-        self._last_state: PatrolState | None = None
+        self._last_state: NavigationState | None = None
 
         self.osd_instructions: OnscreenText | None = None
         self.osd_telemetry: OnscreenText | None = None
@@ -319,8 +320,11 @@ class TestAISandbox(Test):
         self.npc_input = InputHandler()
         npc.add_handler(self.npc_input)
 
-        self.ai_handler = AIPatrolHandler(
+        nav_grid = generate_nav_grid(bounds_min=(-20.0, -20.0), bounds_max=(20.0, 20.0), cell_size=1.0)
+
+        self.ai_handler = AINavigationHandler(
             waypoints=self.NPC_WAYPOINTS,
+            nav_grid=nav_grid,
             arrive_radius=0.6,
             wait_time=1.0,
             ping_pong=False,
@@ -494,8 +498,6 @@ class TestAISandbox(Test):
 
     def _on_frame_update(self, task: Any) -> int:
         """Per-frame update: keep the camera rig on the NPC and refresh the telemetry."""
-        dt = GlobalClock.get_dt() if hasattr(GlobalClock, "get_dt") else 0.016
-
         if self.camera_rig is not None:
             self.camera_rig.node.setPos(self.npc_position())
 
@@ -560,7 +562,7 @@ class TestAISandbox(Test):
                 align=TextNode.ALeft,
                 mayChange=True,
             )
-        except Exception:
+        except (RuntimeError, TypeError, AttributeError, ImportError, ValueError):
             self.p("OSD not available in this environment; skipping telemetry overlay.", color="yellow")
             self.osd_instructions = None
             self.osd_telemetry = None
