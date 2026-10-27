@@ -542,6 +542,21 @@ class TestAISandbox(Test):
             if state != self._last_state:
                 self._last_state = state
                 self.p(f"[AI] State -> {state.value.upper()}", color="cyan", bold=True)
+            # Debug movement to file.
+            if not hasattr(self, "_last_debug_time"):
+                self._last_debug_time = 0.0
+            if task.time - self._last_debug_time >= 1.0:
+                self._last_debug_time = task.time
+                pos = self.npc_position()
+                mv = self.npc_input.move_vector if self.npc_input is not None else None
+                grid = self.ai_handler.nav_grid
+                start_cell = grid.world_to_cell(pos) if grid is not None else None
+                walkable = grid.is_walkable(start_cell) if (grid is not None and start_cell is not None) else None
+                with open("/tmp/ai_move_debug.log", "a") as f:
+                    f.write(
+                        f"t={task.time:.2f} state={state.value} pos=({pos.x:.2f},{pos.y:.2f}) "
+                        f"move={mv} path={len(self.ai_handler.current_path)} start_cell={start_cell} walkable={walkable}\\n"
+                    )
 
         self._update_osd(task.time)
         return task.cont
