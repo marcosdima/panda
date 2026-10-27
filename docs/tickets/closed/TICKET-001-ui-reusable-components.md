@@ -1,6 +1,6 @@
 # UI-001 — Reusable UI components (buttons, lists, scroll) for playground and sandboxes
 
-- **Estado:** Open
+- **Estado:** Closed
 - **Área:** ui
 - **Motivación:** The playground and sandboxes currently build their overlays with
   `OnscreenText` and raw key bindings because `DirectGui` is underdeveloped in
