@@ -217,7 +217,7 @@ class AINavigationHandler(AIPatrolHandler):
             self._ensure_path(goal)
             pt = self._next_path_point()
             if pt is None:
-                if self.has_pathfinding:
+                if self.has_pathfinding and not self._current_path:
                     self._drive(Vec3(0, 0, 0), sprint=False)
                     return
                 pt = Vec3(goal)
@@ -265,7 +265,7 @@ class AINavigationHandler(AIPatrolHandler):
             self._ensure_path(goal)
             pt = self._next_path_point()
             if pt is None:
-                if self.has_pathfinding:
+                if self.has_pathfinding and not self._current_path:
                     self._drive(Vec3(0, 0, 0), sprint=False)
                     return
                 pt = Vec3(goal)
