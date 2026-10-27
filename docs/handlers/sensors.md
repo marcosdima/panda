@@ -72,7 +72,7 @@ Callbacks receive exactly two positional arguments, `(entity, distance)`; the se
 
 ## Sandbox
 
-`tests/panda/proximity_sandbox.py` (`TARGET = 'proximity'`) draws the enter and exit rings and orbits a target through them, with live state, distance, nearest entity and event counters. `SPACE` pauses the orbit, `L` disables the sensor and `R` resets the phase.
+`tests/panda/proximity_sandbox.py` (`python -m tests.panda.proximity_sandbox`) draws the enter and exit rings and orbits a target through them, with live state, distance, nearest entity and event counters. `SPACE` pauses the orbit, `L` disables the sensor and `R` resets the phase.
 
 Source: `src/handlers/sensors/`, `src/utils/position.py`
 Tests: `tests/terminal/proximity_sensor_test.py`, `tests/panda/proximity_sandbox.py`

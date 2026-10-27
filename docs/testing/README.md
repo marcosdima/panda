@@ -105,7 +105,7 @@ windowType=none ./venv/bin/python -m tests.terminal.run_all
 ./venv/bin/python main.py
 ```
 
-The active suite is selected by the `TARGET` constant in `tests/__init__.py` (for example `TARGET = 'character'`). Valid targets: `events`, `entities`, `controllers`, `camera`, `animation`, `physics`, `models`, `character`, `physics_handlers`, `triggers`, `model_handler`, `camera_fp`, `scene_tasks`, `ai`, `follow`, `proximity`, or `None`.
+Launches the playground selector (`python -m tests.playground`). It lists every registered visual scene and runs the chosen one in an isolated subprocess. Single-scene runs are possible with `python -m tests.playground --scene <key>`.
 
 ### Headless
 
@@ -118,15 +118,15 @@ windowType=none ./venv/bin/python -m pytest -q tests/terminal/
 
 ### Hybrid
 
-A headless suite can also run inside the full engine window by setting the matching `TARGET` (for example `TARGET = 'entities'`); assertion output is printed to the terminal.
+A headless suite can also run inside the full engine window by launching its module directly (for example `python -m tests.terminal.entities`); assertion output is printed to the terminal.
 
 ### Test menu
 
 ```bash
-./scripts/run_tests_menu.sh
+./venv/bin/python -m tests.playground
 ```
 
-Scans every suite and sandbox, runs the selected one, and can persist a default in `.test_default` so the same scenario is reopened with `--run-default`.
+Scans the scene registry, lists every visual sandbox, and launches the selected one in an isolated subprocess with a configurable timeout (`--timeout`). `R` re-runs the last scene and `Q` quits. Integration suites run via `tests.terminal.run_all`.
 
 ## Batch validation (`scripts/`)
 

@@ -20,9 +20,9 @@ python3.12 -m venv venv
 
 | Command | What it does |
 | --- | --- |
-| `./venv/bin/python main.py` | Launches the engine with the suite selected by `TARGET` in `tests/__init__.py`. |
-| `./scripts/run_tests_menu.sh` | Interactive menu over every suite and sandbox. `--run-default` runs the persisted default stored in `.test_default`. |
-| `./scripts/run_test_menu.py` | Same idea driven by pytest, restricted to `tests/terminal`. |
+| `./venv/bin/python main.py` | Launches the playground selector (`python -m tests.playground`). |
+| `./venv/bin/python -m tests.playground --list` | List registered scenes. |
+| `./venv/bin/python -m tests.playground --scene <key>` | Run one scene in an isolated subprocess. |
 | `windowType=none ./venv/bin/python -m tests.terminal.run_all` | Runs every headless suite and prints a summary. |
 
 Headless suites must pass with `windowType=none`; interactive sandboxes under `tests/panda/` open a window.
