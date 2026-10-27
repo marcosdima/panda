@@ -24,7 +24,7 @@ from src.entities.entity import Entity
 from src.globals.lights import GlobalLights
 from src.globals.loader import GlobalLoader
 from src.handlers.sensors import ProximitySensorHandler
-from src.ui import UIButton, UITheme
+from src.ui import UIButton, UIColumn, UIPanel, UITheme
 
 if TYPE_CHECKING:
     from direct.gui.OnscreenText import OnscreenText
@@ -453,29 +453,45 @@ class TestProximitySandbox(Test):
         if self.base is None or getattr(self.base, "aspect2d", None) is None:
             return
         try:
-            UIButton(
+            panel = UIPanel(
                 parent=self.base.aspect2d,
-                text="Space: Pause",
-                command=self._toggle_orbit,
+                title="Controls",
+                width=0.42,
+                height=0.42,
                 theme=self._ui_theme,
-                pos=(-1.28, -0.72),
-                scale=0.04,
+                owner=self,
+                pos=(-1.05, 0.0, -0.55),
             )
-            UIButton(
-                parent=self.base.aspect2d,
-                text="L: Toggle Sensor",
-                command=self._toggle_sensor,
-                theme=self._ui_theme,
-                pos=(-1.28, -0.78),
-                scale=0.04,
+            column = UIColumn(parent=panel.content_parent, spacing=0.02, owner=self, pos=(0.0, 0.05))
+            column.add(
+                UIButton(
+                    parent=column.node,
+                    text="Space: Pause",
+                    command=self._toggle_orbit,
+                    theme=self._ui_theme,
+                    owner=self,
+                    scale=0.05,
+                )
             )
-            UIButton(
-                parent=self.base.aspect2d,
-                text="R: Reset Phase",
-                command=self._reset_phase,
-                theme=self._ui_theme,
-                pos=(-1.28, -0.84),
-                scale=0.04,
+            column.add(
+                UIButton(
+                    parent=column.node,
+                    text="L: Toggle Sensor",
+                    command=self._toggle_sensor,
+                    theme=self._ui_theme,
+                    owner=self,
+                    scale=0.05,
+                )
+            )
+            column.add(
+                UIButton(
+                    parent=column.node,
+                    text="R: Reset Phase",
+                    command=self._reset_phase,
+                    theme=self._ui_theme,
+                    owner=self,
+                    scale=0.05,
+                )
             )
         except Exception as exc:  # noqa: BLE001
             self.p(f"UI not available ({exc}); skipping controls.", color="yellow")

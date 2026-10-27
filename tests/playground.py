@@ -19,7 +19,7 @@ from direct.gui.OnscreenText import OnscreenText
 from panda3d.core import TextNode
 
 from src import game
-from src.ui import UIButton, UIList, UIScrollContainer, UITheme
+from src.ui import UIButton, UIColumn, UIPanel, UIRow, UIScrollContainer, UIList, UITheme
 
 from tests.__test import Test
 from .registry import SCENE_REGISTRY
@@ -111,79 +111,112 @@ class Playground(Test):
         if parent is None:
             return
 
-        self._texts.append(
-            OnscreenText(
-                text="Panda Playground",
-                pos=(0.0, 0.92),
-                scale=0.09,
-                fg=(0.3, 0.85, 1.0, 1.0),
-            )
+        title = OnscreenText(
+            text="Panda Playground",
+            pos=(0.0, 0.93),
+            scale=self._theme.title_scale,
+            fg=(0.35, 0.85, 1.0, 1.0),
         )
-        self._texts.append(
-            OnscreenText(
-                text="Select a scene by number or click the list, then press Enter.",
-                pos=(0.0, 0.82),
-                scale=0.045,
-                fg=(0.8, 0.8, 0.8, 1.0),
-            )
+        subtitle = OnscreenText(
+            text="Select a scene by number or click the list, then press Enter.",
+            pos=(0.0, 0.86),
+            scale=self._theme.body_scale,
+            fg=(0.75, 0.75, 0.75, 1.0),
         )
+        self._texts.extend([title, subtitle])
 
+        left_panel = UIPanel(
+            parent=parent,
+            title="Scenes",
+            width=1.05,
+            height=0.95,
+            theme=self._theme,
+            owner=self,
+            pos=(-0.55, 0.0, -0.05),
+        )
         items = [
             (f"{index:2d}. {SCENE_REGISTRY[key][0]}  [{key}]", key)
             for index, key in enumerate(self._visual_keys, start=1)
         ]
         container = UIScrollContainer(
-            parent=parent,
-            width=1.05,
+            parent=left_panel.content_parent,
+            width=0.95,
             height=0.78,
             theme=self._theme,
-            pos=(-0.35, 0.0, 0.05),
+            owner=self,
+            pos=(0.0, -0.05),
         )
         ui_list = UIList(
             parent=container.canvas,
             items=items,
             on_select=lambda _index, key: self._launch(key),
             theme=self._theme,
+            owner=self,
             pos=(0.0, 0.0),
             item_height=0.06,
-            scale=0.045,
+            scale=self._theme.body_scale,
         )
         container.set_content(ui_list)
 
-        if self._last_key is not None:
-            self._texts.append(
-                OnscreenText(
-                    text=f"Last: {self._last_key}  (R re-runs)",
-                    pos=(-1.25, -0.72),
-                    scale=0.042,
-                    align=TextNode.ALeft,
-                    fg=(0.7, 0.9, 0.7, 1.0),
-                )
-            )
+        right_panel = UIPanel(
+            parent=parent,
+            title="Controls",
+            width=0.75,
+            height=0.95,
+            theme=self._theme,
+            owner=self,
+            pos=(0.72, 0.0, -0.05),
+        )
 
-        UIButton(
-            parent=parent,
-            text="R: Re-run last",
-            command=self._rerun_last,
-            theme=self._theme,
-            pos=(-1.25, -0.82),
-            scale=0.045,
+        if self._last_key is not None:
+            last_text = OnscreenText(
+                text=f"Last: {self._last_key}",
+                pos=(0.0, 0.30),
+                scale=self._theme.body_scale,
+                fg=(0.7, 0.9, 0.7, 1.0),
+                parent=right_panel.content_parent,
+                align=0,
+            )
+            self._texts.append(last_text)
+
+        button_row = UIRow(parent=right_panel.content_parent, spacing=0.03, owner=self, pos=(0.0, -0.15))
+        button_row.add(
+            UIButton(
+                parent=button_row.node,
+                text="R: Re-run",
+                command=self._rerun_last,
+                theme=self._theme,
+                owner=self,
+                scale=0.06,
+            )
         )
-        UIButton(
-            parent=parent,
-            text="Q: Quit",
-            command=self._quit,
-            theme=self._theme,
-            pos=(-0.85, -0.82),
-            scale=0.045,
+        button_row.add(
+            UIButton(
+                parent=button_row.node,
+                text="Q: Quit",
+                command=self._quit,
+                theme=self._theme,
+                owner=self,
+                scale=0.06,
+            )
         )
+
+        hint = OnscreenText(
+            text="Keys: digits + Enter, Backspace, R, Q",
+            pos=(0.0, -0.35),
+            scale=self._theme.body_scale - 0.005,
+            fg=(0.6, 0.6, 0.6, 1.0),
+            parent=right_panel.content_parent,
+            align=0,
+        )
+        self._texts.append(hint)
 
         self._status_text = OnscreenText(
             text=status or "Idle.",
-            pos=(-1.25, -0.90),
-            scale=0.045,
-            align=TextNode.ALeft,
+            pos=(0.0, -0.92),
+            scale=self._theme.body_scale,
             fg=(1.0, 0.9, 0.4, 1.0),
+            align=0,
             mayChange=True,
         )
         self._texts.append(self._status_text)
