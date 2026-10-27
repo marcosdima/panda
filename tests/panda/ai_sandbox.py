@@ -477,6 +477,7 @@ class TestAISandbox(Test):
 
     def _toggle_target_control(self) -> None:
         """Switch the target between the automatic route and manual player control."""
+        print("[DEBUG] _toggle_target_control called", flush=True)
         self._target_auto = not self._target_auto
         mode = "AUTO" if self._target_auto else "MANUAL (WASD)"
         self.p(f"[Target] Control mode: {mode}", color="yellow", bold=True)
