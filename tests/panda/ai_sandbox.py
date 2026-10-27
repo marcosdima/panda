@@ -138,6 +138,8 @@ class TestAISandbox(Test):
             self.base.accept("t", self._toggle_target_control)
             self.base.accept("o", self._toggle_obstacle)
             self.base.accept("O", self._toggle_obstacle)
+            self.base.accept("1", self._toggle_obstacle)
+            self.p("[Keys] Bound O/1 -> toggle obstacle", color="cyan")
 
         self._setup_osd()
         self._setup_inspector()
@@ -169,6 +171,7 @@ class TestAISandbox(Test):
             self.base.ignore("t")
             self.base.ignore("o")
             self.base.ignore("O")
+            self.base.ignore("1")
 
         if self.osd_telemetry is not None:
             self.osd_telemetry.destroy()
@@ -479,20 +482,25 @@ class TestAISandbox(Test):
         self.p(f"[Target] Control mode: {mode}", color="yellow", bold=True)
     def _toggle_obstacle(self) -> None:
         """Toggle a barrier in the central gap and force the AI to replan."""
+        self.p("[Obstacle] Toggle requested", color="magenta", bold=True)
         self._obstacle_closed = not self._obstacle_closed
         if self.ai_handler is None or self.ai_handler.nav_grid is None:
             self.p("[Obstacle] No navigation grid available.", color="red")
             return
         grid = self.ai_handler.nav_grid
         cells = [(19, y) for y in (19, 20, 21)] + [(20, y) for y in (19, 20, 21)]
+        before = list(grid.blocked)
         if self._obstacle_closed:
             grid.set_blocked(cells)
-            self.p("[Obstacle] Central gap CLOSED -> replanning", color="yellow", bold=True)
+            self.p(f"[Obstacle] Central gap CLOSED -> blocked {cells}", color="yellow", bold=True)
         else:
             for cell in cells:
                 grid.unblock(cell)
-            self.p("[Obstacle] Central gap OPEN -> replanning", color="cyan", bold=True)
+            self.p(f"[Obstacle] Central gap OPEN -> unblocked {cells}", color="cyan", bold=True)
+        after = list(grid.blocked)
+        self.p(f"[Obstacle] blocked before={len(before)} after={len(after)} path={len(self.ai_handler.current_path)} replans={self.ai_handler.replan_count}", color="blue")
         self.ai_handler.request_replan()
+        self.p(f"[Obstacle] replan done -> path={len(self.ai_handler.current_path)} replans={self.ai_handler.replan_count}", color="green")
 
 
 
