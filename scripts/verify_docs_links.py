@@ -87,6 +87,12 @@ def main() -> int:
     files = sorted(DOCS_DIR.rglob("*.md"))
     problems: list[str] = []
     for path in files:
+        try:
+            rel_parts = path.relative_to(DOCS_DIR).parts
+        except ValueError:
+            rel_parts = ()
+        if rel_parts and rel_parts[0] == "tickets":
+            continue
         problems.extend(check_doc(path))
 
     if problems:

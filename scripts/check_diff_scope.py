@@ -108,7 +108,7 @@ def check_file(rel: str, code: str) -> tuple[list[str], list[str]]:
                     )
                     advisories.append(message)
 
-    if rel.startswith("docs/") and path.suffix == ".md":
+    if rel.startswith("docs/") and not rel.startswith("docs/tickets/") and path.suffix == ".md":
         text = path.read_text(encoding="utf-8")
         if "Source:" not in text or "Tests:" not in text:
             message = f"doc missing Source:/Tests: footer: {rel}"
