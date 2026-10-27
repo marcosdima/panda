@@ -10,19 +10,28 @@ from src.navigation.smoothing import smooth_path
 
 
 def make_nav(**kwargs):
+    has_grid = "grid" in kwargs
+    has_nav_grid = "nav_grid" in kwargs
+    has_nav_graph = "nav_graph" in kwargs
     grid = kwargs.pop("grid", None)
     entity = Entity("Npc")
     inp = InputHandler()
     entity.add_handler(inp)
     kwargs.setdefault("line_of_sight", lambda a, b: True)
-    if "nav_grid" in kwargs:
+    if has_nav_grid:
         chosen_grid = kwargs.pop("nav_grid")
-    elif grid is not None:
+    elif has_grid and grid is not None:
         chosen_grid = grid
     else:
+        chosen_grid = None
+    if has_nav_graph:
+        chosen_graph = kwargs.pop("nav_graph")
+    else:
+        chosen_graph = None
+    if chosen_grid is None and chosen_graph is None and not has_grid and not has_nav_grid and not has_nav_graph:
         chosen_grid = NavGrid(40, 40, 1.0, origin=Vec3(-20, -20, 0))
     filtered = {k: v for k, v in kwargs.items()}
-    ai = AINavigationHandler(nav_grid=chosen_grid, **filtered)
+    ai = AINavigationHandler(nav_grid=chosen_grid, nav_graph=chosen_graph, **filtered)
     entity.add_handler(ai)
     entity.start()
     return entity, inp, ai, chosen_grid
@@ -136,3 +145,21 @@ if __name__ == "__main__":
     import sys
 
     sys.exit(pytest.main([__file__]))
+
+
+def test_graph_pathfinding():
+    from src.navigation import NavGraph
+
+    graph = NavGraph()
+    graph.add_node("a", Vec3(0, 0, 0))
+    graph.add_node("b", Vec3(5, 0, 0))
+    graph.add_node("c", Vec3(5, 5, 0))
+    graph.add_edge("a", "b")
+    graph.add_edge("b", "c")
+    entity, _, ai, _ = make_nav(
+        waypoints=[Vec3(5, 5, 0)],
+        nav_graph=graph,
+    )
+    entity.update(0.1)
+    assert ai.current_path
+    assert len(ai.current_path) >= 2

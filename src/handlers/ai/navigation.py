@@ -8,6 +8,7 @@ from panda3d.core import Vec3
 
 from src.handlers.ai.patrol import AIPatrolHandler
 from src.handlers.base import Handler
+from src.navigation.graph import NavGraph
 from src.navigation.grid import NavGrid
 from src.navigation.pathfinder import GridPathfinder
 from src.navigation.smoothing import smooth_path
@@ -54,6 +55,7 @@ class AINavigationHandler(AIPatrolHandler):
         eye_height: float = 1.0,
         line_of_sight: Callable[[Vec3, Vec3], bool] | None = None,
         nav_grid: NavGrid | None = None,
+        nav_graph: NavGraph | None = None,
         pathfinder: GridPathfinder | None = None,
         avoidance: bool = True,
         avoidance_check: Callable[[Vec3, Vec3], bool] | None = None,
@@ -78,6 +80,7 @@ class AINavigationHandler(AIPatrolHandler):
         self.machine = StateMachine(NavigationState.PATROL, _NAV_TRANSITIONS)
 
         self.nav_grid = nav_grid
+        self.nav_graph = nav_graph
         self.pathfinder = pathfinder if pathfinder is not None else (GridPathfinder(nav_grid) if nav_grid is not None else None)
         self.avoidance = bool(avoidance)
         self.avoidance_check = avoidance_check or obstacle_check or raycast or clear_check
@@ -108,6 +111,10 @@ class AINavigationHandler(AIPatrolHandler):
         return self.current_path
 
 
+
+    @property
+    def has_pathfinding(self) -> bool:
+        return self.nav_grid is not None or self.nav_graph is not None
 
     @property
     def path_index(self) -> int:
@@ -206,13 +213,13 @@ class AINavigationHandler(AIPatrolHandler):
             self._drive(Vec3(0, 0, 0), sprint=False)
             return
 
-        if self.nav_grid is not None and self.pathfinder is not None:
+        if self.has_pathfinding:
             self._ensure_path(goal)
             pt = self._next_path_point()
             if pt is None:
                 pt = Vec3(goal)
             to_goal = self._planar(pt - self._position())
-            if to_goal.length() <= max(self.arrive_radius, self.nav_grid.cell_size * 0.5):
+            if to_goal.length() <= (self.arrive_radius if self.nav_grid is None else max(self.arrive_radius, self.nav_grid.cell_size * 0.5)):
                 self._path_index += 1
                 pt = self._next_path_point()
                 if pt is None:
@@ -236,7 +243,7 @@ class AINavigationHandler(AIPatrolHandler):
                 return
 
         to_goal = self._avoid(to_goal)
-        if to_goal.length_squared() <= 1e-8 and self._obstacle_detected and self.nav_grid is not None:
+        if to_goal.length_squared() <= 1e-8 and self._obstacle_detected and self.has_pathfinding:
             self.machine.transition(NavigationState.BLOCKED)
             self._drive(Vec3(0, 0, 0), sprint=False)
             return
@@ -251,13 +258,13 @@ class AINavigationHandler(AIPatrolHandler):
     def _update_chase(self) -> None:
         assert self.target is not None
         goal = self._target_position()
-        if self.nav_grid is not None and self.pathfinder is not None:
+        if self.has_pathfinding:
             self._ensure_path(goal)
             pt = self._next_path_point()
             if pt is None:
                 pt = Vec3(goal)
             to_target = self._planar(pt - self._position())
-            if to_target.length() <= max(self.arrive_radius, self.nav_grid.cell_size * 0.5):
+            if to_target.length() <= (self.arrive_radius if self.nav_grid is None else max(self.arrive_radius, self.nav_grid.cell_size * 0.5)):
                 self._path_index += 1
                 pt = self._next_path_point()
                 if pt is None:
@@ -273,7 +280,7 @@ class AINavigationHandler(AIPatrolHandler):
                 return
 
         to_target = self._avoid(to_target)
-        if to_target.length_squared() <= 1e-8 and self._obstacle_detected and self.nav_grid is not None:
+        if to_target.length_squared() <= 1e-8 and self._obstacle_detected and self.has_pathfinding:
             self.machine.transition(NavigationState.BLOCKED)
             self._drive(Vec3(0, 0, 0), sprint=False)
             return
@@ -299,6 +306,28 @@ class AINavigationHandler(AIPatrolHandler):
         self.machine.transition(NavigationState.PATROL)
 
     def _ensure_path(self, goal: Vec3) -> None:
+        if self.nav_graph is not None:
+            if (
+                self._current_path
+                and self._path_index < len(self._current_path)
+                and self._path_goal is not None
+                and (self._path_goal - goal).length() < 0.25
+            ):
+                return
+            self._path_goal = Vec3(goal)
+            from src.navigation.graph import GraphPathfinder
+
+            path = GraphPathfinder(self.nav_graph).find_path(self._position(), goal)
+            if path is None:
+                self._current_path = []
+                self._path_index = 0
+                return
+            if len(path) > 2:
+                path = smooth_path(path, lambda a, b: self._line_clear(a, b))
+            self._current_path = [Vec3(p) for p in path]
+            self._path_index = 0
+            return
+
         if self.nav_grid is None or self.pathfinder is None:
             return
         if self._current_path and self._path_index < len(self._current_path) and self._path_goal is not None:
