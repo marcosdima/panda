@@ -477,13 +477,15 @@ class TestAISandbox(Test):
 
     def _toggle_target_control(self) -> None:
         """Switch the target between the automatic route and manual player control."""
-        print("[DEBUG] _toggle_target_control called", flush=True)
+        with open("/tmp/obstacle_debug.log", "a") as f:
+            f.write("[DEBUG] _toggle_target_control called\n")
         self._target_auto = not self._target_auto
         mode = "AUTO" if self._target_auto else "MANUAL (WASD)"
         self.p(f"[Target] Control mode: {mode}", color="yellow", bold=True)
     def _toggle_obstacle(self) -> None:
         """Toggle a barrier in the central gap and force the AI to replan."""
-        print("[DEBUG] _toggle_obstacle called", flush=True)
+        with open("/tmp/obstacle_debug.log", "a") as f:
+            f.write("[DEBUG] _toggle_obstacle called\n")
         self.p("[Obstacle] Toggle requested", color="magenta", bold=True)
         self._obstacle_closed = not self._obstacle_closed
         if self.ai_handler is None or self.ai_handler.nav_grid is None:
