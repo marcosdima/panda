@@ -108,7 +108,9 @@ class Test(Scene):
     def finalize_replay(self) -> list[str]:
         errors: list[str] = []
         if self._replay_mode == "record" and self._replay_recorder is not None and self._replay_path is not None:
-            self._replay_recorder.record_snapshot(self._replay_elapsed, self.capture_replay_state())
+            snapshots = self._replay_recorder.snapshots
+            if not snapshots or abs(float(snapshots[-1].get("t", -1.0)) - self._replay_elapsed) > 1e-6:
+                self._replay_recorder.record_snapshot(self._replay_elapsed, self.capture_replay_state())
             self._replay_recorder.add_assertion("end", "_replay_phase", getattr(self, "_replay_phase", None))
             self._replay_recorder.save(self._replay_path)
             self.p(f"Replay recorded: {self._replay_path}", color="green")
