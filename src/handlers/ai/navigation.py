@@ -217,6 +217,9 @@ class AINavigationHandler(AIPatrolHandler):
             self._ensure_path(goal)
             pt = self._next_path_point()
             if pt is None:
+                if self.has_pathfinding:
+                    self._drive(Vec3(0, 0, 0), sprint=False)
+                    return
                 pt = Vec3(goal)
             to_goal = self._planar(pt - self._position())
             if to_goal.length() <= (self.arrive_radius if self.nav_grid is None else max(self.arrive_radius, self.nav_grid.cell_size * 0.5)):
@@ -262,6 +265,9 @@ class AINavigationHandler(AIPatrolHandler):
             self._ensure_path(goal)
             pt = self._next_path_point()
             if pt is None:
+                if self.has_pathfinding:
+                    self._drive(Vec3(0, 0, 0), sprint=False)
+                    return
                 pt = Vec3(goal)
             to_target = self._planar(pt - self._position())
             if to_target.length() <= (self.arrive_radius if self.nav_grid is None else max(self.arrive_radius, self.nav_grid.cell_size * 0.5)):
