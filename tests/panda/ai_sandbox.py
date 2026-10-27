@@ -112,6 +112,8 @@ class TestAISandbox(Test):
         self._last_console_telemetry_time: float = 0.0
         self._console_interval: float = 1.0
 
+        self._obstacle_closed: bool = False
+        self._obstacle_entity: Entity | None = None
         self._task_name: str = "ai_sandbox_update_task"
 
     # --- lifecycle -------------------------------------------------------
@@ -134,6 +136,7 @@ class TestAISandbox(Test):
             self.base.accept("f12", self._toggle_physics_debug)
             self.base.accept("l", self._toggle_line_of_sight)
             self.base.accept("t", self._toggle_target_control)
+            self.base.accept("o", self._toggle_obstacle)
 
         self._setup_osd()
         self._setup_inspector()
@@ -163,6 +166,7 @@ class TestAISandbox(Test):
             self.base.ignore("f12")
             self.base.ignore("l")
             self.base.ignore("t")
+            self.base.ignore("o")
 
         if self.osd_telemetry is not None:
             self.osd_telemetry.destroy()
@@ -471,6 +475,24 @@ class TestAISandbox(Test):
         self._target_auto = not self._target_auto
         mode = "AUTO" if self._target_auto else "MANUAL (WASD)"
         self.p(f"[Target] Control mode: {mode}", color="yellow", bold=True)
+    def _toggle_obstacle(self) -> None:
+        """Toggle a barrier in the central gap and force the AI to replan."""
+        self._obstacle_closed = not self._obstacle_closed
+        if self.ai_handler is None or self.ai_handler.nav_grid is None:
+            self.p("[Obstacle] No navigation grid available.", color="red")
+            return
+        grid = self.ai_handler.nav_grid
+        cells = [(20, 19), (20, 20), (20, 21)]
+        if self._obstacle_closed:
+            grid.set_blocked(cells)
+            self.p("[Obstacle] Central gap CLOSED -> replanning", color="yellow", bold=True)
+        else:
+            for cell in cells:
+                grid.unblock(cell)
+            self.p("[Obstacle] Central gap OPEN -> replanning", color="cyan", bold=True)
+        self.ai_handler.request_replan()
+
+
 
     def _toggle_physics_debug(self) -> None:
         """Toggle the Bullet physics debug wireframe and notify via console."""
@@ -546,7 +568,7 @@ class TestAISandbox(Test):
             from panda3d.core import TextNode
 
             self.osd_instructions = OnscreenText(
-                text="WASD: Move Target | Mouse: Look | L: Toggle LOS | T: Target Mode | Esc/P: Pause & Inspector | F12: Wireframe",
+                text="WASD: Move Target | Mouse: Look | L: Toggle LOS | T: Target Mode | O: Toggle Obstacle | Esc/P: Pause & Inspector | F12: Wireframe",
                 pos=(-1.28, 0.92),
                 scale=0.045,
                 fg=(1.0, 1.0, 1.0, 1.0),
