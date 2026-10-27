@@ -137,6 +137,7 @@ class TestAISandbox(Test):
             self.base.accept("l", self._toggle_line_of_sight)
             self.base.accept("t", self._toggle_target_control)
             self.base.accept("o", self._toggle_obstacle)
+            self.base.accept("O", self._toggle_obstacle)
 
         self._setup_osd()
         self._setup_inspector()
@@ -167,6 +168,7 @@ class TestAISandbox(Test):
             self.base.ignore("l")
             self.base.ignore("t")
             self.base.ignore("o")
+            self.base.ignore("O")
 
         if self.osd_telemetry is not None:
             self.osd_telemetry.destroy()
@@ -482,7 +484,7 @@ class TestAISandbox(Test):
             self.p("[Obstacle] No navigation grid available.", color="red")
             return
         grid = self.ai_handler.nav_grid
-        cells = [(20, 19), (20, 20), (20, 21)]
+        cells = [(19, y) for y in (19, 20, 21)] + [(20, y) for y in (19, 20, 21)]
         if self._obstacle_closed:
             grid.set_blocked(cells)
             self.p("[Obstacle] Central gap CLOSED -> replanning", color="yellow", bold=True)
