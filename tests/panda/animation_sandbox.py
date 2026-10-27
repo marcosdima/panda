@@ -254,12 +254,31 @@ class TestAnimationSandbox(Test):
             except Exception:
                 pass
 
+    def capture_replay_state(self) -> dict:
+        phase_name = self._SEQUENCE[self._phase_index].name
+        self._replay_phase = phase_name
+        return {
+            "phase": phase_name,
+            "phase_index": self._phase_index,
+            "auto": bool(self._auto),
+        }
+
+    def apply_replay_event(self, event: dict) -> None:
+        if event.get("type") != "action":
+            return
+        name = event.get("name")
+        if name == "toggle_auto":
+            self._toggle_auto()
+        elif name == "request_jump":
+            self._request_jump()
+
     def _toggle_auto(self) -> None:
         self._auto = not self._auto
         if not self._auto and self.input_h is not None:
             self.input_h.set_move_vector(0.0, 0.0)
             self.input_h.set_action_state(SPRINT, False)
         self.p(f"Auto sequence: {'ON' if self._auto else 'OFF'}", color="yellow")
+        self.record_replay_event("action", name="toggle_auto")
 
     def _request_jump(self) -> None:
         self._jump_requested = 0
@@ -267,6 +286,7 @@ class TestAnimationSandbox(Test):
             # Hold the action down until the controller has observed one press
             # edge across a full scene update, then release it.
             self.input_h.set_action_state(JUMP, True)
+        self.record_replay_event("action", name="request_jump")
 
     # ------------------------------------------------------------------
     # Frame update
@@ -279,7 +299,15 @@ class TestAnimationSandbox(Test):
         self.input_h.set_action_state(SPRINT, phase.sprint)
 
     def _on_frame_update(self, task):
+        dt = GlobalClock.get_dt() if hasattr(GlobalClock, "get_dt") else 0.016
         try:
+            if self._replay_mode is not None:
+                self._replay_elapsed += dt
+                if self._replay_mode == "record" and self._replay_recorder is not None:
+                    self._replay_recorder.tick(dt)
+                elif self._replay_mode == "replay" and self._replay_player is not None:
+                    self._replay_player.tick(dt, self)
+
             self._hold_jump()
             if self._auto:
                 self._advance_sequence()
@@ -288,6 +316,16 @@ class TestAnimationSandbox(Test):
             elif self.input_h is not None:
                 self.input_h.set_action_state(SPRINT, False)
             self._update_osd()
+
+            if self._replay_mode is not None and self._replay_elapsed >= self._replay_duration:
+                self.finalize_replay()
+                base = getattr(__builtins__, "base", None) if False else None
+                import builtins
+
+                base = getattr(builtins, "base", None)
+                if base is not None and hasattr(base, "userExit"):
+                    base.userExit()
+                return task.done
         except Exception:
             logger.exception("Animation sandbox frame update failed.")
         return task.cont
@@ -393,9 +431,24 @@ class TestAnimationSandbox(Test):
 
 
 if __name__ == "__main__":
+    import argparse
+    import sys
+
     from src import game
+
+    parser = argparse.ArgumentParser(description="Animation State Sandbox")
+    parser.add_argument("--record", metavar="PATH", help="Record a replay to PATH.")
+    parser.add_argument("--replay", metavar="PATH", help="Replay a recorded scenario from PATH.")
+    parser.add_argument("--duration", type=float, default=5.0, help="Replay/record duration in seconds.")
+    args = parser.parse_args()
 
     app = game.Game()
     sandbox = TestAnimationSandbox()
+    sandbox._replay_scene_name = "animation_state"
+    if args.record:
+        sandbox.enable_replay_record(args.record, duration=args.duration)
+    elif args.replay:
+        sandbox.enable_replay_replay(args.replay, duration=args.duration)
     app.add_scene(sandbox, set_as_main=True)
     app.run()
+    sys.exit(getattr(sandbox, "_replay_exit_code", 0))
