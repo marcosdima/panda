@@ -370,6 +370,7 @@ class TestProximitySandbox(Test):
         self._orbiting = not self._orbiting
         state = "RUNNING" if self._orbiting else "PAUSED"
         self.p(f"[Proximity] Orbit {state}", color="yellow", bold=True)
+        self.record_replay_event("action", name="toggle_orbit")
 
     def _toggle_sensor(self) -> None:
         """Enable or disable the sensor handler."""
@@ -379,6 +380,7 @@ class TestProximitySandbox(Test):
         handler.set_enabled(not handler.is_enabled)
         state = "ENABLED" if handler.is_enabled else "DISABLED"
         self.p(f"[Proximity] Sensor {state}", color="yellow", bold=True)
+        self.record_replay_event("action", name="toggle_sensor")
 
     def _reset_phase(self) -> None:
         """Reset the target to the right side of the orbit and clear counters."""
@@ -393,13 +395,22 @@ class TestProximitySandbox(Test):
                 self.ORBIT_RADIUS, 0.0, self.TARGET_HEIGHT
             )
         self.p("[Proximity] Phase reset", color="yellow", bold=True)
+        self.record_replay_event("action", name="reset_phase")
 
     # --- frame update ----------------------------------------------------
 
     def _on_frame_update(self, task: Any) -> int:
         """Advance the orbit, then refresh the telemetry."""
+        dt = self._replay_dt() if self._replay_mode is not None else float(task.dt or (1.0 / 60.0))
+        if self._replay_mode is not None:
+            self._replay_elapsed += dt
+            if self._replay_mode == "record" and self._replay_recorder is not None:
+                self._replay_recorder.tick(dt)
+            elif self._replay_mode == "replay" and self._replay_player is not None:
+                self._replay_player.tick(dt, self)
+
         if self._orbiting and self.target is not None and not self.target.is_freed:
-            self._orbit_angle += self.orbit_speed * task.dt
+            self._orbit_angle += self.orbit_speed * dt
             self._orbit_angle %= 2.0 * math.pi
             self.target.node.setPos(
                 self.orbit_radius * math.cos(self._orbit_angle),
@@ -408,6 +419,14 @@ class TestProximitySandbox(Test):
             )
 
         self._update_osd(task.time)
+        if self._replay_mode is not None and self._replay_elapsed >= self._replay_duration:
+            self.finalize_replay()
+            import builtins
+
+            base = getattr(builtins, "base", None)
+            if base is not None and hasattr(base, "userExit"):
+                base.userExit()
+            return task.done
         return task.cont
 
     def _update_osd(self, current_time: float) -> None:
@@ -448,6 +467,46 @@ class TestProximitySandbox(Test):
                 color="blue",
             )
 
+    def capture_replay_state(self) -> dict:
+        handler = self.sensor_handler
+        phase = "orbiting" if self._orbiting else "paused"
+        self._replay_phase = phase
+        return {
+            "orbit_angle": round(self._orbit_angle, 6),
+            "orbiting": bool(self._orbiting),
+            "orbit_radius": float(self.orbit_radius),
+            "orbit_speed": float(self.orbit_speed),
+            "sensor_enabled": bool(handler.is_enabled) if handler is not None else False,
+            "enter_count": int(self._enter_count),
+            "exit_count": int(self._exit_count),
+            "last_inside": bool(self._last_inside),
+        }
+
+    def apply_replay_event(self, event: dict) -> None:
+        if event.get("type") != "action":
+            return
+        name = event.get("name")
+        if name == "toggle_orbit":
+            self._toggle_orbit()
+        elif name == "toggle_sensor":
+            self._toggle_sensor()
+        elif name == "reset_phase":
+            self._reset_phase()
+
+    def _replay_dt(self) -> float:
+        if self._replay_mode is not None and self._replay_recorder is not None:
+            return float(self._replay_recorder.fixed_dt)
+        if self._replay_mode is not None and self._replay_player is not None:
+            return float(self._replay_player.fixed_dt)
+        try:
+            import builtins
+
+            base = getattr(builtins, "base", None)
+            if base is not None and hasattr(base, "globalClock"):
+                return float(base.globalClock.getDt())
+        except Exception:  # noqa: BLE001
+            pass
+        return 1.0 / 60.0
     def _setup_ui(self) -> None:
         """Create reusable UI controls for the sandbox."""
         if self.base is None or getattr(self.base, "aspect2d", None) is None:
@@ -528,9 +587,24 @@ class TestProximitySandbox(Test):
 
 
 if __name__ == "__main__":
+    import argparse
+    import sys
+
     from src.game import Game
+
+    parser = argparse.ArgumentParser(description="Proximity Sensor Sandbox")
+    parser.add_argument("--record", metavar="PATH", help="Record a replay to PATH.")
+    parser.add_argument("--replay", metavar="PATH", help="Replay a recorded scenario from PATH.")
+    parser.add_argument("--duration", type=float, default=5.0, help="Replay/record duration in seconds.")
+    args = parser.parse_args()
 
     app = Game()
     sandbox = TestProximitySandbox()
+    sandbox._replay_scene_name = "proximity_state"
+    if args.record:
+        sandbox.enable_replay_record(args.record, duration=args.duration)
+    elif args.replay:
+        sandbox.enable_replay_replay(args.replay, duration=args.duration)
     app.add_scene(sandbox, set_as_main=True)
     app.run()
+    sys.exit(getattr(sandbox, "_replay_exit_code", 0))
