@@ -63,6 +63,8 @@ class AINavigationHandler(AIPatrolHandler):
         raycast: Callable[[Vec3, Vec3], bool] | None = None,
         clear_check: Callable[[Vec3, Vec3], bool] | None = None,
         search_time: float = 2.0,
+        remember_last_target: bool = True,
+        search_uses_pathfinding: bool = False,
     ) -> None:
         super().__init__(
             waypoints=waypoints,
@@ -85,6 +87,8 @@ class AINavigationHandler(AIPatrolHandler):
         self.avoidance = bool(avoidance)
         self.avoidance_check = avoidance_check or obstacle_check or raycast or clear_check
         self.search_time = float(search_time)
+        self.remember_last_target = bool(remember_last_target)
+        self.search_uses_pathfinding = bool(search_uses_pathfinding)
 
         self._path_goal: Vec3 | None = None
         self._current_path: list[Vec3] = []
@@ -182,8 +186,15 @@ class AINavigationHandler(AIPatrolHandler):
             return
         dist = self._distance_to_target()
         if self.state == NavigationState.CHASE:
-            if dist > self.lose_range:
+            if (
+                self._can_see_target()
+                and self.remember_last_target
+                and self._distance_to_target() <= self.lose_range
+            ):
                 self._last_known_target = self._target_position()
+            if dist > self.lose_range:
+                if not self.remember_last_target:
+                    self._last_known_target = self._target_position()
                 if self.search_time > 0:
                     self.machine.transition(NavigationState.SEARCH)
                 else:
@@ -191,7 +202,8 @@ class AINavigationHandler(AIPatrolHandler):
                 self._search_left = self.search_time
                 return
             if not self._can_see_target():
-                self._last_known_target = self._target_position()
+                if not self.remember_last_target:
+                    self._last_known_target = self._target_position()
                 if self.search_time > 0:
                     self.machine.transition(NavigationState.SEARCH)
                 else:
@@ -200,11 +212,15 @@ class AINavigationHandler(AIPatrolHandler):
             return
         if self.state == NavigationState.SEARCH:
             if dist <= self.sight_range and self._can_see_target():
+                if self.remember_last_target:
+                    self._last_known_target = self._target_position()
                 self.machine.transition(NavigationState.CHASE)
             return
         if dist > self.sight_range:
             return
         if self._can_see_target():
+            if self.remember_last_target:
+                self._last_known_target = self._target_position()
             self.machine.transition(NavigationState.CHASE)
 
     def _update_patrol(self) -> None:
@@ -213,11 +229,33 @@ class AINavigationHandler(AIPatrolHandler):
             self._drive(Vec3(0, 0, 0), sprint=False)
             return
 
+        # Arrive at the waypoint even when pathfinding is unavailable or the
+        # start and goal fall in the same nav cell (which yields an empty path).
+        arrive_threshold = (
+            self.arrive_radius
+            if self.nav_grid is None
+            else max(self.arrive_radius, self.nav_grid.cell_size * 0.5)
+        )
+        if self._planar(goal - self._position()).length() <= arrive_threshold:
+            self._advance_waypoint()
+            self._wait_left = self.wait_time
+            self._drive(Vec3(0, 0, 0), sprint=False)
+            if self._wait_left > 0.0:
+                self.machine.transition(NavigationState.WAIT)
+            return
+
         if self.has_pathfinding:
             self._ensure_path(goal)
+
             pt = self._next_path_point()
             if pt is None:
-                if self.has_pathfinding and not self._current_path:
+                same_cell = (
+                    self.nav_grid is not None
+                    and self.nav_grid.world_to_cell(self._position()) is not None
+                    and self.nav_grid.world_to_cell(self._position())
+                    == self.nav_grid.world_to_cell(goal)
+                )
+                if self.has_pathfinding and not self._current_path and not same_cell:
                     self._drive(Vec3(0, 0, 0), sprint=False)
                     return
                 pt = Vec3(goal)
@@ -265,7 +303,13 @@ class AINavigationHandler(AIPatrolHandler):
             self._ensure_path(goal)
             pt = self._next_path_point()
             if pt is None:
-                if self.has_pathfinding and not self._current_path:
+                same_cell = (
+                    self.nav_grid is not None
+                    and self.nav_grid.world_to_cell(self._position()) is not None
+                    and self.nav_grid.world_to_cell(self._position())
+                    == self.nav_grid.world_to_cell(goal)
+                )
+                if self.has_pathfinding and not self._current_path and not same_cell:
                     self._drive(Vec3(0, 0, 0), sprint=False)
                     return
                 pt = Vec3(goal)
@@ -296,12 +340,59 @@ class AINavigationHandler(AIPatrolHandler):
         if self._last_known_target is None:
             self.machine.transition(NavigationState.PATROL)
             return
-        to_goal = self._planar(self._last_known_target - self._position())
-        if to_goal.length() <= self.arrive_radius:
-            self.machine.transition(NavigationState.PATROL)
-            return
-        to_goal = self._avoid(to_goal)
-        self._drive(to_goal, sprint=False)
+        goal = Vec3(self._last_known_target)
+
+        if self.search_uses_pathfinding and self.has_pathfinding:
+            self._ensure_path(goal)
+            pt = self._next_path_point()
+            if pt is None:
+                same_cell = (
+                    self.nav_grid is not None
+                    and self.nav_grid.world_to_cell(self._position()) is not None
+                    and self.nav_grid.world_to_cell(self._position())
+                    == self.nav_grid.world_to_cell(goal)
+                )
+                if self.has_pathfinding and not self._current_path and not same_cell:
+                    to_goal = self._planar(goal - self._position())
+                    if to_goal.length() <= self.arrive_radius:
+                        self.machine.transition(NavigationState.PATROL)
+                        return
+                    to_goal = self._avoid(to_goal)
+                    self._drive(to_goal, sprint=False)
+                    self._search_left -= dt
+                    if self._search_left <= 0.0:
+                        self.machine.transition(NavigationState.PATROL)
+                    return
+                pt = Vec3(goal)
+            to_goal = self._planar(pt - self._position())
+            arrive_threshold = (
+                self.arrive_radius
+                if self.nav_grid is None
+                else max(self.arrive_radius, self.nav_grid.cell_size * 0.5)
+            )
+            if to_goal.length() <= arrive_threshold:
+                self._path_index += 1
+                pt = self._next_path_point()
+                if pt is None:
+                    pt = Vec3(goal)
+                to_goal = self._planar(pt - self._position())
+            if self._planar(goal - self._position()).length() <= self.arrive_radius:
+                self.machine.transition(NavigationState.PATROL)
+                return
+            to_goal = self._avoid(to_goal)
+            if to_goal.length_squared() <= 1e-8 and self._obstacle_detected and self.has_pathfinding:
+                self.machine.transition(NavigationState.BLOCKED)
+                self._drive(Vec3(0, 0, 0), sprint=False)
+                return
+            self._drive(to_goal, sprint=False)
+        else:
+            to_goal = self._planar(goal - self._position())
+            if to_goal.length() <= self.arrive_radius:
+                self.machine.transition(NavigationState.PATROL)
+                return
+            to_goal = self._avoid(to_goal)
+            self._drive(to_goal, sprint=False)
+
         self._search_left -= dt
         if self._search_left <= 0.0:
             self.machine.transition(NavigationState.PATROL)

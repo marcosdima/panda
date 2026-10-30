@@ -158,6 +158,18 @@ class TestAISandbox(Test):
             lambda _v: self._toggle_line_of_sight(),
         )
         self.expose_field("Target Speed", self, "target_speed", 0.5, 12.0, 0.5)
+        if self.ai_handler is not None:
+            self.expose_field("Search Time", self.ai_handler, "search_time", 0.0, 10.0, 0.5)
+            self.expose_toggle(
+                "Remember Last Target",
+                lambda: self.ai_handler.remember_last_target if self.ai_handler is not None else False,
+                lambda v: setattr(self.ai_handler, "remember_last_target", bool(v)) if self.ai_handler is not None else None,
+            )
+            self.expose_toggle(
+                "Search Pathfinding",
+                lambda: self.ai_handler.search_uses_pathfinding if self.ai_handler is not None else False,
+                lambda v: setattr(self.ai_handler, "search_uses_pathfinding", bool(v)) if self.ai_handler is not None else None,
+            )
 
     def on_stop(self) -> None:
         """Clean teardown: remove tasks, listeners, entities, nodes, and lights."""
@@ -185,6 +197,7 @@ class TestAISandbox(Test):
             self.target,
             self.camera_rig,
             self.zone_entity,
+            self._obstacle_entity,
             *self.static_entities,
         ]
         for entity in entities:
@@ -342,6 +355,9 @@ class TestAISandbox(Test):
             lose_range=self.LOSE_RANGE,
             chase_sprint=True,
             eye_height=1.0,
+            search_time=4.0,
+            remember_last_target=True,
+            search_uses_pathfinding=True,
         )
         npc.add_handler(self.ai_handler)
 
@@ -477,15 +493,11 @@ class TestAISandbox(Test):
 
     def _toggle_target_control(self) -> None:
         """Switch the target between the automatic route and manual player control."""
-        with open("/tmp/obstacle_debug.log", "a") as f:
-            f.write("[DEBUG] _toggle_target_control called\n")
         self._target_auto = not self._target_auto
         mode = "AUTO" if self._target_auto else "MANUAL (WASD)"
         self.p(f"[Target] Control mode: {mode}", color="yellow", bold=True)
     def _toggle_obstacle(self) -> None:
         """Toggle a barrier in the central gap and force the AI to replan."""
-        with open("/tmp/obstacle_debug.log", "a") as f:
-            f.write("[DEBUG] _toggle_obstacle called\n")
         self.p("[Obstacle] Toggle requested", color="magenta", bold=True)
         self._obstacle_closed = not self._obstacle_closed
         if self.ai_handler is None or self.ai_handler.nav_grid is None:
@@ -495,9 +507,30 @@ class TestAISandbox(Test):
         cells = [(19, y) for y in (19, 20, 21)] + [(20, y) for y in (19, 20, 21)]
         before = list(grid.blocked)
         if self._obstacle_closed:
+            if self._obstacle_entity is None:
+                obstacle = Entity("Obstacle")
+                obstacle.node.reparentTo(self.base.render)
+                obstacle.node.setPos(0.0, 0.0, 1.5)
+                obstacle.add_handler(
+                    RigidBodyHandler(
+                        shape=BulletBoxShape(Vec3(0.3, 1.0, 1.5)),
+                        mass=0.0,
+                    )
+                )
+                self._attach_box_visual(
+                    obstacle.node,
+                    "obstacle_visual",
+                    (0.6, 2.0, 3.0),
+                    (0.85, 0.25, 0.2, 1.0),
+                )
+                self._obstacle_entity = obstacle
+                self.add_entity(obstacle)
             grid.set_blocked(cells)
             self.p(f"[Obstacle] Central gap CLOSED -> blocked {cells}", color="yellow", bold=True)
         else:
+            if self._obstacle_entity is not None:
+                self._obstacle_entity.free()
+                self._obstacle_entity = None
             for cell in cells:
                 grid.unblock(cell)
             self.p(f"[Obstacle] Central gap OPEN -> unblocked {cells}", color="cyan", bold=True)
@@ -542,21 +575,6 @@ class TestAISandbox(Test):
             if state != self._last_state:
                 self._last_state = state
                 self.p(f"[AI] State -> {state.value.upper()}", color="cyan", bold=True)
-            # Debug movement to file.
-            if not hasattr(self, "_last_debug_time"):
-                self._last_debug_time = 0.0
-            if task.time - self._last_debug_time >= 1.0:
-                self._last_debug_time = task.time
-                pos = self.npc_position()
-                mv = self.npc_input.move_vector if self.npc_input is not None else None
-                grid = self.ai_handler.nav_grid
-                start_cell = grid.world_to_cell(pos) if grid is not None else None
-                walkable = grid.is_walkable(start_cell) if (grid is not None and start_cell is not None) else None
-                with open("/tmp/ai_move_debug.log", "a") as f:
-                    f.write(
-                        f"t={task.time:.2f} state={state.value} pos=({pos.x:.2f},{pos.y:.2f}) "
-                        f"move={mv} path={len(self.ai_handler.current_path)} start_cell={start_cell} walkable={walkable}\\n"
-                    )
 
         self._update_osd(task.time)
         return task.cont
