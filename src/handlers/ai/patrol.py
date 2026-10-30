@@ -9,6 +9,7 @@ from panda3d.core import BitMask32, Vec3
 from src.globals.physics import Physics
 from src.handlers.base import Handler
 from src.handlers.input.base import InputHandler
+from src.handlers.capabilities import IntentSource
 from src.handlers.input.action_map import SPRINT
 from src.handlers.physics.groups import LineOfSight
 from src.utils.position import world_position
@@ -262,7 +263,9 @@ class AIPatrolHandler(Handler):
         """Write movement intent into the entity's InputHandler."""
         if self.entity is None:
             return
-        input_handler = self.entity.get_handler(InputHandler)
+        input_handler = self.entity.get_capability(IntentSource)
+        if input_handler is None:
+            input_handler = self.entity.get_handler(InputHandler)
         if input_handler is None:
             return
         if direction.length_squared() > 1e-8:

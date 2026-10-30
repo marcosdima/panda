@@ -12,6 +12,7 @@ from panda3d.core import NodePath, Vec3
 
 from src.globals.physics import Physics
 from src.handlers.base import Handler
+from src.handlers.capabilities import Mover
 from src.utils.math import clamp, normalize_angle
 from src.handlers.input.base import InputHandler
 from src.handlers.input.action_map import JUMP, SPRINT
@@ -46,6 +47,7 @@ class _CharacterControllerNode(BulletCharacterControllerNode):
 
 class CharacterControllerHandler(Handler):
     phase = HandlerPhase.PHYSICS
+    provides = (Mover,)
     """Modular physics handler managing a Bullet Character Controller for responsive 3D movement."""
 
     def __init__(

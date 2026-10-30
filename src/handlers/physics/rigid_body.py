@@ -8,6 +8,7 @@ from panda3d.core import NodePath, TransformState, Vec3
 
 from src.globals.physics import Physics
 from src.handlers.base import Handler
+from src.handlers.capabilities import PhysicsBody
 from .groups import CollisionGroup
 
 if TYPE_CHECKING:
@@ -16,6 +17,7 @@ if TYPE_CHECKING:
 
 class RigidBodyHandler(Handler):
     phase = HandlerPhase.PHYSICS
+    provides = (PhysicsBody,)
     """Modular physics handler encapsulating a BulletRigidBodyNode.
 
     Supports static terrain (mass=0) and dynamic props (mass>0). The body

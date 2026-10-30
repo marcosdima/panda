@@ -14,6 +14,13 @@ from .ai import (
     FollowState,
 )
 from .base import Handler
+from .capabilities import (
+    AnimationPlayer,
+    CameraRig,
+    IntentSource,
+    Mover,
+    PhysicsBody,
+)
 from .camera import FirstPersonCameraHandler, ThirdPersonCameraHandler
 from .graphics import ActorAnimationHandler, ModelHandler
 from .input import InputHandler, WASDInputHandler
@@ -27,6 +34,11 @@ from .sensors import ProximitySensorHandler
 
 __all__ = [
     "Handler",
+    "IntentSource",
+    "Mover",
+    "PhysicsBody",
+    "AnimationPlayer",
+    "CameraRig",
     "AIPatrolHandler",
     "PatrolState",
     "AINavigationHandler",
