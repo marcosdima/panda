@@ -37,7 +37,7 @@ class _ServiceLocator:
     __slots__ = ("_services",)
 
     def __init__(self) -> None:
-        self._services: Dict[str, Any] = {}
+        self._services: dict[str, Any] = {}
 
     def register(self, name: str, service: Any) -> None:
         """Register *service* under *name*.
@@ -87,7 +87,8 @@ class _ServiceLocator:
         """Remove all registered services. Useful for test teardown."""
         self._services.clear()
 
+
 # Export a module‑level singleton instance for convenient import
 services = _ServiceLocator()
 
-__all__ = ["services", "_ServiceLocator"]
+__all__ = ["_ServiceLocator", "services"]

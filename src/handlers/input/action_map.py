@@ -1,9 +1,10 @@
 from __future__ import annotations
-from src.utils.handler_phase import HandlerPhase
 
-from typing import Callable, Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 
 from panda3d.core import ButtonHandle, KeyboardButton, MouseButton
+
+from src.utils.handler_phase import HandlerPhase
 
 MOVE_FORWARD = "move_forward"
 MOVE_BACK = "move_back"
@@ -73,7 +74,7 @@ class ActionMap:
                 self.bind(action, key)
 
     @classmethod
-    def default(cls) -> "ActionMap":
+    def default(cls) -> ActionMap:
         """Return a map with the standard WASD/arrows + Space + LShift bindings."""
         return cls(DEFAULT_BINDINGS)
 
@@ -115,6 +116,8 @@ class ActionMap:
         for key in keys:
             self.bind(action, key)
 
-    def is_down(self, action: str, is_button_down: Callable[[ButtonHandle], bool]) -> bool:
+    def is_down(
+        self, action: str, is_button_down: Callable[[ButtonHandle], bool]
+    ) -> bool:
         """Return True if any key bound to ``action`` is currently down."""
         return any(is_button_down(button) for button in self._bindings.get(action, ()))

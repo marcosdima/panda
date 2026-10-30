@@ -97,6 +97,7 @@ def test_independent_event_names():
 
 def test_global_bus_is_shared():
     from src.utils.global_event_bus import bus as module_bus
+
     assert bus is module_bus
 
 
@@ -118,6 +119,7 @@ def test_unsubscribe_with_fresh_lambda_does_not_remove_listener():
 
 def test_unsubscribe_with_equivalent_bound_method_removes_listener():
     """Bound methods of the same instance compare equal, so they do match."""
+
     class Listener:
         def __init__(self) -> None:
             self.calls = 0
@@ -222,4 +224,5 @@ def test_services_registry_exposes_the_bus():
 
 if __name__ == "__main__":
     import sys
+
     sys.exit(pytest.main([__file__]))

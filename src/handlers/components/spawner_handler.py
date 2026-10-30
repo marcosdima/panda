@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Callable
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from src.handlers.base import Handler
 from src.handlers.physics.trigger_zone import TriggerZoneHandler
@@ -33,28 +34,28 @@ class SpawnerHandler(Handler):
 
     def __init__(
         self,
-        entity_factory: Callable[[], "Entity"],
-        scene: "Scene | None" = None,
+        entity_factory: Callable[[], Entity],
+        scene: Scene | None = None,
         spawn_on_enter: bool = True,
         max_spawns: int | None = None,
         cooldown: float = 0.0,
     ) -> None:
         super().__init__()
-        self.entity_factory: Callable[[], "Entity"] = entity_factory
-        self.scene: "Scene | None" = scene
+        self.entity_factory: Callable[[], Entity] = entity_factory
+        self.scene: Scene | None = scene
         self.spawn_on_enter: bool = bool(spawn_on_enter)
         self.max_spawns: int | None = max_spawns
         self.cooldown: float = float(cooldown)
         self._cooldown_left: float = 0.0
 
-        self._spawned: list["Entity"] = []
+        self._spawned: list[Entity] = []
         self._spawn_count: int = 0
 
         self._trigger: TriggerZoneHandler | None = None
-        self._enter_cb: "Callable[[Entity], None] | None" = None
+        self._enter_cb: Callable[[Entity], None] | None = None
 
     @property
-    def spawned_entities(self) -> list["Entity"]:
+    def spawned_entities(self) -> list[Entity]:
         """Alive entities currently tracked by this spawner.
 
         Spawns freed elsewhere (for example by ``HealthHandler``) are skipped
@@ -71,7 +72,7 @@ class SpawnerHandler(Handler):
     # Spawning
     # ------------------------------------------------------------------
 
-    def spawn(self) -> "Entity | None":
+    def spawn(self) -> Entity | None:
         """Build an entity via the factory, add it to the scene and track it.
 
         Returns the spawned entity, or ``None`` when ``max_spawns`` has been
@@ -112,7 +113,7 @@ class SpawnerHandler(Handler):
     # Lifecycle
     # ------------------------------------------------------------------
 
-    def on_attach(self, entity: "Entity") -> None:
+    def on_attach(self, entity: Entity) -> None:
         """Store the entity; locate the trigger on :meth:`on_start`."""
         super().on_attach(entity)
         self._trigger = None
@@ -168,7 +169,7 @@ class SpawnerHandler(Handler):
     # Internal
     # ------------------------------------------------------------------
 
-    def _on_enter(self, _entered: "Entity") -> None:
+    def _on_enter(self, _entered: Entity) -> None:
         """React to a trigger enter: spawn if armed, enabled and allowed.
 
         The entering entity is intentionally unused: the spawner does not

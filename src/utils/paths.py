@@ -61,4 +61,3 @@ def resolve_asset_path(*paths: PathLike) -> Path:
     if not resolved.is_relative_to(asset_dir):
         raise ValueError(f"path escapes the assets directory: {resolved}")
     return resolved
-

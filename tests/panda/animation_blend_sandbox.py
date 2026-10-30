@@ -11,11 +11,12 @@ from typing import TYPE_CHECKING
 from panda3d.bullet import BulletBoxShape
 from panda3d.core import NodePath, Vec3
 
-from ..__test import Test
 from src.globals.lights import GlobalLights
 from src.globals.loader import GlobalLoader
 from src.globals.physics import Physics
 from src.prefabs.common import create_player
+
+from ..__test import Test
 
 if TYPE_CHECKING:
     from direct.gui.OnscreenText import OnscreenText
@@ -49,7 +50,10 @@ class TestAnimationBlendSandbox(Test):
         GlobalLights.setup_default_lights()
 
         if self.base is None or getattr(self.base, "render", None) is None:
-            self.p("No graphics context available; animation blend sandbox needs a window.", color="yellow")
+            self.p(
+                "No graphics context available; animation blend sandbox needs a window.",
+                color="yellow",
+            )
             return
 
         self._build_environment()
@@ -83,15 +87,19 @@ class TestAnimationBlendSandbox(Test):
         if self.player_rig is not None and self.player_rig.animation is not None:
             self.expose_action(
                 "Action: Interact",
-                lambda: self.player_rig.animation.play_action("Interact")
-                if self.player_rig and self.player_rig.animation
-                else None,
+                lambda: (
+                    self.player_rig.animation.play_action("Interact")
+                    if self.player_rig and self.player_rig.animation
+                    else None
+                ),
             )
             self.expose_action(
                 "Action: PickUp",
-                lambda: self.player_rig.animation.play_action("PickUp")
-                if self.player_rig and self.player_rig.animation
-                else None,
+                lambda: (
+                    self.player_rig.animation.play_action("PickUp")
+                    if self.player_rig and self.player_rig.animation
+                    else None
+                ),
             )
 
     def _set_idle_walk_blend(self, val: float) -> None:
@@ -111,7 +119,11 @@ class TestAnimationBlendSandbox(Test):
         self.p(" Accel:     G     (toggle acceleration ramp)", color="magenta")
         self.p(" Pause:     P     (toggle)", color="magenta")
         self.space_line()
-        self.p("Testing smooth crossfades between Idle/Walk/Run/Jump", color="cyan", bold=True)
+        self.p(
+            "Testing smooth crossfades between Idle/Walk/Run/Jump",
+            color="cyan",
+            bold=True,
+        )
         self.space_line()
 
     def _create_static_box(
@@ -176,8 +188,14 @@ class TestAnimationBlendSandbox(Test):
         )
         try:
             if self.player_rig is not None and self.player_rig.animation is not None:
-                self._blend_tuning = float(self.player_rig.animation.blend_durations.get("Idle->Walk", self.player_rig.animation.blend_duration))
-                self.player_rig.animation.blend_durations["Idle->Walk"] = self._blend_tuning
+                self._blend_tuning = float(
+                    self.player_rig.animation.blend_durations.get(
+                        "Idle->Walk", self.player_rig.animation.blend_duration
+                    )
+                )
+                self.player_rig.animation.blend_durations["Idle->Walk"] = (
+                    self._blend_tuning
+                )
         except Exception:
             pass
 
@@ -211,16 +229,34 @@ class TestAnimationBlendSandbox(Test):
 
     def _on_frame_update(self, task):
         try:
-            if self.player_rig is not None and self.player_rig.animation is not None and self.osd_telemetry is not None:
-                anim_name = getattr(self.player_rig.animation, "current_animation", None)
+            if (
+                self.player_rig is not None
+                and self.player_rig.animation is not None
+                and self.osd_telemetry is not None
+            ):
+                anim_name = getattr(
+                    self.player_rig.animation, "current_animation", None
+                )
                 state = getattr(self.player_rig.animation.locomotion, "state", None)
                 blending = getattr(self.player_rig.animation, "_blend_active", False)
                 fw = getattr(self.player_rig.animation, "_blend_from_name", None)
                 tw = getattr(self.player_rig.animation, "_blend_to_name", None)
-                self.osd_telemetry.setText(f"State: {state} | Anim: {anim_name} | Blending: {blending} ({fw}->{tw})")
-            if self.player_rig is not None and self.player_rig.animation is not None and self.osd_blend is not None:
-                acc = getattr(self.player_rig.controller, "acceleration", 0.0) if self.player_rig.controller is not None else 0.0
-                self.osd_blend.setText(f"Idle->Walk: {self.player_rig.animation.blend_durations.get('Idle->Walk',0):.2f}s | accel: {acc:.0f} | paused: {self._paused}")
+                self.osd_telemetry.setText(
+                    f"State: {state} | Anim: {anim_name} | Blending: {blending} ({fw}->{tw})"
+                )
+            if (
+                self.player_rig is not None
+                and self.player_rig.animation is not None
+                and self.osd_blend is not None
+            ):
+                acc = (
+                    getattr(self.player_rig.controller, "acceleration", 0.0)
+                    if self.player_rig.controller is not None
+                    else 0.0
+                )
+                self.osd_blend.setText(
+                    f"Idle->Walk: {self.player_rig.animation.blend_durations.get('Idle->Walk', 0):.2f}s | accel: {acc:.0f} | paused: {self._paused}"
+                )
         except Exception:
             pass
         return task.cont
@@ -314,7 +350,10 @@ class TestAnimationBlendSandbox(Test):
         except Exception:
             pass
 
-        if self.player_rig is not None and getattr(self.player_rig, "entity", None) is not None:
+        if (
+            self.player_rig is not None
+            and getattr(self.player_rig, "entity", None) is not None
+        ):
             try:
                 self.player_rig.entity.free()
             except Exception:

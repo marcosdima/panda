@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import math
-from typing import TYPE_CHECKING, Callable
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from src.handlers.base import Handler
 from src.utils.event import Event
@@ -48,8 +49,8 @@ class ProximitySensorHandler(Handler):
         radius: float,
         *,
         exit_radius: float | None = None,
-        scene: "Scene | None" = None,
-        predicate: "Callable[[Entity], bool] | None" = None,
+        scene: Scene | None = None,
+        predicate: Callable[[Entity], bool] | None = None,
     ) -> None:
         super().__init__()
         self._radius: float = self._validate_radius(radius, "radius")
@@ -62,14 +63,14 @@ class ProximitySensorHandler(Handler):
             raise ValueError(
                 f"exit_radius ({self._exit_radius}) must be >= radius ({self._radius})"
             )
-        self._scene: "Scene | None" = scene
-        self.predicate: "Callable[[Entity], bool] | None" = predicate
+        self._scene: Scene | None = scene
+        self.predicate: Callable[[Entity], bool] | None = predicate
 
-        self.on_enter: Event[tuple["Entity", float]] = Event()
-        self.on_stay: Event[tuple["Entity", float]] = Event()
-        self.on_exit: Event[tuple["Entity", float]] = Event()
+        self.on_enter: Event[tuple[Entity, float]] = Event()
+        self.on_stay: Event[tuple[Entity, float]] = Event()
+        self.on_exit: Event[tuple[Entity, float]] = Event()
 
-        self._sensed: dict["Entity", float] = {}
+        self._sensed: dict[Entity, float] = {}
         self._generation: int = 0
 
     # ------------------------------------------------------------------
@@ -84,12 +85,12 @@ class ProximitySensorHandler(Handler):
         return value
 
     @property
-    def scene(self) -> "Scene | None":
+    def scene(self) -> Scene | None:
         """Scene whose registry is scanned; assigning a new scene clears the set."""
         return self._scene
 
     @scene.setter
-    def scene(self, value: "Scene | None") -> None:
+    def scene(self, value: Scene | None) -> None:
         if value is self._scene:
             return
         self._scene = value
@@ -128,7 +129,7 @@ class ProximitySensorHandler(Handler):
     # ------------------------------------------------------------------
 
     @property
-    def sensed_entities(self) -> list["Entity"]:
+    def sensed_entities(self) -> list[Entity]:
         """Currently sensed alive entities, nearest first."""
         alive = [
             (entity, distance)
@@ -138,7 +139,7 @@ class ProximitySensorHandler(Handler):
         return [entity for entity, _distance in sorted(alive, key=lambda item: item[1])]
 
     @property
-    def nearest(self) -> "Entity | None":
+    def nearest(self) -> Entity | None:
         """Closest sensed alive entity, or ``None`` when nothing is in range."""
         alive = [
             (entity, distance)
@@ -149,13 +150,13 @@ class ProximitySensorHandler(Handler):
             return None
         return min(alive, key=lambda item: item[1])[0]
 
-    def distance_to(self, entity: "Entity") -> float | None:
+    def distance_to(self, entity: Entity) -> float | None:
         """Distance to ``entity``, or ``None`` when either side is unavailable."""
         if self.entity is None or entity.is_freed:
             return None
         return (world_position(entity) - world_position(self.entity)).length()
 
-    def is_in_range(self, entity: "Entity") -> bool:
+    def is_in_range(self, entity: Entity) -> bool:
         """Return whether ``entity`` is currently sensed and alive."""
         return entity in self._sensed and not entity.is_freed
 
@@ -186,7 +187,7 @@ class ProximitySensorHandler(Handler):
             return
 
         origin = world_position(self.entity)
-        distances: dict["Entity", float] = {}
+        distances: dict[Entity, float] = {}
         for candidate in list(scene.entities.values()):
             if candidate is self.entity or candidate.is_freed:
                 continue
@@ -194,11 +195,9 @@ class ProximitySensorHandler(Handler):
                 continue
             distances[candidate] = (world_position(candidate) - origin).length()
 
-        detected: dict["Entity", float] = {}
+        detected: dict[Entity, float] = {}
         for candidate, distance in distances.items():
-            threshold = (
-                self._exit_radius if candidate in self._sensed else self._radius
-            )
+            threshold = self._exit_radius if candidate in self._sensed else self._radius
             if distance <= threshold:
                 detected[candidate] = distance
 

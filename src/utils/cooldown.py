@@ -20,6 +20,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+
 @dataclass(slots=True)
 class Cooldown:
     """A very small timer that counts down to become ready again.
@@ -93,5 +94,6 @@ class Cooldown:
             self.start()
             return True
         return False
+
 
 # __bool__ removed per review – callers should use `ready` explicitly

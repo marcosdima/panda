@@ -16,14 +16,19 @@ import time
 from pathlib import Path
 
 from direct.gui.OnscreenText import OnscreenText
-from panda3d.core import TextNode
 
 from src import game
-from src.ui import UIButton, UIColumn, UIPanel, UIRow, UIScrollContainer, UIList, UITheme
-
+from src.ui import (
+    UIButton,
+    UIList,
+    UIPanel,
+    UIRow,
+    UIScrollContainer,
+    UITheme,
+)
 from tests.__test import Test
-from .registry import SCENE_REGISTRY
 
+from .registry import SCENE_REGISTRY
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_TIMEOUT = 120
@@ -102,6 +107,7 @@ class Playground(Test):
                 pass
         self._texts.clear()
         self._status_text = None
+
     def _build_menu(self, status: str | None = None) -> None:
         self._clear_ui()
         import builtins
@@ -179,7 +185,12 @@ class Playground(Test):
             )
             self._texts.append(last_text)
 
-        button_row = UIRow(parent=right_panel.content_parent, spacing=0.03, owner=self, pos=(0.0, -0.15))
+        button_row = UIRow(
+            parent=right_panel.content_parent,
+            spacing=0.03,
+            owner=self,
+            pos=(0.0, -0.15),
+        )
         button_row.add(
             UIButton(
                 parent=button_row.node,
@@ -337,10 +348,15 @@ class Playground(Test):
         if base is not None and hasattr(base, "userExit"):
             base.userExit()
 
+
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Panda playground selector")
-    parser.add_argument("--list", action="store_true", help="List registered scenes and exit.")
-    parser.add_argument("--scene", metavar="KEY", help="Run one scene directly and exit.")
+    parser.add_argument(
+        "--list", action="store_true", help="List registered scenes and exit."
+    )
+    parser.add_argument(
+        "--scene", metavar="KEY", help="Run one scene directly and exit."
+    )
     parser.add_argument(
         "--timeout",
         type=int,
@@ -375,4 +391,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

@@ -3,10 +3,12 @@ try:
 except ImportError:
     import sys
     from pathlib import Path
+
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
     from tests.terminal.__terminal import TerminalTest
 
 import builtins
+
 from panda3d.core import Vec3
 
 from src.entities.entity import Entity
@@ -48,7 +50,9 @@ class TestModelHandler(TerminalTest):
         self.space_line()
 
     def test_model_attachment_and_transform(self) -> None:
-        self.print_subtitle("Testing ModelHandler entity attachment and transform application.")
+        self.print_subtitle(
+            "Testing ModelHandler entity attachment and transform application."
+        )
         entity = Entity("StaticPropHero")
         handler = ModelHandler(
             model_path="box",
@@ -81,14 +85,21 @@ class TestModelHandler(TerminalTest):
         assert handler.entity is None
 
         entity.free()
-        self.p("ModelHandler attachment and transform verified successfully.", color="green")
+        self.p(
+            "ModelHandler attachment and transform verified successfully.",
+            color="green",
+        )
         self.space_line()
 
     def test_template_caching_and_distinct_instances(self) -> None:
-        self.print_subtitle("Testing GlobalLoader template caching and per-entity instances.")
+        self.print_subtitle(
+            "Testing GlobalLoader template caching and per-entity instances."
+        )
         template_a = GlobalLoader.load("models/box")
         template_b = GlobalLoader.load("models/box")
-        assert template_a is template_b, "GlobalLoader must return the same cached template."
+        assert template_a is template_b, (
+            "GlobalLoader must return the same cached template."
+        )
 
         entity_a = Entity("PropA")
         entity_b = Entity("PropB")
@@ -118,11 +129,16 @@ class TestModelHandler(TerminalTest):
         entity_b.stop()
         entity_a.free()
         entity_b.free()
-        self.p("Template caching and distinct instances verified successfully.", color="green")
+        self.p(
+            "Template caching and distinct instances verified successfully.",
+            color="green",
+        )
         self.space_line()
 
     def test_lifecycle_symmetry_and_leak_prevention(self) -> None:
-        self.print_subtitle("Testing clean lifecycle, restart symmetry, and leak prevention.")
+        self.print_subtitle(
+            "Testing clean lifecycle, restart symmetry, and leak prevention."
+        )
         entity = Entity("LifecyclePropHero")
         handler = ModelHandler(model_path="box", from_assets=False)
         entity.add_handler(handler)
@@ -161,13 +177,18 @@ class TestModelHandler(TerminalTest):
         template = GlobalLoader.load("models/box")
         assert template is not None and not template.isEmpty()
 
-        self.p("Lifecycle symmetry and leak prevention verified successfully.", color="green")
+        self.p(
+            "Lifecycle symmetry and leak prevention verified successfully.",
+            color="green",
+        )
         self.space_line()
 
     def test_missing_model_is_graceful(self) -> None:
         self.print_subtitle("Testing graceful handling of a missing model asset.")
         entity = Entity("MissingModelHero")
-        handler = ModelHandler(model_path="does_not_exist/missing.glb", from_assets=False)
+        handler = ModelHandler(
+            model_path="does_not_exist/missing.glb", from_assets=False
+        )
         entity.add_handler(handler)
 
         # Missing asset falls back to an empty placeholder without raising
@@ -183,7 +204,9 @@ class TestModelHandler(TerminalTest):
         self.space_line()
 
     def test_headless_safety(self) -> None:
-        self.print_subtitle("Testing ModelHandler headless safety without graphical window.")
+        self.print_subtitle(
+            "Testing ModelHandler headless safety without graphical window."
+        )
         entity = Entity("HeadlessPropHero")
         handler = ModelHandler(model_path="box", from_assets=False)
         entity.add_handler(handler)

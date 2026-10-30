@@ -8,7 +8,7 @@ if getattr(builtins, "base", None) is None:
     ShowBase(windowType="none")
 
 import pytest
-from panda3d.bullet import BulletRigidBodyNode, BulletGhostNode
+from panda3d.bullet import BulletRigidBodyNode
 
 from src.globals.physics import Physics
 

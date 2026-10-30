@@ -1,18 +1,19 @@
 from __future__ import annotations
-from src.utils.handler_phase import HandlerPhase
 
 import builtins
 import logging
 import math
 from typing import TYPE_CHECKING, Any
+
 from panda3d.core import Camera as CameraNode
 from panda3d.core import Lens, MouseButton, NodePath, Vec3, WindowProperties
 
 from src.handlers.base import Handler
-from src.utils.math import clamp, normalize_angle
-from src.utils.position import world_position
 from src.handlers.physics.character import CharacterControllerHandler
 from src.handlers.physics.groups import CameraCollision
+from src.utils.handler_phase import HandlerPhase
+from src.utils.math import clamp, normalize_angle
+from src.utils.position import world_position
 
 if TYPE_CHECKING:
     from src.entities.entity import Entity
@@ -91,7 +92,9 @@ class FirstPersonCameraHandler(Handler):
         self.hide_self: bool = hide_self
         self.near_plane: float = float(max(near_plane, _MIN_NEAR_PLANE))
         self.far_plane: float = float(far_plane)
-        self.pivot_offset: Vec3 | None = Vec3(pivot_offset) if pivot_offset is not None else None
+        self.pivot_offset: Vec3 | None = (
+            Vec3(pivot_offset) if pivot_offset is not None else None
+        )
 
         self.smooth_factor: float = clamp(smooth_factor, 0.0, 1.0)
         self._smoothed_eye: Vec3 | None = None
@@ -147,7 +150,10 @@ class FirstPersonCameraHandler(Handler):
                 self._camera_node = cam
                 return cam
         except Exception:
-            logger.debug("Global Camera unavailable; falling back to builtins.base.camera.", exc_info=True)
+            logger.debug(
+                "Global Camera unavailable; falling back to builtins.base.camera.",
+                exc_info=True,
+            )
 
         base = getattr(builtins, "base", None)
         cam = getattr(base, "camera", None) if base else None
@@ -287,8 +293,8 @@ class FirstPersonCameraHandler(Handler):
     def _get_physics(self) -> Any:
         """Retrieve physics world from Service Locator, falling back to global Physics."""
         try:
-            from src.services import services
             from src.globals.physics import Physics
+            from src.services import services
 
             return services.get("physics", default=Physics)
         except ImportError:
@@ -305,7 +311,10 @@ class FirstPersonCameraHandler(Handler):
         radius = max(self.collision_margin, _MIN_COLLISION_RADIUS)
         ctrl = self._get_controller()
         if ctrl is not None:
-            radius = min(radius, max(ctrl.radius * _CAPSULE_RADIUS_FRACTION, _MIN_COLLISION_RADIUS))
+            radius = min(
+                radius,
+                max(ctrl.radius * _CAPSULE_RADIUS_FRACTION, _MIN_COLLISION_RADIUS),
+            )
         return radius
 
     def _resolve_collision(self, eye_pos: Vec3) -> Vec3:
@@ -332,7 +341,9 @@ class FirstPersonCameraHandler(Handler):
             return Vec3(eye_pos)
 
         for _ in range(_MAX_RADIUS_RETRIES):
-            hit = physics.sweep_sphere_closest(pivot, eye_pos, radius, CameraCollision.QUERY_MASK)
+            hit = physics.sweep_sphere_closest(
+                pivot, eye_pos, radius, CameraCollision.QUERY_MASK
+            )
             if hit is None:
                 self._effective_radius = radius
                 return Vec3(eye_pos)
@@ -509,7 +520,11 @@ class FirstPersonCameraHandler(Handler):
 
     def on_update(self, dt: float) -> None:
         super().on_update(dt)
-        if self.entity is None or self.entity.node is None or self.entity.node.isEmpty():
+        if (
+            self.entity is None
+            or self.entity.node is None
+            or self.entity.node.isEmpty()
+        ):
             return
 
         base = getattr(builtins, "base", None)
@@ -555,7 +570,11 @@ class FirstPersonCameraHandler(Handler):
 
     def on_post_update(self, dt: float) -> None:
         super().on_post_update(dt)
-        if self.entity is None or self.entity.node is None or self.entity.node.isEmpty():
+        if (
+            self.entity is None
+            or self.entity.node is None
+            or self.entity.node.isEmpty()
+        ):
             return
         self._apply_camera_transform(dt)
 

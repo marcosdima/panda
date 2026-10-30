@@ -1,20 +1,19 @@
-'''Parameter adjustment handler for runtime testing.
+"""Parameter adjustment handler for runtime testing.
 
 This handler allows the user to modify a numeric attribute on a target handler
 (e.g., ``collision_margin`` on ``FirstPersonCameraHandler``) using the '+' and
 '-' keys. It follows the standard Handler lifecycle contract defined in
 ``src.handlers.base.Handler``.
-'''
+"""
 
 from __future__ import annotations
-from src.utils.handler_phase import HandlerPhase
 
+import builtins
 import logging
 from typing import Any
 
-import builtins
-
 from src.handlers.base import Handler
+from src.utils.handler_phase import HandlerPhase
 
 logger = logging.getLogger(__name__)
 
@@ -62,9 +61,12 @@ class ParameterAdjustHandler(Handler):
         try:
             value = getattr(self._target, self._attr)
             return float(value)
-        except Exception as exc:
+        except Exception:
             logger.error(
-                "Failed to read attribute %s from %s", self._attr, self._target, exc_info=True
+                "Failed to read attribute %s from %s",
+                self._attr,
+                self._target,
+                exc_info=True,
             )
             raise
 
@@ -76,9 +78,12 @@ class ParameterAdjustHandler(Handler):
         try:
             setattr(self._target, self._attr, new_value)
             logger.info("%s.%s set to %s", self._target, self._attr, new_value)
-        except Exception as exc:
+        except Exception:
             logger.error(
-                "Failed to set attribute %s on %s", self._attr, self._target, exc_info=True
+                "Failed to set attribute %s on %s",
+                self._attr,
+                self._target,
+                exc_info=True,
             )
             raise
 
@@ -89,7 +94,9 @@ class ParameterAdjustHandler(Handler):
         """Bind '+' and '-' keys to increase/decrease the attribute."""
         base = getattr(builtins, "base", None)
         if base is None or not hasattr(base, "accept"):
-            logger.warning("Panda3D base not available; ParameterAdjustHandler will be inactive.")
+            logger.warning(
+                "Panda3D base not available; ParameterAdjustHandler will be inactive."
+            )
             return
         base.accept("+", self._increase)
         base.accept("-", self._decrease)

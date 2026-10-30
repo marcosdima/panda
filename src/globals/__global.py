@@ -1,7 +1,7 @@
 import builtins
 from typing import TYPE_CHECKING
-from direct.showbase.ShowBase import ShowBase
 
+from direct.showbase.ShowBase import ShowBase
 
 if TYPE_CHECKING:
     base: ShowBase

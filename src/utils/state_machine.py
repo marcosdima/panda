@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Callable, Hashable, Iterable, Mapping, Optional
+from collections.abc import Callable, Hashable, Iterable, Mapping
 
 StateCallback = Callable[[Hashable, Hashable], None]
 
@@ -23,10 +23,10 @@ class StateMachine:
     def __init__(
         self,
         initial: Hashable,
-        transitions: Optional[Mapping[Hashable, Iterable[Hashable]]] = None,
+        transitions: Mapping[Hashable, Iterable[Hashable]] | None = None,
     ):
         self._state = initial
-        self._allowed: Optional[dict[Hashable, set[Hashable]]] = None
+        self._allowed: dict[Hashable, set[Hashable]] | None = None
         if transitions is not None:
             self._allowed = {s: set(t) for s, t in transitions.items()}
             for targets in list(self._allowed.values()):

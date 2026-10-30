@@ -30,9 +30,7 @@ def _entity(scene: Scene, name: str, position: tuple[float, float, float]) -> En
     return entity
 
 
-def _sensor(
-    scene: Scene, **kwargs
-) -> tuple[Entity, ProximitySensorHandler]:
+def _sensor(scene: Scene, **kwargs) -> tuple[Entity, ProximitySensorHandler]:
     entity = Entity("Sensor")
     entity.node.setPos(0.0, 0.0, 0.0)
     handler = ProximitySensorHandler(scene=scene, **kwargs)

@@ -41,7 +41,7 @@ def _resolve(node: NodePath, render: NodePath | None) -> Vec3:
     return Vec3(root.getMat().xformPoint(node.getPos(root)))
 
 
-def world_position(entity: "Entity") -> Vec3:
+def world_position(entity: Entity) -> Vec3:
     """Return the authoritative world position of an entity.
 
     Prefers the character controller's node when one is attached and valid,

@@ -1,9 +1,11 @@
 """Headless tests for Scene task ownership, isolation and automatic cleanup."""
+
 from __future__ import annotations
 
 import builtins
+from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Any, Iterator
+from typing import Any
 
 from direct.task.Task import TaskManager
 
@@ -14,6 +16,7 @@ try:
 except ImportError:
     import sys
     from pathlib import Path
+
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
     from tests.__test import Test
 

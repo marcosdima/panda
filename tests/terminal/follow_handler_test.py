@@ -26,7 +26,12 @@ def _make_pair() -> tuple[Entity, Entity, InputHandler, FollowHandler]:
 
 
 def _make_controlled_pair() -> tuple[
-    Entity, Entity, InputHandler, FollowHandler, CharacterControllerHandler, CharacterControllerHandler
+    Entity,
+    Entity,
+    InputHandler,
+    FollowHandler,
+    CharacterControllerHandler,
+    CharacterControllerHandler,
 ]:
     """Build a follower/target pair whose bodies are Bullet character controllers.
 
@@ -457,4 +462,5 @@ def test_follow_direction_uses_controller_positions_of_both_bodies():
 
 if __name__ == "__main__":
     import sys
+
     sys.exit(pytest.main([__file__]))

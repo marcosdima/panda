@@ -46,8 +46,8 @@ class HealthHandler(Handler):
 
         # Engine events, typed by payload. Subscribers react without holding
         # references to this handler or its entity.
-        self.on_damage: Event[tuple[float, "Entity | None"]] = Event()
-        self.on_death: Event["Entity | None"] = Event()
+        self.on_damage: Event[tuple[float, Entity | None]] = Event()
+        self.on_death: Event[Entity | None] = Event()
 
     @property
     def current_health(self) -> float:
@@ -68,7 +68,7 @@ class HealthHandler(Handler):
     # Damage / healing
     # ------------------------------------------------------------------
 
-    def take_damage(self, amount: float, source: "Entity | None" = None) -> bool:
+    def take_damage(self, amount: float, source: Entity | None = None) -> bool:
         """Reduce health by ``amount`` (clamped at zero).
 
         Returns ``True`` when health actually changed. Damage taken while

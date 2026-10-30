@@ -1,19 +1,18 @@
+import logging
+
+from direct.task import Task
 from panda3d.bullet import (
+    BulletCharacterControllerNode,
+    BulletDebugNode,
+    BulletGhostNode,
+    BulletRigidBodyNode,
     BulletSphereShape,
     BulletWorld,
-    BulletRigidBodyNode,
-    BulletGhostNode,
-    BulletDebugNode,
-    BulletCharacterControllerNode,
 )
-from panda3d.core import NodePath, TransformState, Vec3, BitMask32
-from direct.task import Task
-
-import logging
+from panda3d.core import BitMask32, NodePath, TransformState, Vec3
 
 from .__global import Global
 from .clock import GlobalClock
-
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +77,9 @@ class Physics(Global):
             Physics._debug_np = debug_np
             Physics._world.setDebugNode(debug_np.node())
         except Exception:
-            logger.warning("Failed to set up Bullet debug visualization.", exc_info=True)
+            logger.warning(
+                "Failed to set up Bullet debug visualization.", exc_info=True
+            )
 
     @classmethod
     def toggle_debug(cls) -> bool:
@@ -92,9 +93,14 @@ class Physics(Global):
                 return False
 
         # If debug node hasn't been attached yet, attempt to initialize it
-        base = getattr(cls.get_instance(), "base", None) if hasattr(cls, "_instance") else None
+        base = (
+            getattr(cls.get_instance(), "base", None)
+            if hasattr(cls, "_instance")
+            else None
+        )
         if base is None:
             import builtins
+
             base = getattr(builtins, "base", None)
         if base is not None and getattr(base, "render", None) is not None:
             try:
@@ -110,7 +116,9 @@ class Physics(Global):
                 cls.get_world().setDebugNode(debug_np.node())
                 return True
             except Exception:
-                logger.warning("Failed to enable Bullet debug visualization.", exc_info=True)
+                logger.warning(
+                    "Failed to enable Bullet debug visualization.", exc_info=True
+                )
                 return False
         return False
 
@@ -234,7 +242,9 @@ class Physics(Global):
                 pass
             removed["ghosts"] += 1
 
-        all_constraints = set(cls._registry["constraints"]) | set(world.getConstraints())
+        all_constraints = set(cls._registry["constraints"]) | set(
+            world.getConstraints()
+        )
         cls._registry["constraints"].clear()
         for node in all_constraints:
             try:
@@ -358,13 +368,14 @@ class Physics(Global):
         world.removeCharacter(node)
 
 
-
 if __name__ == "__main__":
     import argparse
     import json
 
     parser = argparse.ArgumentParser(description="Physics diagnostics")
-    parser.add_argument("--dump", action="store_true", help="Print a JSON diagnostic snapshot and exit.")
+    parser.add_argument(
+        "--dump", action="store_true", help="Print a JSON diagnostic snapshot and exit."
+    )
     args = parser.parse_args()
 
     if args.dump:

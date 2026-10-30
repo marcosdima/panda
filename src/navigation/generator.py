@@ -39,7 +39,9 @@ def generate_nav_grid(
             start = Vec3(center.x, center.y, scan_height)
             end = Vec3(center.x, center.y, -scan_height)
             try:
-                hit = Physics.raycast_closest(start, end, obstacle_mask, step_physics=False)
+                hit = Physics.raycast_closest(
+                    start, end, obstacle_mask, step_physics=False
+                )
             except (RuntimeError, TypeError, AttributeError, ImportError, ValueError):
                 hit = None
             if hit is None:

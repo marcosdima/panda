@@ -22,7 +22,6 @@ from .panda.models import TestModels
 from .panda.physics import TestPhysics
 from .panda.proximity_sandbox import TestProximitySandbox
 from .panda.triggers_sandbox import TestTriggersSandbox
-
 from .terminal.actor_animation import TestActorAnimation
 from .terminal.camera_handler import TestCameraHandler
 from .terminal.character_controller import TestCharacterController
@@ -33,13 +32,16 @@ from .terminal.physics_handlers import TestPhysicsHandlers
 from .terminal.prefab_smoke_test import TestPrefabSmoke
 from .terminal.scene_tasks_test import TestSceneTasks
 
-
 SCENE_REGISTRY: dict[str, tuple[str, str, type]] = {
     # Visual sandboxes (launched in an isolated subprocess by the playground).
     "ai": ("AI Sandbox", "visual", TestAISandbox),
     "animation_blend": ("Animation Blend Sandbox", "visual", TestAnimationBlendSandbox),
     "animation_state": ("Animation State Sandbox", "visual", TestAnimationSandbox),
-    "camera_fp": ("First-Person Camera Sandbox", "visual", TestFirstPersonCameraSandbox),
+    "camera_fp": (
+        "First-Person Camera Sandbox",
+        "visual",
+        TestFirstPersonCameraSandbox,
+    ),
     "character": ("Character Sandbox", "visual", TestCharacterSandbox),
     "follow": ("Follow Sandbox", "visual", TestFollowSandbox),
     "mini_game": ("Mini Game Sandbox", "visual", TestMiniGameSandbox),
@@ -48,13 +50,25 @@ SCENE_REGISTRY: dict[str, tuple[str, str, type]] = {
     "proximity": ("Proximity Sandbox", "visual", TestProximitySandbox),
     "triggers": ("Triggers Sandbox", "visual", TestTriggersSandbox),
     # In-engine integration suites (executed via tests.terminal.run_all).
-    "actor_animation": ("Actor Animation (terminal)", "integration", TestActorAnimation),
+    "actor_animation": (
+        "Actor Animation (terminal)",
+        "integration",
+        TestActorAnimation,
+    ),
     "camera_handler": ("Camera Handler (terminal)", "integration", TestCameraHandler),
-    "character_controller": ("Character Controller (terminal)", "integration", TestCharacterController),
+    "character_controller": (
+        "Character Controller (terminal)",
+        "integration",
+        TestCharacterController,
+    ),
     "entities": ("Entities (terminal)", "integration", TestEntities),
     "events": ("Events (terminal)", "integration", TestEvents),
     "model_handler": ("Model Handler (terminal)", "integration", TestModelHandler),
-    "physics_handlers": ("Physics Handlers (terminal)", "integration", TestPhysicsHandlers),
+    "physics_handlers": (
+        "Physics Handlers (terminal)",
+        "integration",
+        TestPhysicsHandlers,
+    ),
     "prefab_smoke": ("Prefab Smoke (terminal)", "integration", TestPrefabSmoke),
     "scene_tasks": ("Scene Tasks (terminal)", "integration", TestSceneTasks),
 }

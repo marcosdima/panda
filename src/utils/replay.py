@@ -37,8 +37,16 @@ class ReplayRecorder:
             self.record_snapshot(self._elapsed, self._capture_state())
             self._next_snapshot += self.snapshot_interval
 
-    def record_event(self, event_type: str, t: float | None = None, **payload: Any) -> None:
-        self.events.append({"t": round(self._elapsed if t is None else t, 6), "type": event_type, **payload})
+    def record_event(
+        self, event_type: str, t: float | None = None, **payload: Any
+    ) -> None:
+        self.events.append(
+            {
+                "t": round(self._elapsed if t is None else t, 6),
+                "type": event_type,
+                **payload,
+            }
+        )
 
     def record_snapshot(self, t: float, state: dict[str, Any]) -> None:
         self.snapshots.append({"t": round(float(t), 6), "state": state})
@@ -51,7 +59,9 @@ class ReplayRecorder:
         target.parent.mkdir(parents=True, exist_ok=True)
         data = {
             "version": 1,
-            "scene": getattr(self.scene, "_replay_scene_name", type(self.scene).__name__),
+            "scene": getattr(
+                self.scene, "_replay_scene_name", type(self.scene).__name__
+            ),
             "fixed_dt": self.fixed_dt,
             "snapshot_interval": self.snapshot_interval,
             "seed": self.seed,
@@ -128,7 +138,9 @@ class ReplayPlayer:
             actual = self._get_path(scene, assertion.get("path", ""))
             expected = assertion.get("expected")
             if actual != expected:
-                errors.append(f"assertion {assertion.get('path')}: expected {expected}, got {actual}")
+                errors.append(
+                    f"assertion {assertion.get('path')}: expected {expected}, got {actual}"
+                )
         self._errors = errors
         return errors
 

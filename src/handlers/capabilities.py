@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Protocol, runtime_checkable
 
-from panda3d.core import Vec2, Vec3
+from panda3d.core import Vec2
 
 
 @runtime_checkable
@@ -39,5 +39,3 @@ class AnimationPlayer(Protocol):
 @runtime_checkable
 class CameraRig(Protocol):
     """Capability for handlers that own a camera."""
-
-    pass

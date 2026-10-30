@@ -1,4 +1,5 @@
 """Headless tests for post-update pipeline (no ShowBase window)."""
+
 from __future__ import annotations
 
 import sys

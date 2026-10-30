@@ -1,8 +1,9 @@
 from enum import Enum
-from src.utils.handler_phase import HandlerPhase
 from typing import TYPE_CHECKING
 
 from panda3d.core import BitMask32
+
+from src.utils.handler_phase import HandlerPhase
 
 if TYPE_CHECKING:
     from src.entities.entity import Entity

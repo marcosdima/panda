@@ -1,15 +1,17 @@
 from __future__ import annotations
-from src.utils.handler_phase import HandlerPhase
 
 import logging
 import math
-from typing import TYPE_CHECKING, Any, Callable
-from panda3d.core import NodePath, Vec3, autoBind, AnimControlCollection
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
+
+from panda3d.core import AnimControlCollection, NodePath, Vec3, autoBind
 
 from config import ASSETS_PATH
 from src.globals.loader import GlobalLoader
 from src.handlers.base import Handler
 from src.handlers.physics.character import CharacterControllerHandler
+from src.utils.handler_phase import HandlerPhase
 from src.utils.state_machine import StateMachine
 
 if TYPE_CHECKING:
@@ -86,8 +88,15 @@ class ActorAnimationHandler(Handler):
         self.offset: Vec3 = Vec3(offset)
         self.hpr: Vec3 = Vec3(hpr)
 
-        self.animation_files: list[str] = list(animation_files) if animation_files else []
-        self.state_clips: dict[str, str] = {"Idle": "Idle", "Walk": "Walk", "Run": "Run", "Jump": "Jump"}
+        self.animation_files: list[str] = (
+            list(animation_files) if animation_files else []
+        )
+        self.state_clips: dict[str, str] = {
+            "Idle": "Idle",
+            "Walk": "Walk",
+            "Run": "Run",
+            "Jump": "Jump",
+        }
         if state_clips:
             self.state_clips.update(state_clips)
         self.air_threshold: float = float(air_threshold)
@@ -140,7 +149,9 @@ class ActorAnimationHandler(Handler):
         self._action_on_complete: Callable[[], None] | None = None
 
     @classmethod
-    def kaykit_rig_medium(cls, character: str = "Knight", **kwargs: Any) -> ActorAnimationHandler:
+    def kaykit_rig_medium(
+        cls, character: str = "Knight", **kwargs: Any
+    ) -> ActorAnimationHandler:
         """Build a handler for a KayKit Adventurers character that uses the shared ``Rig_Medium`` clips.
 
         ``character`` is any model in ``Characters/gltf`` (Knight, Barbarian, Mage, Ranger, Rogue,
@@ -154,7 +165,12 @@ class ActorAnimationHandler(Handler):
                 f"{pack}Animations/gltf/Rig_Medium/Rig_Medium_MovementBasic.glb",
                 f"{pack}Animations/gltf/Rig_Medium/Rig_Medium_General.glb",
             ],
-            "state_clips": {"Idle": "Idle_A", "Walk": "Walking_A", "Run": "Running_A", "Jump": "Jump_Idle"},
+            "state_clips": {
+                "Idle": "Idle_A",
+                "Walk": "Walking_A",
+                "Run": "Running_A",
+                "Jump": "Jump_Idle",
+            },
             "scale": 1.0,
             "offset": Vec3(0.0, 0.0, -1.0),
             "hpr": Vec3(180.0, 0.0, 0.0),
@@ -175,7 +191,9 @@ class ActorAnimationHandler(Handler):
     def get_anim_names(self) -> list[str]:
         """Return the list of available animation names."""
         names: list[str] = []
-        if self.anim_controls is not None and hasattr(self.anim_controls, "getNumAnims"):
+        if self.anim_controls is not None and hasattr(
+            self.anim_controls, "getNumAnims"
+        ):
             for i in range(self.anim_controls.getNumAnims()):
                 name = self.anim_controls.getAnimName(i)
                 if name and name not in names:
@@ -188,6 +206,7 @@ class ActorAnimationHandler(Handler):
             return
 
         import builtins
+
         import gltf  # noqa: F401
 
         base = getattr(builtins, "base", None)
@@ -214,13 +233,16 @@ class ActorAnimationHandler(Handler):
         if self.model_root is None or self.model_root.isEmpty():
             full_model_path = (
                 ASSETS_PATH + self.model_path
-                if not self.model_path.startswith("/") and not self.model_path.startswith(ASSETS_PATH)
+                if not self.model_path.startswith("/")
+                and not self.model_path.startswith(ASSETS_PATH)
                 else self.model_path
             )
 
             if loader is not None:
                 try:
-                    self.model_root = GlobalLoader.load_copy(full_model_path, parent=self.visual_pivot)
+                    self.model_root = GlobalLoader.load_copy(
+                        full_model_path, parent=self.visual_pivot
+                    )
                 except Exception:
                     self.model_root = loader.loadModel(full_model_path)
                     self.model_root.reparentTo(self.visual_pivot)
@@ -244,7 +266,9 @@ class ActorAnimationHandler(Handler):
                         char_node.getBundle(bi).sortDescendants()
 
                 for anim_name, anim_rel_path in self.animations.items():
-                    self._load_anim_file(loader, anim_rel_path, rename=anim_name, keep_model=True)
+                    self._load_anim_file(
+                        loader, anim_rel_path, rename=anim_name, keep_model=True
+                    )
                 for anim_rel_path in self.animation_files:
                     self._load_anim_file(loader, anim_rel_path)
 
@@ -280,8 +304,10 @@ class ActorAnimationHandler(Handler):
                 anim_model = GlobalLoader.load_copy(full_path)
             except Exception:
                 anim_model = loader.loadModel(full_path)
-        except (IOError, OSError):
-            logger.warning("Failed to load animation file %s.", full_path, exc_info=True)
+        except OSError:
+            logger.warning(
+                "Failed to load animation file %s.", full_path, exc_info=True
+            )
             return
 
         if keep_model:
@@ -318,9 +344,9 @@ class ActorAnimationHandler(Handler):
         if self.entity is not None:
             controller = self.entity.get_handler(CharacterControllerHandler)
             if controller is not None:
-                if (
-                    controller.visual_node == self.visual_pivot
-                    or (controller.visual_node is not None and controller.visual_node.isEmpty())
+                if controller.visual_node == self.visual_pivot or (
+                    controller.visual_node is not None
+                    and controller.visual_node.isEmpty()
                 ):
                     controller.visual_node = None
 
@@ -356,7 +382,11 @@ class ActorAnimationHandler(Handler):
             idle = "idle"
         if idle is not None:
             # Try to crossfade from any playing animation if exists
-            if self.blend_duration > 0.0 and self._current_anim and self._current_anim != idle:
+            if (
+                self.blend_duration > 0.0
+                and self._current_anim
+                and self._current_anim != idle
+            ):
                 self._start_crossfade(idle, duration=min(0.12, self.blend_duration))
             else:
                 self._cancel_blend(reset_weights=False)
@@ -392,7 +422,10 @@ class ActorAnimationHandler(Handler):
                 vel = controller.linear_velocity
                 speed = math.hypot(vel.x, vel.y)
                 is_sprinting = controller.is_sprinting
-                if controller.controller_node is not None and not controller.is_on_ground:
+                if (
+                    controller.controller_node is not None
+                    and not controller.is_on_ground
+                ):
                     self._air_time += dt
                     airborne = self._air_time >= self.air_threshold
                 else:
@@ -409,9 +442,7 @@ class ActorAnimationHandler(Handler):
         prev_state = str(self.locomotion.state)
         self.locomotion.transition(desired)
         curr_state = str(self.locomotion.state)
-        if curr_state != prev_state:
-            self._last_locomotion_state = prev_state
-        elif self._last_locomotion_state is None:
+        if curr_state != prev_state or self._last_locomotion_state is None:
             self._last_locomotion_state = prev_state
 
         # If a one-shot action animation is active, keep playing it until its timer expires
@@ -430,10 +461,16 @@ class ActorAnimationHandler(Handler):
 
         # Entering a state plays its clip; reconcile every frame so manual
         # play/loop calls or late-loaded clips fall back to the state's clip.
-        if prev_state == "Idle" and curr_state in ("Walk", "Run") and not self._blend_active:
+        if (
+            prev_state == "Idle"
+            and curr_state in ("Walk", "Run")
+            and not self._blend_active
+        ):
             target = self._state_clip(curr_state, anim_names)
             if target is not None:
-                dur = self.blend_durations.get(f"Idle->{curr_state}", self.blend_duration)
+                dur = self.blend_durations.get(
+                    f"Idle->{curr_state}", self.blend_duration
+                )
                 self._start_crossfade(target, duration=dur)
         else:
             self._apply_state_clip()
@@ -544,7 +581,9 @@ class ActorAnimationHandler(Handler):
             except Exception:
                 pass
             try:
-                if hasattr(bundle, "getControlEffect") or hasattr(bundle, "clearControlEffects"):
+                if hasattr(bundle, "getControlEffect") or hasattr(
+                    bundle, "clearControlEffects"
+                ):
                     pass
             except Exception:
                 pass
@@ -625,7 +664,9 @@ class ActorAnimationHandler(Handler):
                             try:
                                 if c is not None and c.isPlaying():
                                     from_ctrl = c
-                                    from_name = self.anim_controls.getAnimName(i) or from_name
+                                    from_name = (
+                                        self.anim_controls.getAnimName(i) or from_name
+                                    )
                                     break
                             except Exception:
                                 continue
@@ -648,7 +689,11 @@ class ActorAnimationHandler(Handler):
             return True
 
         # If reversing to the clip we came from, swap
-        if self._blend_active and self._blend_to_name == target_name and self._blend_from_name is not None:
+        if (
+            self._blend_active
+            and self._blend_to_name == target_name
+            and self._blend_from_name is not None
+        ):
             # will be handled by normal flow, but ensure weights consistent
             pass
 
@@ -657,7 +702,11 @@ class ActorAnimationHandler(Handler):
             prev_from = self._blend_from_ctrl
             prev_to = self._blend_to_ctrl
             self._blend_active = False
-            if prev_from is not None and prev_from != from_ctrl and prev_from != to_ctrl:
+            if (
+                prev_from is not None
+                and prev_from != from_ctrl
+                and prev_from != to_ctrl
+            ):
                 try:
                     self._set_control_weight(prev_from, 0.0)
                     prev_from.stop()
@@ -667,7 +716,11 @@ class ActorAnimationHandler(Handler):
         # Align walk/run phase to reduce start pop
         phase_applied = False
         try:
-            if from_ctrl is not None and from_ctrl != to_ctrl and target_name in ("Walking_A", "Running_A", "Walk", "Run"):
+            if (
+                from_ctrl is not None
+                and from_ctrl != to_ctrl
+                and target_name in ("Walking_A", "Running_A", "Walk", "Run")
+            ):
                 from_name_check = from_name or ""
                 # Skip phase alignment when transitioning from Idle - causes snap
                 if from_name_check in ("Idle", "Idle_A"):
@@ -745,8 +798,7 @@ class ActorAnimationHandler(Handler):
             t = 1.0
         else:
             t = self._blend_time / self._blend_duration
-        if t >= 1.0:
-            t = 1.0
+        t = min(1.0, t)
 
         # Interpolate weights with easing
         if getattr(self, "blend_easing", True):
@@ -760,7 +812,10 @@ class ActorAnimationHandler(Handler):
 
         if t >= 1.0:
             # Finish blend: keep to clip looping, fade out from clip
-            if self._blend_from_ctrl is not None and self._blend_from_ctrl != self._blend_to_ctrl:
+            if (
+                self._blend_from_ctrl is not None
+                and self._blend_from_ctrl != self._blend_to_ctrl
+            ):
                 try:
                     self._set_control_weight(self._blend_from_ctrl, 0.0)
                 except Exception:
@@ -797,7 +852,9 @@ class ActorAnimationHandler(Handler):
             clip_dur = 0.6
             try:
                 num_frames = ctrl.getNumFrames() if hasattr(ctrl, "getNumFrames") else 0
-                frame_rate = ctrl.getFrameRate() if hasattr(ctrl, "getFrameRate") else 0.0
+                frame_rate = (
+                    ctrl.getFrameRate() if hasattr(ctrl, "getFrameRate") else 0.0
+                )
                 if num_frames and frame_rate and frame_rate > 0.0:
                     clip_dur = float(num_frames) / float(frame_rate)
             except Exception:

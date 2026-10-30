@@ -159,16 +159,34 @@ class TestAISandbox(Test):
         )
         self.expose_field("Target Speed", self, "target_speed", 0.5, 12.0, 0.5)
         if self.ai_handler is not None:
-            self.expose_field("Search Time", self.ai_handler, "search_time", 0.0, 10.0, 0.5)
+            self.expose_field(
+                "Search Time", self.ai_handler, "search_time", 0.0, 10.0, 0.5
+            )
             self.expose_toggle(
                 "Remember Last Target",
-                lambda: self.ai_handler.remember_last_target if self.ai_handler is not None else False,
-                lambda v: setattr(self.ai_handler, "remember_last_target", bool(v)) if self.ai_handler is not None else None,
+                lambda: (
+                    self.ai_handler.remember_last_target
+                    if self.ai_handler is not None
+                    else False
+                ),
+                lambda v: (
+                    setattr(self.ai_handler, "remember_last_target", bool(v))
+                    if self.ai_handler is not None
+                    else None
+                ),
             )
             self.expose_toggle(
                 "Search Pathfinding",
-                lambda: self.ai_handler.search_uses_pathfinding if self.ai_handler is not None else False,
-                lambda v: setattr(self.ai_handler, "search_uses_pathfinding", bool(v)) if self.ai_handler is not None else None,
+                lambda: (
+                    self.ai_handler.search_uses_pathfinding
+                    if self.ai_handler is not None
+                    else False
+                ),
+                lambda v: (
+                    setattr(self.ai_handler, "search_uses_pathfinding", bool(v))
+                    if self.ai_handler is not None
+                    else None
+                ),
             )
 
     def on_stop(self) -> None:
@@ -227,17 +245,45 @@ class TestAISandbox(Test):
     def _print_controls_banner(self) -> None:
         """Print formatted ANSI startup banner with control and layout instructions."""
         self.print_subtitle("Interactive Controls & AI Behaviour", color="yellow")
-        self.p(" Controls:   WASD: Move Target | Mouse: Look | L: Toggle LOS | T: Target Mode | F12: Wireframe", color="cyan", bold=True)
-        self.p(" Target:     [W, A, S, D] moves the target when the target mode is MANUAL", color="green", bold=True)
-        self.p(" AI:         the NPC patrols waypoints and chases the target when it can see it", color="green", bold=True)
-        self.p(" Line of Sight: [L] switches between the real Bullet raycast and an injected callable", color="green", bold=True)
-        self.p(" Wireframe:  [F12] Toggle Bullet debug visualization", color="magenta", bold=True)
+        self.p(
+            " Controls:   WASD: Move Target | Mouse: Look | L: Toggle LOS | T: Target Mode | F12: Wireframe",
+            color="cyan",
+            bold=True,
+        )
+        self.p(
+            " Target:     [W, A, S, D] moves the target when the target mode is MANUAL",
+            color="green",
+            bold=True,
+        )
+        self.p(
+            " AI:         the NPC patrols waypoints and chases the target when it can see it",
+            color="green",
+            bold=True,
+        )
+        self.p(
+            " Line of Sight: [L] switches between the real Bullet raycast and an injected callable",
+            color="green",
+            bold=True,
+        )
+        self.p(
+            " Wireframe:  [F12] Toggle Bullet debug visualization",
+            color="magenta",
+            bold=True,
+        )
 
         self.space_line()
         self.p("Arena Layout:", color="cyan", bold=True)
-        self.p(" - Two wall segments at x=0 leave a 2m sight gap around y=0", color="cyan")
-        self.p(" - The NPC patrols on the left side, the target moves on the right side", color="cyan")
-        self.p(" - The trigger volume sits on the NPC patrol route and counts enter/stay/exit", color="cyan")
+        self.p(
+            " - Two wall segments at x=0 leave a 2m sight gap around y=0", color="cyan"
+        )
+        self.p(
+            " - The NPC patrols on the left side, the target moves on the right side",
+            color="cyan",
+        )
+        self.p(
+            " - The trigger volume sits on the NPC patrol route and counts enter/stay/exit",
+            color="cyan",
+        )
         self.space_line()
 
     # --- environment -----------------------------------------------------
@@ -311,7 +357,9 @@ class TestAISandbox(Test):
         """Spawn the target entity as a static rigid body the player can drive around."""
         target = Entity("Target")
         target.node.reparentTo(self.base.render)
-        target.node.setPos(self.TARGET_ROUTE[0].x, self.TARGET_ROUTE[0].y, self.TARGET_HEIGHT)
+        target.node.setPos(
+            self.TARGET_ROUTE[0].x, self.TARGET_ROUTE[0].y, self.TARGET_HEIGHT
+        )
 
         self.target_input = WASDInputHandler()
         target.add_handler(self.target_input)
@@ -342,7 +390,9 @@ class TestAISandbox(Test):
         self.npc_input = InputHandler()
         npc.add_handler(self.npc_input)
 
-        nav_grid = generate_nav_grid(bounds_min=(-20.0, -20.0), bounds_max=(20.0, 20.0), cell_size=1.0)
+        nav_grid = generate_nav_grid(
+            bounds_min=(-20.0, -20.0), bounds_max=(20.0, 20.0), cell_size=1.0
+        )
 
         self.ai_handler = AINavigationHandler(
             waypoints=self.NPC_WAYPOINTS,
@@ -373,7 +423,10 @@ class TestAISandbox(Test):
         )
         npc.add_handler(self.npc_controller)
 
-        if self.npc_controller.controller_np is not None and not self.npc_controller.controller_np.isEmpty():
+        if (
+            self.npc_controller.controller_np is not None
+            and not self.npc_controller.controller_np.isEmpty()
+        ):
             self._attach_box_visual(
                 self.npc_controller.controller_np,
                 "npc_visual",
@@ -443,11 +496,17 @@ class TestAISandbox(Test):
         direction = Vec3(0.0, 0.0, 0.0)
         if self._target_auto:
             goal = self.TARGET_ROUTE[self._route_index]
-            to_goal = Vec3(goal.x - self.target.node.getX(), goal.y - self.target.node.getY(), 0.0)
+            to_goal = Vec3(
+                goal.x - self.target.node.getX(), goal.y - self.target.node.getY(), 0.0
+            )
             if to_goal.length() <= 0.4:
                 self._route_index = (self._route_index + 1) % len(self.TARGET_ROUTE)
                 goal = self.TARGET_ROUTE[self._route_index]
-                to_goal = Vec3(goal.x - self.target.node.getX(), goal.y - self.target.node.getY(), 0.0)
+                to_goal = Vec3(
+                    goal.x - self.target.node.getX(),
+                    goal.y - self.target.node.getY(),
+                    0.0,
+                )
             if to_goal.length() > 1e-5:
                 direction = to_goal.normalized()
         elif self.target_input is not None:
@@ -482,7 +541,11 @@ class TestAISandbox(Test):
         self._los_injected = not self._los_injected
         if self._los_injected:
             self.ai_handler.line_of_sight = self._injected_line_of_sight
-            self.p("[AI] Line of sight: INJECTED callable (always visible)", color="magenta", bold=True)
+            self.p(
+                "[AI] Line of sight: INJECTED callable (always visible)",
+                color="magenta",
+                bold=True,
+            )
         else:
             self.ai_handler.line_of_sight = None
             self.p("[AI] Line of sight: REAL Bullet raycast", color="cyan", bold=True)
@@ -496,6 +559,7 @@ class TestAISandbox(Test):
         self._target_auto = not self._target_auto
         mode = "AUTO" if self._target_auto else "MANUAL (WASD)"
         self.p(f"[Target] Control mode: {mode}", color="yellow", bold=True)
+
     def _toggle_obstacle(self) -> None:
         """Toggle a barrier in the central gap and force the AI to replan."""
         self.p("[Obstacle] Toggle requested", color="magenta", bold=True)
@@ -526,20 +590,32 @@ class TestAISandbox(Test):
                 self._obstacle_entity = obstacle
                 self.add_entity(obstacle)
             grid.set_blocked(cells)
-            self.p(f"[Obstacle] Central gap CLOSED -> blocked {cells}", color="yellow", bold=True)
+            self.p(
+                f"[Obstacle] Central gap CLOSED -> blocked {cells}",
+                color="yellow",
+                bold=True,
+            )
         else:
             if self._obstacle_entity is not None:
                 self._obstacle_entity.free()
                 self._obstacle_entity = None
             for cell in cells:
                 grid.unblock(cell)
-            self.p(f"[Obstacle] Central gap OPEN -> unblocked {cells}", color="cyan", bold=True)
+            self.p(
+                f"[Obstacle] Central gap OPEN -> unblocked {cells}",
+                color="cyan",
+                bold=True,
+            )
         after = list(grid.blocked)
-        self.p(f"[Obstacle] blocked before={len(before)} after={len(after)} path={len(self.ai_handler.current_path)} replans={self.ai_handler.replan_count}", color="blue")
+        self.p(
+            f"[Obstacle] blocked before={len(before)} after={len(after)} path={len(self.ai_handler.current_path)} replans={self.ai_handler.replan_count}",
+            color="blue",
+        )
         self.ai_handler.request_replan()
-        self.p(f"[Obstacle] replan done -> path={len(self.ai_handler.current_path)} replans={self.ai_handler.replan_count}", color="green")
-
-
+        self.p(
+            f"[Obstacle] replan done -> path={len(self.ai_handler.current_path)} replans={self.ai_handler.replan_count}",
+            color="green",
+        )
 
     def _toggle_physics_debug(self) -> None:
         """Toggle the Bullet physics debug wireframe and notify via console."""
@@ -581,9 +657,13 @@ class TestAISandbox(Test):
 
     def _update_osd(self, current_time: float) -> None:
         """Update the live telemetry on the OSD and print it to the terminal."""
-        state = self.ai_handler.state.value.upper() if self.ai_handler is not None else "?"
+        state = (
+            self.ai_handler.state.value.upper() if self.ai_handler is not None else "?"
+        )
         los_mode = "INJECTED" if self._los_injected else "REAL"
-        visible = self.ai_handler.can_see_target() if self.ai_handler is not None else False
+        visible = (
+            self.ai_handler.can_see_target() if self.ai_handler is not None else False
+        )
         target_mode = "AUTO" if self._target_auto else "MANUAL"
         wireframe = "ON" if Physics.is_debug_enabled() else "OFF"
 
@@ -632,7 +712,10 @@ class TestAISandbox(Test):
                 mayChange=True,
             )
         except (RuntimeError, TypeError, AttributeError, ImportError, ValueError):
-            self.p("OSD not available in this environment; skipping telemetry overlay.", color="yellow")
+            self.p(
+                "OSD not available in this environment; skipping telemetry overlay.",
+                color="yellow",
+            )
             self.osd_instructions = None
             self.osd_telemetry = None
 

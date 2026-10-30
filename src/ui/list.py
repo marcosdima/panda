@@ -42,7 +42,7 @@ class UIList(UIComponent):
 
         super().__init__(node=self._root, theme=self.theme, owner=owner)
 
-        for label, value in (items or []):
+        for label, value in items or []:
             self.add_item(str(label), value)
 
     @staticmethod

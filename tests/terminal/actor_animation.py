@@ -3,11 +3,13 @@ try:
 except ImportError:
     import sys
     from pathlib import Path
+
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
     from tests.terminal.__terminal import TerminalTest
 
 import builtins
 import math
+
 from panda3d.core import Vec3
 
 from src.entities.entity import Entity
@@ -24,7 +26,9 @@ class TestActorAnimation(TerminalTest):
         super().on_start()
 
     def test_actor_animation_handler_initialization(self) -> None:
-        self.print_subtitle("Testing ActorAnimationHandler default & custom parameters.")
+        self.print_subtitle(
+            "Testing ActorAnimationHandler default & custom parameters."
+        )
         handler = ActorAnimationHandler()
 
         assert handler.model_path == "X Bot.glb"
@@ -53,7 +57,9 @@ class TestActorAnimation(TerminalTest):
         self.space_line()
 
     def test_actor_attachment_and_visual_pivot_standalone(self) -> None:
-        self.print_subtitle("Testing ActorAnimationHandler standalone entity attachment.")
+        self.print_subtitle(
+            "Testing ActorAnimationHandler standalone entity attachment."
+        )
         entity = Entity("StandaloneActorHero")
         handler = ActorAnimationHandler()
         entity.add_handler(handler)
@@ -88,11 +94,16 @@ class TestActorAnimation(TerminalTest):
 
         entity.free()
         assert entity.is_freed
-        self.p("Standalone actor attachment & transform verified successfully.", color="green")
+        self.p(
+            "Standalone actor attachment & transform verified successfully.",
+            color="green",
+        )
         self.space_line()
 
     def test_actor_attachment_with_character_controller_and_pivot_drift(self) -> None:
-        self.print_subtitle("Testing drift-free visual pivot with CharacterControllerHandler.")
+        self.print_subtitle(
+            "Testing drift-free visual pivot with CharacterControllerHandler."
+        )
         entity = Entity("PhysicsActorHero")
         controller = CharacterControllerHandler()
         anim_handler = ActorAnimationHandler()
@@ -113,15 +124,21 @@ class TestActorAnimation(TerminalTest):
         # Rotating controller.visual_node must NOT alter its position from (0, 0, 0)!
         controller.visual_node.setH(45.0)
         pos_after_rot = controller.visual_node.getPos()
-        assert pos_after_rot == Vec3(0.0, 0.0, 0.0), f"Pivot drifted! Got {pos_after_rot}"
+        assert pos_after_rot == Vec3(0.0, 0.0, 0.0), (
+            f"Pivot drifted! Got {pos_after_rot}"
+        )
 
         controller.visual_node.setH(180.0)
         pos_after_180 = controller.visual_node.getPos()
-        assert pos_after_180 == Vec3(0.0, 0.0, 0.0), f"Pivot drifted! Got {pos_after_180}"
+        assert pos_after_180 == Vec3(0.0, 0.0, 0.0), (
+            f"Pivot drifted! Got {pos_after_180}"
+        )
 
         controller.visual_node.setH(270.0)
         pos_after_270 = controller.visual_node.getPos()
-        assert pos_after_270 == Vec3(0.0, 0.0, 0.0), f"Pivot drifted! Got {pos_after_270}"
+        assert pos_after_270 == Vec3(0.0, 0.0, 0.0), (
+            f"Pivot drifted! Got {pos_after_270}"
+        )
 
         # Clean teardown
         entity.stop()
@@ -130,7 +147,9 @@ class TestActorAnimation(TerminalTest):
         self.space_line()
 
     def test_actor_rotation_under_controller_movement(self) -> None:
-        self.print_subtitle("Testing visual pivot rotation driven by CharacterControllerHandler.")
+        self.print_subtitle(
+            "Testing visual pivot rotation driven by CharacterControllerHandler."
+        )
         entity = Entity("MovingActorHero")
         input_handler = InputHandler()
         controller = CharacterControllerHandler(turn_speed=12.0)
@@ -162,15 +181,21 @@ class TestActorAnimation(TerminalTest):
 
         # Position of visual_pivot MUST remain strictly at (0, 0, 0)
         pivot_pos = anim_handler.visual_pivot.getPos()
-        assert pivot_pos == Vec3(0.0, 0.0, 0.0), f"Pivot drifted after rotation! Pos: {pivot_pos}"
+        assert pivot_pos == Vec3(0.0, 0.0, 0.0), (
+            f"Pivot drifted after rotation! Pos: {pivot_pos}"
+        )
 
         entity.stop()
         entity.free()
-        self.p("Visual pivot rotation without drift verified successfully.", color="green")
+        self.p(
+            "Visual pivot rotation without drift verified successfully.", color="green"
+        )
         self.space_line()
 
     def test_animation_playback_and_locomotion_states(self) -> None:
-        self.print_subtitle("Testing animation playback and locomotion synchronization.")
+        self.print_subtitle(
+            "Testing animation playback and locomotion synchronization."
+        )
         entity = Entity("LocomotionHero")
         input_handler = InputHandler()
         controller = CharacterControllerHandler(walk_speed=5.0, sprint_speed=10.0)
@@ -212,11 +237,16 @@ class TestActorAnimation(TerminalTest):
 
         entity.stop()
         entity.free()
-        self.p("Animation locomotion state management verified successfully.", color="green")
+        self.p(
+            "Animation locomotion state management verified successfully.",
+            color="green",
+        )
         self.space_line()
 
     def test_clean_lifecycle_and_memory_leak_prevention(self) -> None:
-        self.print_subtitle("Testing clean lifecycle, restart symmetry, and leak prevention.")
+        self.print_subtitle(
+            "Testing clean lifecycle, restart symmetry, and leak prevention."
+        )
         entity = Entity("LifecycleActorHero")
         controller = CharacterControllerHandler()
         anim_handler = ActorAnimationHandler()
@@ -259,11 +289,16 @@ class TestActorAnimation(TerminalTest):
         entity.free()
         assert entity.is_freed
 
-        self.p("Lifecycle symmetry and leak prevention verified successfully.", color="green")
+        self.p(
+            "Lifecycle symmetry and leak prevention verified successfully.",
+            color="green",
+        )
         self.space_line()
 
     def test_kaykit_multi_clip_files_and_state_mapping(self) -> None:
-        self.print_subtitle("Testing KayKit multi-clip glTF loading and locomotion state mapping.")
+        self.print_subtitle(
+            "Testing KayKit multi-clip glTF loading and locomotion state mapping."
+        )
         entity = Entity("KayKitHero")
         input_handler = InputHandler()
         controller = CharacterControllerHandler(walk_speed=5.0, sprint_speed=10.0)
@@ -273,7 +308,14 @@ class TestActorAnimation(TerminalTest):
         entity.add_handler(handler)
 
         names = handler.get_anim_names()
-        for clip in ("Idle_A", "Walking_A", "Running_A", "Jump_Idle", "Interact", "PickUp"):
+        for clip in (
+            "Idle_A",
+            "Walking_A",
+            "Running_A",
+            "Jump_Idle",
+            "Interact",
+            "PickUp",
+        ):
             assert clip in names, f"Missing clip {clip}: {names}"
         assert len(names) == len(set(names)), f"Duplicate clip bindings: {names}"
         assert not any(".1" in n for n in names), f"Clips bound more than once: {names}"
@@ -311,7 +353,10 @@ class TestActorAnimation(TerminalTest):
 
         entity.stop()
         entity.free()
-        self.p("KayKit multi-clip loading and state mapping verified successfully.", color="green")
+        self.p(
+            "KayKit multi-clip loading and state mapping verified successfully.",
+            color="green",
+        )
         self.space_line()
 
     def on_stop(self) -> None:

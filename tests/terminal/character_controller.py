@@ -3,10 +3,12 @@ try:
 except ImportError:
     import sys
     from pathlib import Path
+
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
     from tests.terminal.__terminal import TerminalTest
 
 import builtins
+
 from panda3d.bullet import BulletCapsuleShape, BulletCharacterControllerNode
 from panda3d.core import KeyboardButton, Vec2, Vec3
 
@@ -30,7 +32,9 @@ class TestCharacterController(TerminalTest):
         entity.add_handler(wasd)
 
         # Initial move vector must be zero
-        assert wasd.move_vector == Vec2(0.0, 0.0), f"Expected (0, 0), got {wasd.move_vector}"
+        assert wasd.move_vector == Vec2(0.0, 0.0), (
+            f"Expected (0, 0), got {wasd.move_vector}"
+        )
         assert not wasd.is_action_down("jump")
         assert not wasd.is_action_pressed("jump")
         assert not wasd.is_action_down("sprint")
@@ -50,7 +54,9 @@ class TestCharacterController(TerminalTest):
         self.space_line()
 
     def test_input_handler_action_edge_detection(self):
-        self.print_subtitle("Testing InputHandler action edge-detection and movement vector.")
+        self.print_subtitle(
+            "Testing InputHandler action edge-detection and movement vector."
+        )
         entity = Entity("InputHero")
         input_handler = InputHandler()
         entity.add_handler(input_handler)
@@ -58,19 +64,25 @@ class TestCharacterController(TerminalTest):
 
         # Test movement vector normalization
         input_handler.set_move_vector(1.0, 1.0)
-        assert abs(input_handler.move_vector.length() - 1.0) < 1e-4, "Diagonal movement must be normalized"
+        assert abs(input_handler.move_vector.length() - 1.0) < 1e-4, (
+            "Diagonal movement must be normalized"
+        )
 
         # Frame 1: Action just pressed and processed in frame 1 tick
         input_handler.set_action_state("jump", True)
         entity.update(0.016)
         assert input_handler.is_action_down("jump"), "jump must be down"
-        assert input_handler.is_action_pressed("jump"), "jump must be pressed on initial frame"
+        assert input_handler.is_action_pressed("jump"), (
+            "jump must be pressed on initial frame"
+        )
         assert not input_handler.is_action_released("jump"), "jump must not be released"
 
         # Frame 2: Action held down on subsequent tick
         entity.update(0.016)
         assert input_handler.is_action_down("jump"), "jump must remain down"
-        assert not input_handler.is_action_pressed("jump"), "jump must NOT be pressed on subsequent frame"
+        assert not input_handler.is_action_pressed("jump"), (
+            "jump must NOT be pressed on subsequent frame"
+        )
         assert not input_handler.is_action_released("jump"), "jump must not be released"
 
         # Frame 3: Action released
@@ -90,7 +102,9 @@ class TestCharacterController(TerminalTest):
         self.space_line()
 
     def test_wasd_mock_polling(self):
-        self.print_subtitle("Testing WASDInputHandler hardware polling via mock MouseWatcher.")
+        self.print_subtitle(
+            "Testing WASDInputHandler hardware polling via mock MouseWatcher."
+        )
         entity = Entity("MockPolledHero")
         wasd = WASDInputHandler()
         entity.add_handler(wasd)
@@ -117,18 +131,26 @@ class TestCharacterController(TerminalTest):
 
         original_base = getattr(builtins, "base", None)
         try:
-            builtins.base = MockBase(MockMouseWatcher([btn_w, btn_d, btn_shift, btn_space]))
+            builtins.base = MockBase(
+                MockMouseWatcher([btn_w, btn_d, btn_shift, btn_space])
+            )
             entity.start()
             entity.update(0.016)
 
             # W + D should produce normalized diagonal vector
             expected_x = 0.70710678
             expected_y = 0.70710678
-            assert abs(wasd.move_vector.x - expected_x) < 1e-3, f"Expected {expected_x}, got {wasd.move_vector.x}"
-            assert abs(wasd.move_vector.y - expected_y) < 1e-3, f"Expected {expected_y}, got {wasd.move_vector.y}"
+            assert abs(wasd.move_vector.x - expected_x) < 1e-3, (
+                f"Expected {expected_x}, got {wasd.move_vector.x}"
+            )
+            assert abs(wasd.move_vector.y - expected_y) < 1e-3, (
+                f"Expected {expected_y}, got {wasd.move_vector.y}"
+            )
             assert wasd.is_action_down("sprint"), "sprint action must be active"
             assert wasd.is_action_down("jump"), "jump action must be active"
-            assert wasd.is_action_pressed("jump"), "jump action must be pressed on initial tick"
+            assert wasd.is_action_pressed("jump"), (
+                "jump action must be pressed on initial tick"
+            )
 
             # Tick 2: Keys still held
             entity.update(0.016)
@@ -146,7 +168,9 @@ class TestCharacterController(TerminalTest):
         self.space_line()
 
     def test_character_controller_parameters_and_shape(self):
-        self.print_subtitle("Testing CharacterControllerHandler parameters and capsule shape.")
+        self.print_subtitle(
+            "Testing CharacterControllerHandler parameters and capsule shape."
+        )
         controller = CharacterControllerHandler(
             radius=0.6,
             height=1.2,
@@ -169,11 +193,16 @@ class TestCharacterController(TerminalTest):
         assert abs(controller.shape.getRadius() - 0.6) < 1e-4
         assert abs(controller.shape.getHalfHeight() - 0.6) < 1e-4
 
-        self.p("CharacterControllerHandler configuration verified successfully.", color="green")
+        self.p(
+            "CharacterControllerHandler configuration verified successfully.",
+            color="green",
+        )
         self.space_line()
 
     def test_character_controller_attachment_and_world(self):
-        self.print_subtitle("Testing CharacterControllerHandler attachment to entity and BulletWorld.")
+        self.print_subtitle(
+            "Testing CharacterControllerHandler attachment to entity and BulletWorld."
+        )
         entity = Entity("CharacterAlpha")
         controller = CharacterControllerHandler()
         entity.add_handler(controller)
@@ -195,11 +224,16 @@ class TestCharacterController(TerminalTest):
 
         entity.stop()
         entity.free()
-        self.p("CharacterControllerHandler entity and world attachment verified successfully.", color="green")
+        self.p(
+            "CharacterControllerHandler entity and world attachment verified successfully.",
+            color="green",
+        )
         self.space_line()
 
     def test_character_controller_linear_movement_walk_and_sprint(self):
-        self.print_subtitle("Testing linear movement scaling for walk and sprint states.")
+        self.print_subtitle(
+            "Testing linear movement scaling for walk and sprint states."
+        )
         entity = Entity("RunnerHero")
         input_handler = InputHandler()
         controller = CharacterControllerHandler(walk_speed=5.0, sprint_speed=10.0)
@@ -217,14 +251,18 @@ class TestCharacterController(TerminalTest):
         # 2. Walk forward: move_vector = (0, 1)
         input_handler.set_move_vector(0.0, 1.0)
         entity.update(0.016)
-        assert controller.linear_velocity == Vec3(0.0, 5.0, 0.0), f"Got {controller.linear_velocity}"
+        assert controller.linear_velocity == Vec3(0.0, 5.0, 0.0), (
+            f"Got {controller.linear_velocity}"
+        )
         assert not controller.is_sprinting
         assert controller.current_speed == 5.0
 
         # 3. Sprint forward: move_vector = (0, 1), sprint active
         input_handler.set_action_state("sprint", True)
         entity.update(0.016)
-        assert controller.linear_velocity == Vec3(0.0, 10.0, 0.0), f"Got {controller.linear_velocity}"
+        assert controller.linear_velocity == Vec3(0.0, 10.0, 0.0), (
+            f"Got {controller.linear_velocity}"
+        )
         assert controller.is_sprinting
         assert controller.current_speed == 10.0
 
@@ -236,11 +274,16 @@ class TestCharacterController(TerminalTest):
 
         entity.stop()
         entity.free()
-        self.p("CharacterControllerHandler walk and sprint scaling verified successfully.", color="green")
+        self.p(
+            "CharacterControllerHandler walk and sprint scaling verified successfully.",
+            color="green",
+        )
         self.space_line()
 
     def test_character_controller_acceleration_damping(self):
-        self.print_subtitle("Testing CharacterControllerHandler acceleration and deceleration damping.")
+        self.print_subtitle(
+            "Testing CharacterControllerHandler acceleration and deceleration damping."
+        )
         entity = Entity("DampedHero")
         input_handler = InputHandler()
         controller = CharacterControllerHandler(
@@ -275,7 +318,9 @@ class TestCharacterController(TerminalTest):
         # Run several ticks until reaching target speed
         for _ in range(20):
             entity.update(dt)
-        assert abs(controller.linear_velocity.y - 6.0) < 1e-3, f"Expected 6.0, got {controller.linear_velocity.y}"
+        assert abs(controller.linear_velocity.y - 6.0) < 1e-3, (
+            f"Expected 6.0, got {controller.linear_velocity.y}"
+        )
 
         # 2. Release input: move_vector = (0, 0) -> decelerates smoothly to 0
         input_handler.set_move_vector(0.0, 0.0)
@@ -285,11 +330,16 @@ class TestCharacterController(TerminalTest):
 
         for _ in range(20):
             entity.update(dt)
-        assert controller.linear_velocity == Vec3(0.0, 0.0, 0.0), f"Expected full stop, got {controller.linear_velocity}"
+        assert controller.linear_velocity == Vec3(0.0, 0.0, 0.0), (
+            f"Expected full stop, got {controller.linear_velocity}"
+        )
 
         entity.stop()
         entity.free()
-        self.p("CharacterControllerHandler acceleration and deceleration damping verified successfully.", color="green")
+        self.p(
+            "CharacterControllerHandler acceleration and deceleration damping verified successfully.",
+            color="green",
+        )
         self.space_line()
 
     def test_character_controller_jump(self):
@@ -321,7 +371,9 @@ class TestCharacterController(TerminalTest):
         self.space_line()
 
     def test_character_controller_clean_lifecycle_and_detach(self):
-        self.print_subtitle("Testing clean detachment, stop/start symmetry, and memory leak prevention.")
+        self.print_subtitle(
+            "Testing clean detachment, stop/start symmetry, and memory leak prevention."
+        )
         world = Physics.get_world()
 
         entity = Entity("LifecycleHero")
@@ -334,18 +386,24 @@ class TestCharacterController(TerminalTest):
         # Stop scene/entity -> character controller must be cleanly removed from BulletWorld
         entity.start()
         entity.stop()
-        assert char_node not in world.getCharacters(), "Controller must be removed from world on stop"
+        assert char_node not in world.getCharacters(), (
+            "Controller must be removed from world on stop"
+        )
         assert controller.controller_np is None, "NodePath must be cleaned up on stop"
 
         # Re-start entity -> character controller must cleanly re-attach
         entity.start()
-        assert char_node in world.getCharacters(), "Controller must re-attach to world on restart"
+        assert char_node in world.getCharacters(), (
+            "Controller must re-attach to world on restart"
+        )
         assert controller.controller_np is not None
         assert not controller.controller_np.isEmpty()
 
         # Remove handler -> cleanly detached
         entity.remove_handler(controller)
-        assert char_node not in world.getCharacters(), "Controller must be removed from world on detach"
+        assert char_node not in world.getCharacters(), (
+            "Controller must be removed from world on detach"
+        )
         assert controller.controller_np is None
         assert controller.controller_node is None
 
@@ -354,7 +412,10 @@ class TestCharacterController(TerminalTest):
         assert entity.is_freed
         assert entity.node.isEmpty()
 
-        self.p("CharacterControllerHandler lifecycle and leak prevention verified successfully.", color="green")
+        self.p(
+            "CharacterControllerHandler lifecycle and leak prevention verified successfully.",
+            color="green",
+        )
         self.space_line()
 
     def on_stop(self):

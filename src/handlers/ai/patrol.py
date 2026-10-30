@@ -1,17 +1,18 @@
 from __future__ import annotations
-from src.utils.handler_phase import HandlerPhase
 
+from collections.abc import Callable, Sequence
 from enum import Enum
-from typing import TYPE_CHECKING, Callable, Sequence
+from typing import TYPE_CHECKING
 
 from panda3d.core import BitMask32, Vec3
 
 from src.globals.physics import Physics
 from src.handlers.base import Handler
-from src.handlers.input.base import InputHandler
 from src.handlers.capabilities import IntentSource
 from src.handlers.input.action_map import SPRINT
+from src.handlers.input.base import InputHandler
 from src.handlers.physics.groups import LineOfSight
+from src.utils.handler_phase import HandlerPhase
 from src.utils.position import world_position
 from src.utils.state_machine import StateMachine
 
@@ -67,7 +68,7 @@ class AIPatrolHandler(Handler):
         arrive_radius: float = 0.5,
         wait_time: float = 1.0,
         ping_pong: bool = False,
-        target: "Entity | None" = None,
+        target: Entity | None = None,
         sight_range: float = 8.0,
         lose_range: float | None = None,
         chase_sprint: bool = True,
@@ -223,7 +224,7 @@ class AIPatrolHandler(Handler):
         return self._world_position(self.target)
 
     @staticmethod
-    def _world_position(entity: "Entity") -> Vec3:
+    def _world_position(entity: Entity) -> Vec3:
         """Return the world position of an entity (delegates to ``utils.position``)."""
         return world_position(entity)
 

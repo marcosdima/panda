@@ -3,6 +3,7 @@ try:
 except ImportError:
     import sys
     from pathlib import Path
+
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
     from tests.terminal.__terminal import TerminalTest
 
@@ -42,7 +43,6 @@ class LifecycleSpyHandler(Handler):
 
 class ExtraTestHandler(Handler):
     """Secondary handler type for multi-handler querying tests."""
-    pass
 
 
 class TestEntities(TerminalTest):
@@ -175,7 +175,10 @@ class TestEntities(TerminalTest):
         removed_again = entity.remove_handler(h1)
         assert removed_again is False
 
-        self.p("Handler attachment, query, and removal verified successfully.", color="green")
+        self.p(
+            "Handler attachment, query, and removal verified successfully.",
+            color="green",
+        )
         self.space_line()
 
     def test_lifecycle_hooks_order(self):
@@ -210,11 +213,22 @@ class TestEntities(TerminalTest):
         spy.set_enabled(True)
         assert spy.is_enabled
         entity.on_update(0.033)
-        assert spy.log == ["on_attach", "on_start", "on_update:0.016", "on_update:0.033"]
+        assert spy.log == [
+            "on_attach",
+            "on_start",
+            "on_update:0.016",
+            "on_update:0.033",
+        ]
 
         # 6. Stop hook
         entity.on_stop()
-        assert spy.log == ["on_attach", "on_start", "on_update:0.016", "on_update:0.033", "on_stop"]
+        assert spy.log == [
+            "on_attach",
+            "on_start",
+            "on_update:0.016",
+            "on_update:0.033",
+            "on_stop",
+        ]
         self.p(f"Log after on_stop: {spy.log}")
 
         # 7. Free entity (detaches handler and cleans up)

@@ -22,7 +22,6 @@ from typing import TYPE_CHECKING, Any
 from panda3d.bullet import BulletBoxShape
 from panda3d.core import NodePath, Vec2, Vec3
 
-from ..__test import Test
 from src.entities.entity import Entity
 from src.globals.lights import GlobalLights
 from src.globals.loader import GlobalLoader
@@ -39,6 +38,8 @@ from src.handlers.physics import (
     RigidBodyHandler,
 )
 
+from ..__test import Test
+
 if TYPE_CHECKING:
     from direct.gui.OnscreenText import OnscreenText
 
@@ -52,7 +53,7 @@ class _TargetDriverHandler(Handler):
     WASD handler own the intent.
     """
 
-    def __init__(self, sandbox: "TestFollowSandbox") -> None:
+    def __init__(self, sandbox: TestFollowSandbox) -> None:
         super().__init__()
         self._sandbox = sandbox
 
@@ -117,7 +118,10 @@ class TestFollowSandbox(Test):
         GlobalLights.setup_default_lights()
 
         if self.base is None or getattr(self.base, "render", None) is None:
-            self.p("No graphics context available; the follow sandbox needs a window.", color="yellow")
+            self.p(
+                "No graphics context available; the follow sandbox needs a window.",
+                color="yellow",
+            )
             return
 
         self._build_environment()
@@ -196,19 +200,56 @@ class TestFollowSandbox(Test):
     def _print_controls_banner(self) -> None:
         """Print formatted ANSI startup banner with control and layout instructions."""
         self.print_subtitle("Interactive Controls & Follow Behaviour", color="yellow")
-        self.p(" Controls:   WASD: Move Target | Mouse: Look | T: Target Mode | L: Leash | F12: Wireframe", color="cyan", bold=True)
-        self.p(" Follower:   the brain writes a world-space intent into the InputHandler", color="green", bold=True)
-        self.p("             the character controller consumes it, so the follower walks to the target", color="green", bold=True)
-        self.p(" Target:     [W, A, S, D] drives the target (camera relative) in MANUAL mode", color="green", bold=True)
-        self.p(" Camera:     mounted on a separate rig entity, never on the follower", color="green", bold=True)
-        self.p(" Leash:      [L] toggles max_distance; drive the target past it to see OUT_OF_RANGE", color="green", bold=True)
-        self.p(" Wireframe:  [F12] Toggle Bullet debug visualization", color="magenta", bold=True)
+        self.p(
+            " Controls:   WASD: Move Target | Mouse: Look | T: Target Mode | L: Leash | F12: Wireframe",
+            color="cyan",
+            bold=True,
+        )
+        self.p(
+            " Follower:   the brain writes a world-space intent into the InputHandler",
+            color="green",
+            bold=True,
+        )
+        self.p(
+            "             the character controller consumes it, so the follower walks to the target",
+            color="green",
+            bold=True,
+        )
+        self.p(
+            " Target:     [W, A, S, D] drives the target (camera relative) in MANUAL mode",
+            color="green",
+            bold=True,
+        )
+        self.p(
+            " Camera:     mounted on a separate rig entity, never on the follower",
+            color="green",
+            bold=True,
+        )
+        self.p(
+            " Leash:      [L] toggles max_distance; drive the target past it to see OUT_OF_RANGE",
+            color="green",
+            bold=True,
+        )
+        self.p(
+            " Wireframe:  [F12] Toggle Bullet debug visualization",
+            color="magenta",
+            bold=True,
+        )
 
         self.space_line()
         self.p("Arena Layout:", color="cyan", bold=True)
-        self.p(" - The follower starts at the origin and patrols after a target on a square route", color="cyan")
-        self.p(f" - The follower stops once it is within {self.STOP_RADIUS:.1f}m of the target", color="cyan")
-        self.p(f" - With the leash ON the follower gives up beyond {self.LEASH_DISTANCE:.1f}m and resumes when the target returns", color="cyan")
+        self.p(
+            " - The follower starts at the origin and patrols after a target on a square route",
+            color="cyan",
+        )
+        self.p(
+            f" - The follower stops once it is within {self.STOP_RADIUS:.1f}m of the target",
+            color="cyan",
+        )
+        self.p(
+            f" - With the leash ON the follower gives up beyond {self.LEASH_DISTANCE:.1f}m and resumes when the target returns",
+            color="cyan",
+        )
         self.space_line()
 
     # --- environment -----------------------------------------------------
@@ -279,7 +320,9 @@ class TestFollowSandbox(Test):
         """Spawn the camera rig entity that frames the follower from a distance."""
         rig = Entity("CameraRig")
         rig.node.reparentTo(self.base.render)
-        rig.node.setPos(self.FOLLOWER_START.x, self.FOLLOWER_START.y, self.FOLLOWER_START.z)
+        rig.node.setPos(
+            self.FOLLOWER_START.x, self.FOLLOWER_START.y, self.FOLLOWER_START.z
+        )
 
         self.camera_handler = ThirdPersonCameraHandler(
             distance=11.0,
@@ -319,7 +362,10 @@ class TestFollowSandbox(Test):
         )
         target.add_handler(self.target_controller)
 
-        if self.target_controller.controller_np is not None and not self.target_controller.controller_np.isEmpty():
+        if (
+            self.target_controller.controller_np is not None
+            and not self.target_controller.controller_np.isEmpty()
+        ):
             self._attach_box_visual(
                 self.target_controller.controller_np,
                 "target_visual",
@@ -334,7 +380,9 @@ class TestFollowSandbox(Test):
         """Spawn the follower entity: intent, follow brain, then the controller."""
         follower = Entity("Follower")
         follower.node.reparentTo(self.base.render)
-        follower.node.setPos(self.FOLLOWER_START.x, self.FOLLOWER_START.y, self.FOLLOWER_START.z)
+        follower.node.setPos(
+            self.FOLLOWER_START.x, self.FOLLOWER_START.y, self.FOLLOWER_START.z
+        )
 
         self.follower_input = InputHandler()
         follower.add_handler(self.follower_input)
@@ -359,7 +407,10 @@ class TestFollowSandbox(Test):
         )
         follower.add_handler(self.follower_controller)
 
-        if self.follower_controller.controller_np is not None and not self.follower_controller.controller_np.isEmpty():
+        if (
+            self.follower_controller.controller_np is not None
+            and not self.follower_controller.controller_np.isEmpty()
+        ):
             self._attach_box_visual(
                 self.follower_controller.controller_np,
                 "follower_visual",
@@ -427,7 +478,11 @@ class TestFollowSandbox(Test):
     def follower_position(self) -> Vec3:
         """Return the follower world position, preferring the character controller node."""
         controller = self.follower_controller
-        if controller is not None and controller.controller_np is not None and not controller.controller_np.isEmpty():
+        if (
+            controller is not None
+            and controller.controller_np is not None
+            and not controller.controller_np.isEmpty()
+        ):
             return Vec3(controller.controller_np.getPos(self.base.render))
         if self.follower is not None:
             return Vec3(self.follower.node.getPos(self.base.render))
@@ -436,7 +491,11 @@ class TestFollowSandbox(Test):
     def target_position(self) -> Vec3:
         """Return the target world position, preferring the character controller node."""
         controller = self.target_controller
-        if controller is not None and controller.controller_np is not None and not controller.controller_np.isEmpty():
+        if (
+            controller is not None
+            and controller.controller_np is not None
+            and not controller.controller_np.isEmpty()
+        ):
             return Vec3(controller.controller_np.getPos(self.base.render))
         if self.target is not None:
             return Vec3(self.target.node.getPos(self.base.render))
@@ -452,7 +511,9 @@ class TestFollowSandbox(Test):
         """Toggle the follow leash, switching the brain between following and out of range."""
         self._leash_enabled = not self._leash_enabled
         if self.follow_handler is not None:
-            self.follow_handler.max_distance = self.LEASH_DISTANCE if self._leash_enabled else None
+            self.follow_handler.max_distance = (
+                self.LEASH_DISTANCE if self._leash_enabled else None
+            )
         state = "ON" if self._leash_enabled else "OFF"
         self.p(f"[Follow] Leash: {state}", color="yellow", bold=True)
 
@@ -481,8 +542,14 @@ class TestFollowSandbox(Test):
 
     def _update_osd(self, current_time: float) -> None:
         """Update the live telemetry on the OSD and print it to the terminal."""
-        state = self.follow_handler.state.value.upper() if self.follow_handler is not None else "?"
-        move = self.follow_handler.move_vector if self.follow_handler is not None else None
+        state = (
+            self.follow_handler.state.value.upper()
+            if self.follow_handler is not None
+            else "?"
+        )
+        move = (
+            self.follow_handler.move_vector if self.follow_handler is not None else None
+        )
         move_x = move.x if move is not None else 0.0
         move_y = move.y if move is not None else 0.0
         distance = (self.target_position() - self.follower_position()).length()
@@ -532,7 +599,10 @@ class TestFollowSandbox(Test):
                 mayChange=True,
             )
         except Exception:
-            self.p("OSD not available in this environment; skipping telemetry overlay.", color="yellow")
+            self.p(
+                "OSD not available in this environment; skipping telemetry overlay.",
+                color="yellow",
+            )
             self.osd_instructions = None
             self.osd_telemetry = None
 

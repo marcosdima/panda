@@ -1,10 +1,10 @@
-from .action_map import ActionMap, DEFAULT_BINDINGS
+from .action_map import DEFAULT_BINDINGS, ActionMap
 from .base import InputHandler
 from .wasd import WASDInputHandler
 
 __all__ = [
-    "ActionMap",
     "DEFAULT_BINDINGS",
+    "ActionMap",
     "InputHandler",
     "WASDInputHandler",
 ]

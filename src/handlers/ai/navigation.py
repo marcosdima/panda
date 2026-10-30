@@ -1,5 +1,4 @@
 from __future__ import annotations
-from src.utils.handler_phase import HandlerPhase
 
 from collections.abc import Callable, Sequence
 from enum import Enum
@@ -13,6 +12,7 @@ from src.navigation.graph import NavGraph
 from src.navigation.grid import NavGrid
 from src.navigation.pathfinder import GridPathfinder
 from src.navigation.smoothing import smooth_path
+from src.utils.handler_phase import HandlerPhase
 from src.utils.state_machine import StateMachine
 
 if TYPE_CHECKING:
@@ -36,7 +36,11 @@ _NAV_TRANSITIONS = {
         NavigationState.BLOCKED,
     ],
     NavigationState.WAIT: [NavigationState.PATROL, NavigationState.CHASE],
-    NavigationState.CHASE: [NavigationState.PATROL, NavigationState.SEARCH, NavigationState.BLOCKED],
+    NavigationState.CHASE: [
+        NavigationState.PATROL,
+        NavigationState.SEARCH,
+        NavigationState.BLOCKED,
+    ],
     NavigationState.SEARCH: [NavigationState.PATROL, NavigationState.CHASE],
     NavigationState.BLOCKED: [NavigationState.PATROL, NavigationState.CHASE],
 }
@@ -44,6 +48,7 @@ _NAV_TRANSITIONS = {
 
 class AINavigationHandler(AIPatrolHandler):
     phase = HandlerPhase.DECISION
+
     def __init__(
         self,
         waypoints: Sequence[Vec3] = (),
@@ -86,9 +91,15 @@ class AINavigationHandler(AIPatrolHandler):
 
         self.nav_grid = nav_grid
         self.nav_graph = nav_graph
-        self.pathfinder = pathfinder if pathfinder is not None else (GridPathfinder(nav_grid) if nav_grid is not None else None)
+        self.pathfinder = (
+            pathfinder
+            if pathfinder is not None
+            else (GridPathfinder(nav_grid) if nav_grid is not None else None)
+        )
         self.avoidance = bool(avoidance)
-        self.avoidance_check = avoidance_check or obstacle_check or raycast or clear_check
+        self.avoidance_check = (
+            avoidance_check or obstacle_check or raycast or clear_check
+        )
         self.search_time = float(search_time)
         self.remember_last_target = bool(remember_last_target)
         self.search_uses_pathfinding = bool(search_uses_pathfinding)
@@ -113,11 +124,10 @@ class AINavigationHandler(AIPatrolHandler):
     @property
     def current_path(self) -> list[Vec3]:
         return [Vec3(p) for p in self._current_path]
+
     @property
     def path(self) -> list[Vec3]:
         return self.current_path
-
-
 
     @property
     def has_pathfinding(self) -> bool:
@@ -133,7 +143,9 @@ class AINavigationHandler(AIPatrolHandler):
 
     @property
     def last_known_target(self) -> Vec3 | None:
-        return None if self._last_known_target is None else Vec3(self._last_known_target)
+        return (
+            None if self._last_known_target is None else Vec3(self._last_known_target)
+        )
 
     @property
     def obstacle_detected(self) -> bool:
@@ -253,7 +265,9 @@ class AINavigationHandler(AIPatrolHandler):
                 self._drive(Vec3(0, 0, 0), sprint=False)
                 return
             to_goal = self._planar(pt - self._position())
-            if (pt - goal).length_squared() < 1e-8 and self._planar(goal - self._position()).length() <= self.arrive_radius:
+            if (pt - goal).length_squared() < 1e-8 and self._planar(
+                goal - self._position()
+            ).length() <= self.arrive_radius:
                 self._advance_waypoint()
                 self._wait_left = self.wait_time
                 self._drive(Vec3(0, 0, 0), sprint=False)
@@ -271,7 +285,11 @@ class AINavigationHandler(AIPatrolHandler):
                 return
 
         to_goal = self._avoid(to_goal)
-        if to_goal.length_squared() <= 1e-8 and self._obstacle_detected and self.has_pathfinding:
+        if (
+            to_goal.length_squared() <= 1e-8
+            and self._obstacle_detected
+            and self.has_pathfinding
+        ):
             self.machine.transition(NavigationState.BLOCKED)
             self._drive(Vec3(0, 0, 0), sprint=False)
             return
@@ -302,7 +320,11 @@ class AINavigationHandler(AIPatrolHandler):
                 return
 
         to_target = self._avoid(to_target)
-        if to_target.length_squared() <= 1e-8 and self._obstacle_detected and self.has_pathfinding:
+        if (
+            to_target.length_squared() <= 1e-8
+            and self._obstacle_detected
+            and self.has_pathfinding
+        ):
             self.machine.transition(NavigationState.BLOCKED)
             self._drive(Vec3(0, 0, 0), sprint=False)
             return
@@ -332,7 +354,11 @@ class AINavigationHandler(AIPatrolHandler):
                 return
             to_goal = self._planar(pt - self._position())
             to_goal = self._avoid(to_goal)
-            if to_goal.length_squared() <= 1e-8 and self._obstacle_detected and self.has_pathfinding:
+            if (
+                to_goal.length_squared() <= 1e-8
+                and self._obstacle_detected
+                and self.has_pathfinding
+            ):
                 self.machine.transition(NavigationState.BLOCKED)
                 self._drive(Vec3(0, 0, 0), sprint=False)
                 return
@@ -379,14 +405,20 @@ class AINavigationHandler(AIPatrolHandler):
 
         if self.nav_grid is None or self.pathfinder is None:
             return
-        if self._current_path and self._path_index < len(self._current_path) and self._path_goal is not None:
+        if (
+            self._current_path
+            and self._path_index < len(self._current_path)
+            and self._path_goal is not None
+        ):
             blocked = False
             for pt in self._current_path[self._path_index :]:
                 cell = self.nav_grid.world_to_cell(pt)
                 if cell is None or not self.nav_grid.is_walkable(cell):
                     blocked = True
                     break
-            if not blocked and (self._path_goal - goal).length() < max(0.25, self.nav_grid.cell_size * 0.5):
+            if not blocked and (self._path_goal - goal).length() < max(
+                0.25, self.nav_grid.cell_size * 0.5
+            ):
                 return
             if blocked:
                 self.request_replan()

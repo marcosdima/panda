@@ -14,25 +14,25 @@ Provides a physical test course to evaluate camera handlers in isolation:
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
+
 from panda3d.core import KeyboardButton, Vec3
 
-from ..__test import Test
 from src.entities.entity import Entity
-from src.handlers.camera import FirstPersonCameraHandler, ThirdPersonCameraHandler
-from src.handlers.graphics import ActorAnimationHandler
-from src.handlers.input.parameter_adjust import ParameterAdjustHandler
-from src.handlers.input.wasd import WASDInputHandler
-
-from src.handlers.physics.character import CharacterControllerHandler
-
 from src.globals.clock import GlobalClock
 from src.globals.lights import GlobalLights
 from src.globals.loader import GlobalLoader
 from src.globals.physics import Physics
+from src.handlers.camera import FirstPersonCameraHandler, ThirdPersonCameraHandler
+from src.handlers.graphics import ActorAnimationHandler
+from src.handlers.input.parameter_adjust import ParameterAdjustHandler
+from src.handlers.input.wasd import WASDInputHandler
+from src.handlers.physics.character import CharacterControllerHandler
+
+from ..__test import Test
 
 if TYPE_CHECKING:
-    from panda3d.core import NodePath
     from direct.gui.OnscreenText import OnscreenText
+    from panda3d.core import NodePath
 
 
 class TestFirstPersonCameraSandbox(Test):
@@ -93,31 +93,81 @@ class TestFirstPersonCameraSandbox(Test):
         if self.controller is not None:
             self.expose_toggle(
                 "Body Follows Cam Yaw (B)",
-                lambda: self.controller.body_follows_camera_yaw if self.controller else False,
-                lambda v: setattr(self.controller, "body_follows_camera_yaw", bool(v)) if self.controller else None,
+                lambda: (
+                    self.controller.body_follows_camera_yaw
+                    if self.controller
+                    else False
+                ),
+                lambda v: (
+                    setattr(self.controller, "body_follows_camera_yaw", bool(v))
+                    if self.controller
+                    else None
+                ),
             )
         if self.tp_handler is not None:
-            self.expose_field("TP Distance", self.tp_handler, "distance", 1.5, 20.0, 0.5)
-            self.expose_field("TP Smooth Speed", self.tp_handler, "smooth_speed", 0.0, 25.0, 1.0)
+            self.expose_field(
+                "TP Distance", self.tp_handler, "distance", 1.5, 20.0, 0.5
+            )
+            self.expose_field(
+                "TP Smooth Speed", self.tp_handler, "smooth_speed", 0.0, 25.0, 1.0
+            )
 
     def _print_controls_banner(self) -> None:
         """Print formatted ANSI startup banner with control instructions."""
         self.print_subtitle("Interactive Controls & Mechanics", color="yellow")
-        self.p(" Controls:      WASD: Move | SPACE: Jump | LSHIFT: Sprint | Mouse: Look | V: Toggle Camera | Tab/Esc: Cursor | F12: Wireframe", color="cyan", bold=True)
+        self.p(
+            " Controls:      WASD: Move | SPACE: Jump | LSHIFT: Sprint | Mouse: Look | V: Toggle Camera | Tab/Esc: Cursor | F12: Wireframe",
+            color="cyan",
+            bold=True,
+        )
         self.p(" Movement:      [W, A, S, D] or Arrow Keys", color="green", bold=True)
-        self.p(" Jump:          [Spacebar] (only while grounded)", color="green", bold=True)
-        self.p(" Sprint:        [Left Shift] (12.0 m/s vs 6.0 m/s walk)", color="green", bold=True)
-        self.p(" Camera:        [V] Toggle First-Person / Third-Person", color="green", bold=True)
-        self.p(" Body Mode:     [B] Toggle Camera-Yaw vs Movement-Dir (third-person body orientation)", color="green", bold=True)
-        self.p(" Look / Cursor: [Mouse] Direct Look | [Tab] Toggle Lock | [Esc] Unlock | [LMB] Lock", color="green", bold=True)
-        self.p(" Wireframe:     [F12] Toggle Bullet debug visualization", color="magenta", bold=True)
+        self.p(
+            " Jump:          [Spacebar] (only while grounded)", color="green", bold=True
+        )
+        self.p(
+            " Sprint:        [Left Shift] (12.0 m/s vs 6.0 m/s walk)",
+            color="green",
+            bold=True,
+        )
+        self.p(
+            " Camera:        [V] Toggle First-Person / Third-Person",
+            color="green",
+            bold=True,
+        )
+        self.p(
+            " Body Mode:     [B] Toggle Camera-Yaw vs Movement-Dir (third-person body orientation)",
+            color="green",
+            bold=True,
+        )
+        self.p(
+            " Look / Cursor: [Mouse] Direct Look | [Tab] Toggle Lock | [Esc] Unlock | [LMB] Lock",
+            color="green",
+            bold=True,
+        )
+        self.p(
+            " Wireframe:     [F12] Toggle Bullet debug visualization",
+            color="magenta",
+            bold=True,
+        )
 
         self.space_line()
         self.p("Test Course Layout:", color="cyan", bold=True)
-        self.p(" - Colored pillars at increasing distance: eye-lock & orientation check", color="cyan")
-        self.p(" - Near wall ahead: third-person spring-arm shortens against it, first-person eye stops at it", color="cyan")
-        self.p(" - Sticky wall near start: press against it (look at it from every yaw/pitch, also with F12 on): FP must never see through, TP must never clip into the player", color="cyan")
-        self.p(" - Low-clearance check: collision_margin can be tuned with +/- (sphere radius, capped to the capsule radius)", color="cyan")
+        self.p(
+            " - Colored pillars at increasing distance: eye-lock & orientation check",
+            color="cyan",
+        )
+        self.p(
+            " - Near wall ahead: third-person spring-arm shortens against it, first-person eye stops at it",
+            color="cyan",
+        )
+        self.p(
+            " - Sticky wall near start: press against it (look at it from every yaw/pitch, also with F12 on): FP must never see through, TP must never clip into the player",
+            color="cyan",
+        )
+        self.p(
+            " - Low-clearance check: collision_margin can be tuned with +/- (sphere radius, capped to the capsule radius)",
+            color="cyan",
+        )
         self.p(" - Raised blocks: pitch look down/up reference", color="cyan")
         self.space_line()
 
@@ -273,7 +323,10 @@ class TestFirstPersonCameraSandbox(Test):
                 self.player.remove_handler(self.tp_handler)
             if self.player.get_handler(FirstPersonCameraHandler) is None:
                 self.fp_handler.yaw = self.tp_handler.get_camera_yaw() % 360.0
-                self.fp_handler.pitch = max(self.fp_handler.min_pitch, min(self.fp_handler.max_pitch, self.tp_handler.pitch))
+                self.fp_handler.pitch = max(
+                    self.fp_handler.min_pitch,
+                    min(self.fp_handler.max_pitch, self.tp_handler.pitch),
+                )
                 self.player.add_handler(self.fp_handler)
             self.fp_handler.set_pointer_captured(captured)
         else:
@@ -317,7 +370,10 @@ class TestFirstPersonCameraSandbox(Test):
                 mayChange=True,
             )
         except Exception:
-            self.p("OSD not available in this environment; skipping telemetry overlay.", color="yellow")
+            self.p(
+                "OSD not available in this environment; skipping telemetry overlay.",
+                color="yellow",
+            )
             self.osd_instructions = None
             self.osd_telemetry = None
 
@@ -390,12 +446,16 @@ class TestFirstPersonCameraSandbox(Test):
             yaw = 0.0
             pitch = 0.0
 
-        body_mode = "CAM-YAW" if (self.controller is not None and self.controller.body_follows_camera_yaw) else "MOV-DIR"
+        body_mode = (
+            "CAM-YAW"
+            if (self.controller is not None and self.controller.body_follows_camera_yaw)
+            else "MOV-DIR"
+        )
 
         if self.osd_telemetry is not None:
             self.osd_telemetry.setText(
                 f"Camera: {mode} | Body: {body_mode} | Pos: ({world_pos.x:6.2f}, {world_pos.y:6.2f}, {world_pos.z:6.2f}) | "
-                f"Speed: {speed:4.1f} m/s | Ground: {str(is_on_ground):5} | Debug: {wireframe}\n"
+                f"Speed: {speed:4.1f} m/s | Ground: {is_on_ground!s:5} | Debug: {wireframe}\n"
                 f"Yaw: {yaw:6.1f} | Pitch: {pitch:6.1f} | Fwd: ({fwd.x:5.2f}, {fwd.y:5.2f}, {fwd.z:5.2f})"
             )
 

@@ -22,7 +22,9 @@ class UITheme:
     padding: float = 0.02
     spacing: float = 0.02
 
-    def button_frame_color(self, enabled: bool = True) -> tuple[float, float, float, float]:
+    def button_frame_color(
+        self, enabled: bool = True
+    ) -> tuple[float, float, float, float]:
         return self.frame_color if enabled else self.disabled_color
 
     def button_state_colors(self, enabled: bool = True):

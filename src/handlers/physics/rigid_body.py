@@ -1,5 +1,4 @@
 from __future__ import annotations
-from src.utils.handler_phase import HandlerPhase
 
 from typing import TYPE_CHECKING
 
@@ -9,6 +8,8 @@ from panda3d.core import NodePath, TransformState, Vec3
 from src.globals.physics import Physics
 from src.handlers.base import Handler
 from src.handlers.capabilities import PhysicsBody
+from src.utils.handler_phase import HandlerPhase
+
 from .groups import CollisionGroup
 
 if TYPE_CHECKING:
@@ -126,7 +127,9 @@ class RigidBodyHandler(Handler):
             self.body_node.setTransformDirty()
         self._attach_to_world()
 
-    def rebase(self, offset: Vec3 = Vec3(0.0, 0.0, 0.0), hpr: Vec3 = Vec3(0.0, 0.0, 0.0)) -> None:
+    def rebase(
+        self, offset: Vec3 = Vec3(0.0, 0.0, 0.0), hpr: Vec3 = Vec3(0.0, 0.0, 0.0)
+    ) -> None:
         """Move the body node to a new local transform under its current parent.
 
         Bullet keeps the simulated transform in ``body_np``, so moving only
@@ -166,12 +169,20 @@ class RigidBodyHandler(Handler):
         from src.handlers.graphics.model import ModelHandler
 
         model_handler = self.entity.get_handler(ModelHandler)
-        if model_handler is None or model_handler.model_np is None or model_handler.model_np.isEmpty():
+        if (
+            model_handler is None
+            or model_handler.model_np is None
+            or model_handler.model_np.isEmpty()
+        ):
             return
         if to_body and self.body_np is not None and not self.body_np.isEmpty():
             if model_handler.model_np.getParent() != self.body_np:
                 model_handler.model_np.reparentTo(self.body_np)
-        elif not to_body and self.entity.node is not None and not self.entity.node.isEmpty():
+        elif (
+            not to_body
+            and self.entity.node is not None
+            and not self.entity.node.isEmpty()
+        ):
             if model_handler.model_np.getParent() == self.body_np:
                 model_handler.model_np.reparentTo(self.entity.node)
 

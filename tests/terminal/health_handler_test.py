@@ -12,7 +12,9 @@ def _make_entity(name: str) -> Entity:
     return Entity(name)
 
 
-def _make_with_input(max_health: float = 100.0) -> tuple[Entity, HealthHandler, InputHandler]:
+def _make_with_input(
+    max_health: float = 100.0,
+) -> tuple[Entity, HealthHandler, InputHandler]:
     entity = _make_entity("damageable")
     health = HealthHandler(max_health=max_health)
     ih = InputHandler()
@@ -117,7 +119,9 @@ def test_on_damage_and_on_death_payloads():
 
     damage_events = []
     death_events = []
-    health.on_damage.add_callback(lambda amount, source: damage_events.append((amount, source)))
+    health.on_damage.add_callback(
+        lambda amount, source: damage_events.append((amount, source))
+    )
     health.on_death.add_callback(lambda ent: death_events.append(ent))
 
     health.take_damage(30.0, source=entity)
@@ -135,7 +139,9 @@ def test_on_damage_fires_applied_amount():
     health.on_start()
 
     damage_events = []
-    health.on_damage.add_callback(lambda amount, source: damage_events.append((amount, source)))
+    health.on_damage.add_callback(
+        lambda amount, source: damage_events.append((amount, source))
+    )
 
     # Overkill: the payload carries the applied amount, not the requested one.
     health.take_damage(200.0, source=entity)
@@ -145,7 +151,9 @@ def test_on_damage_fires_applied_amount():
     entity2, health2, _ = _make_with_input()
     health2.on_start()
     partial_events = []
-    health2.on_damage.add_callback(lambda amount, source: partial_events.append((amount, source)))
+    health2.on_damage.add_callback(
+        lambda amount, source: partial_events.append((amount, source))
+    )
     health2.take_damage(30.0, source=entity2)
     assert partial_events == [(30.0, entity2)]
     entity.free()
@@ -170,7 +178,9 @@ def test_auto_free_on_death_takes_precedence_over_disable_input():
     entity = _make_entity("auto-free")
     ih = _RecordingInputHandler()
     entity.add_handler(ih)
-    health = HealthHandler(max_health=100.0, auto_free_on_death=True, disable_input_on_death=True)
+    health = HealthHandler(
+        max_health=100.0, auto_free_on_death=True, disable_input_on_death=True
+    )
     entity.add_handler(health)
     entity.on_start()
 
@@ -437,4 +447,5 @@ def test_on_start_reclamps_current_health_idempotently():
 
 if __name__ == "__main__":
     import sys
+
     sys.exit(pytest.main([__file__]))

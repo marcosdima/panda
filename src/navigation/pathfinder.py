@@ -31,7 +31,9 @@ class GridPathfinder:
         goal_cell = self.grid.world_to_cell(goal)
         if start_cell is None or goal_cell is None:
             return None
-        if not self.grid.is_walkable(start_cell) or not self.grid.is_walkable(goal_cell):
+        if not self.grid.is_walkable(start_cell) or not self.grid.is_walkable(
+            goal_cell
+        ):
             return None
         if start_cell == goal_cell:
             return []

@@ -19,12 +19,13 @@ from typing import TYPE_CHECKING, Any
 
 from panda3d.core import LineSegs, NodePath
 
-from ..__test import Test
 from src.entities.entity import Entity
 from src.globals.lights import GlobalLights
 from src.globals.loader import GlobalLoader
 from src.handlers.sensors import ProximitySensorHandler
 from src.ui import UIButton, UIColumn, UIPanel, UITheme
+
+from ..__test import Test
 
 if TYPE_CHECKING:
     from direct.gui.OnscreenText import OnscreenText
@@ -107,10 +108,15 @@ class TestProximitySandbox(Test):
             if not ring.isEmpty():
                 ring.removeNode()
         self._rings.clear()
-        enter_r = self.sensor_handler.radius if self.sensor_handler is not None else self.ENTER_RADIUS
+        enter_r = (
+            self.sensor_handler.radius
+            if self.sensor_handler is not None
+            else self.ENTER_RADIUS
+        )
         exit_r = (
             self.sensor_handler.exit_radius
-            if self.sensor_handler is not None and self.sensor_handler.exit_radius is not None
+            if self.sensor_handler is not None
+            and self.sensor_handler.exit_radius is not None
             else self.EXIT_RADIUS
         )
         self._create_ring(enter_r, (0.2, 0.9, 1.0, 1.0))
@@ -126,7 +132,9 @@ class TestProximitySandbox(Test):
         if self.sensor_handler is not None:
             self.expose_toggle(
                 "Sensor Enabled (L)",
-                lambda: self.sensor_handler.is_enabled if self.sensor_handler else False,
+                lambda: (
+                    self.sensor_handler.is_enabled if self.sensor_handler else False
+                ),
                 lambda _v: self._toggle_sensor(),
             )
             self.expose_field(
@@ -229,7 +237,9 @@ class TestProximitySandbox(Test):
         )
         self.space_line()
         self.p("Arena Layout:", color="cyan", bold=True)
-        self.p(" - The sensor marker sits at the origin, on a small platform", color="cyan")
+        self.p(
+            " - The sensor marker sits at the origin, on a small platform", color="cyan"
+        )
         self.p(
             f" - The target orbits at {self.ORBIT_RADIUS:.1f}m, crossing both rings every lap",
             color="cyan",
@@ -338,9 +348,7 @@ class TestProximitySandbox(Test):
         segments.moveTo(radius, 0.0, 0.04)
         for index in range(1, steps + 1):
             angle = 2.0 * math.pi * index / steps
-            segments.drawTo(
-                radius * math.cos(angle), radius * math.sin(angle), 0.04
-            )
+            segments.drawTo(radius * math.cos(angle), radius * math.sin(angle), 0.04)
         ring = NodePath(segments.create())
         ring.reparentTo(self.base.render)
         self._rings.append(ring)
@@ -391,9 +399,7 @@ class TestProximitySandbox(Test):
         if self.sensor_handler is not None:
             self.sensor_handler.clear()
         if self.target is not None:
-            self.target.node.setPos(
-                self.ORBIT_RADIUS, 0.0, self.TARGET_HEIGHT
-            )
+            self.target.node.setPos(self.ORBIT_RADIUS, 0.0, self.TARGET_HEIGHT)
         self.p("[Proximity] Phase reset", color="yellow", bold=True)
         self.record_replay_event("action", name="reset_phase")
 
@@ -401,7 +407,11 @@ class TestProximitySandbox(Test):
 
     def _on_frame_update(self, task: Any) -> int:
         """Advance the orbit, then refresh the telemetry."""
-        dt = self._replay_dt() if self._replay_mode is not None else float(task.dt or (1.0 / 60.0))
+        dt = (
+            self._replay_dt()
+            if self._replay_mode is not None
+            else float(task.dt or (1.0 / 60.0))
+        )
         if self._replay_mode is not None:
             self._replay_elapsed += dt
             if self._replay_mode == "record" and self._replay_recorder is not None:
@@ -419,7 +429,10 @@ class TestProximitySandbox(Test):
             )
 
         self._update_osd(task.time)
-        if self._replay_mode is not None and self._replay_elapsed >= self._replay_duration:
+        if (
+            self._replay_mode is not None
+            and self._replay_elapsed >= self._replay_duration
+        ):
             self.finalize_replay()
             import builtins
 
@@ -476,7 +489,9 @@ class TestProximitySandbox(Test):
             "orbiting": bool(self._orbiting),
             "orbit_radius": float(self.orbit_radius),
             "orbit_speed": float(self.orbit_speed),
-            "sensor_enabled": bool(handler.is_enabled) if handler is not None else False,
+            "sensor_enabled": bool(handler.is_enabled)
+            if handler is not None
+            else False,
             "enter_count": int(self._enter_count),
             "exit_count": int(self._exit_count),
             "last_inside": bool(self._last_inside),
@@ -507,6 +522,7 @@ class TestProximitySandbox(Test):
         except Exception:  # noqa: BLE001
             pass
         return 1.0 / 60.0
+
     def _setup_ui(self) -> None:
         """Create reusable UI controls for the sandbox."""
         if self.base is None or getattr(self.base, "aspect2d", None) is None:
@@ -521,7 +537,9 @@ class TestProximitySandbox(Test):
                 owner=self,
                 pos=(-1.05, 0.0, -0.55),
             )
-            column = UIColumn(parent=panel.content_parent, spacing=0.02, owner=self, pos=(0.0, 0.05))
+            column = UIColumn(
+                parent=panel.content_parent, spacing=0.02, owner=self, pos=(0.0, 0.05)
+            )
             column.add(
                 UIButton(
                     parent=column.node,
@@ -594,8 +612,12 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Proximity Sensor Sandbox")
     parser.add_argument("--record", metavar="PATH", help="Record a replay to PATH.")
-    parser.add_argument("--replay", metavar="PATH", help="Replay a recorded scenario from PATH.")
-    parser.add_argument("--duration", type=float, default=5.0, help="Replay/record duration in seconds.")
+    parser.add_argument(
+        "--replay", metavar="PATH", help="Replay a recorded scenario from PATH."
+    )
+    parser.add_argument(
+        "--duration", type=float, default=5.0, help="Replay/record duration in seconds."
+    )
     args = parser.parse_args()
 
     app = Game()

@@ -17,13 +17,17 @@ Provides a physical test course featuring:
 from __future__ import annotations
 
 import math
-from typing import TYPE_CHECKING, Any, Callable
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 from panda3d.bullet import BulletBoxShape
 from panda3d.core import NodePath, TransparencyAttrib, Vec3
 
-from ..__test import Test
 from src.entities.entity import Entity
+from src.globals.clock import GlobalClock
+from src.globals.lights import GlobalLights
+from src.globals.loader import GlobalLoader
+from src.globals.physics import Physics
 from src.handlers.camera import ThirdPersonCameraHandler
 from src.handlers.input.wasd import WASDInputHandler
 from src.handlers.physics import (
@@ -33,10 +37,7 @@ from src.handlers.physics import (
     TriggerZoneHandler,
 )
 
-from src.globals.clock import GlobalClock
-from src.globals.lights import GlobalLights
-from src.globals.loader import GlobalLoader
-from src.globals.physics import Physics
+from ..__test import Test
 
 if TYPE_CHECKING:
     from direct.gui.OnscreenText import OnscreenText
@@ -101,22 +102,46 @@ class TestTriggersSandbox(Test):
 
     def _setup_inspector(self) -> None:
         """Register enemy oscillator and player parameters for live editing in the pause inspector."""
-        self.expose_field("Enemy Sweep Amp (m)", self, "enemy_sweep_amplitude", 0.0, 12.0, 0.5)
-        self.expose_field("Enemy Sweep Period (s)", self, "enemy_sweep_period", 1.0, 20.0, 0.5)
+        self.expose_field(
+            "Enemy Sweep Amp (m)", self, "enemy_sweep_amplitude", 0.0, 12.0, 0.5
+        )
+        self.expose_field(
+            "Enemy Sweep Period (s)", self, "enemy_sweep_period", 1.0, 20.0, 0.5
+        )
 
     def _print_controls_banner(self) -> None:
         """Print formatted ANSI startup banner with control and zone instructions."""
         self.print_subtitle("Interactive Controls & Trigger Events", color="yellow")
-        self.p(" Controls:   WASD: Move | SPACE: Jump | Mouse: Look | F12: Wireframe", color="cyan", bold=True)
+        self.p(
+            " Controls:   WASD: Move | SPACE: Jump | Mouse: Look | F12: Wireframe",
+            color="cyan",
+            bold=True,
+        )
         self.p(" Movement:   [W, A, S, D] or Arrow Keys", color="green", bold=True)
-        self.p(" Look:       [Mouse] Look | [Tab/Esc] Cursor | [Mouse Wheel] Zoom", color="green", bold=True)
-        self.p(" Wireframe:  [F12] Toggle Bullet debug visualization", color="magenta", bold=True)
+        self.p(
+            " Look:       [Mouse] Look | [Tab/Esc] Cursor | [Mouse Wheel] Zoom",
+            color="green",
+            bold=True,
+        )
+        self.p(
+            " Wireframe:  [F12] Toggle Bullet debug visualization",
+            color="magenta",
+            bold=True,
+        )
 
         self.space_line()
         self.p("Trigger Layout:", color="cyan", bold=True)
-        self.p(" - Blue zone at (0, 0, 1.1): accepts PLAYER, walk in and out", color="cyan")
-        self.p(" - Red zone at (0, 8, 1.1): accepts ENEMY, red box sweeps through it", color="cyan")
-        self.p(" - Yellow zone at (0, -6, 1.1): accepts ENEMY only, walking in as player is REJECTED", color="yellow")
+        self.p(
+            " - Blue zone at (0, 0, 1.1): accepts PLAYER, walk in and out", color="cyan"
+        )
+        self.p(
+            " - Red zone at (0, 8, 1.1): accepts ENEMY, red box sweeps through it",
+            color="cyan",
+        )
+        self.p(
+            " - Yellow zone at (0, -6, 1.1): accepts ENEMY only, walking in as player is REJECTED",
+            color="yellow",
+        )
         self.p(" - Counters update live on OSD and print to the terminal", color="cyan")
         self.space_line()
 
@@ -224,7 +249,10 @@ class TestTriggersSandbox(Test):
         player.add_handler(self.camera_handler)
         player.add_handler(self.controller)
 
-        if self.controller.controller_np is not None and not self.controller.controller_np.isEmpty():
+        if (
+            self.controller.controller_np is not None
+            and not self.controller.controller_np.isEmpty()
+        ):
             self._attach_box_visual(
                 self.controller.controller_np,
                 "player_visual",
@@ -327,9 +355,14 @@ class TestTriggersSandbox(Test):
                 self.p(f"[{label}] ENTER: {entity.name}", color="green")
             elif kind == "exit":
                 self.p(f"[{label}] EXIT: {entity.name}", color="yellow")
-            elif kind == "rejected" and self._frame_count - self._last_rejected_frame >= 60:
+            elif (
+                kind == "rejected"
+                and self._frame_count - self._last_rejected_frame >= 60
+            ):
                 self._last_rejected_frame = self._frame_count
-                self.p(f"[{label}] REJECTED: {entity.name} (group filter)", color="magenta")
+                self.p(
+                    f"[{label}] REJECTED: {entity.name} (group filter)", color="magenta"
+                )
 
         return _callback
 
@@ -344,18 +377,26 @@ class TestTriggersSandbox(Test):
         state = {
             "enemy_time": round(float(getattr(self, "_enemy_time", 0.0)), 6),
             "frame_count": int(getattr(self, "_frame_count", 0)),
-            "player_enter": int(counters.get("zone_player", {}).get("enter", 0)) if isinstance(counters.get("zone_player"), dict) else 0,
-            "player_exit": int(counters.get("zone_player", {}).get("exit", 0)) if isinstance(counters.get("zone_player"), dict) else 0,
-            "enemy_enter": int(counters.get("zone_enemy", {}).get("enter", 0)) if isinstance(counters.get("zone_enemy"), dict) else 0,
-            "enemy_exit": int(counters.get("zone_enemy", {}).get("exit", 0)) if isinstance(counters.get("zone_enemy"), dict) else 0,
+            "player_enter": int(counters.get("zone_player", {}).get("enter", 0))
+            if isinstance(counters.get("zone_player"), dict)
+            else 0,
+            "player_exit": int(counters.get("zone_player", {}).get("exit", 0))
+            if isinstance(counters.get("zone_player"), dict)
+            else 0,
+            "enemy_enter": int(counters.get("zone_enemy", {}).get("enter", 0))
+            if isinstance(counters.get("zone_enemy"), dict)
+            else 0,
+            "enemy_exit": int(counters.get("zone_enemy", {}).get("exit", 0))
+            if isinstance(counters.get("zone_enemy"), dict)
+            else 0,
         }
         self._replay_phase = "triggers"
         return state
 
     def apply_replay_event(self, event: dict) -> None:
-        return None
+        return
 
-        return None
+        return
 
     def _replay_dt(self) -> float:
         if self._replay_mode is not None and self._replay_recorder is not None:
@@ -374,8 +415,12 @@ class TestTriggersSandbox(Test):
 
     def _on_frame_update(self, task: Any) -> int:
         """Per-frame update driving the enemy oscillator, scene entities, and telemetry."""
-        dt = self._replay_dt() if self._replay_mode is not None else (
-            float(GlobalClock.get_dt()) if hasattr(GlobalClock, "get_dt") else 0.016
+        dt = (
+            self._replay_dt()
+            if self._replay_mode is not None
+            else (
+                float(GlobalClock.get_dt()) if hasattr(GlobalClock, "get_dt") else 0.016
+            )
         )
         if self._replay_mode is not None:
             self._replay_elapsed += dt
@@ -389,11 +434,16 @@ class TestTriggersSandbox(Test):
         if self.enemy is not None and not self.enemy.is_freed:
             self._enemy_time += dt
             period = max(0.5, float(self.enemy_sweep_period))
-            x = float(self.enemy_sweep_amplitude) * math.sin(math.tau * self._enemy_time / period)
+            x = float(self.enemy_sweep_amplitude) * math.sin(
+                math.tau * self._enemy_time / period
+            )
             self.enemy.node.setPos(x, 8.0, 0.5)
 
         self._update_osd(task.time)
-        if self._replay_mode is not None and self._replay_elapsed >= self._replay_duration:
+        if (
+            self._replay_mode is not None
+            and self._replay_elapsed >= self._replay_duration
+        ):
             self.finalize_replay()
             import builtins
 
@@ -450,7 +500,10 @@ class TestTriggersSandbox(Test):
                 mayChange=True,
             )
         except Exception:
-            self.p("OSD not available in this environment; skipping telemetry overlay.", color="yellow")
+            self.p(
+                "OSD not available in this environment; skipping telemetry overlay.",
+                color="yellow",
+            )
             self.osd_instructions = None
             self.osd_telemetry = None
 
@@ -500,8 +553,12 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Trigger Zones Sandbox")
     parser.add_argument("--record", metavar="PATH", help="Record a replay to PATH.")
-    parser.add_argument("--replay", metavar="PATH", help="Replay a recorded scenario from PATH.")
-    parser.add_argument("--duration", type=float, default=5.0, help="Replay/record duration in seconds.")
+    parser.add_argument(
+        "--replay", metavar="PATH", help="Replay a recorded scenario from PATH."
+    )
+    parser.add_argument(
+        "--duration", type=float, default=5.0, help="Replay/record duration in seconds."
+    )
     args = parser.parse_args()
 
     app = Game()

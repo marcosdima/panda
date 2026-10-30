@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import builtins
 from abc import ABC
-from typing import TYPE_CHECKING, Any, Callable
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 from panda3d.core import NodePath
 
@@ -27,7 +28,6 @@ class Scene(ABC):
         self._owned_bodies: list[Any] = []
         self._owned_ghosts: list[Any] = []
         self.physics_debug: bool = False
-
 
     @property
     def is_started(self) -> bool:
@@ -72,6 +72,7 @@ class Scene(ABC):
         self.remove_task(name)
 
         if pauseable:
+
             def _wrapped(task: Any) -> int:
                 base = getattr(builtins, "base", None)
                 if getattr(base, "paused", False):
@@ -137,11 +138,13 @@ class Scene(ABC):
 
         if getattr(self, "physics_debug", False):
             try:
-                from src.globals.physics import Physics
-
                 import logging
 
-                logging.getLogger(__name__).info("Physics debug dump: %s", Physics.debug_dump())
+                from src.globals.physics import Physics
+
+                logging.getLogger(__name__).info(
+                    "Physics debug dump: %s", Physics.debug_dump()
+                )
             except Exception:
                 pass
 

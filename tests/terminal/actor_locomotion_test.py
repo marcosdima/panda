@@ -1,4 +1,5 @@
 """Headless test: ActorAnimationHandler locomotion FSM drives clip selection."""
+
 from types import SimpleNamespace
 
 import pytest
@@ -37,7 +38,9 @@ def make(clips=CLIPS):
         controller_node=object(),
         is_on_ground=True,
     )
-    h.entity = SimpleNamespace(get_handler=lambda cls: ctrl if cls is CharacterControllerHandler else None)
+    h.entity = SimpleNamespace(
+        get_handler=lambda cls: ctrl if cls is CharacterControllerHandler else None
+    )
     return h, ctrl
 
 
@@ -54,7 +57,7 @@ def test_idle_walk_run_jump_sequence():
     c.is_sprinting = True
     assert step(h) == ("Run", "Running_A")
     c.is_on_ground = False
-    assert step(h, 0.05)[0] == "Run"      # below air_threshold
+    assert step(h, 0.05)[0] == "Run"  # below air_threshold
     assert step(h, 0.2) == ("Jump", "Jump_Idle")
     c.is_on_ground = True
     c.linear_velocity = Vec3(0, 0, 0)
@@ -64,7 +67,7 @@ def test_idle_walk_run_jump_sequence():
 def test_clip_fallbacks_and_missing_jump():
     h, c = make(["Idle_A", "Running_A"])
     c.linear_velocity = Vec3(0, 2, 0)
-    assert step(h) == ("Walk", "Running_A")   # Walk falls back to Run
+    assert step(h) == ("Walk", "Running_A")  # Walk falls back to Run
     c.is_on_ground = False
     assert step(h, 0.5) == ("Walk", "Running_A")  # no Jump clip: ground logic
 
@@ -99,4 +102,5 @@ def test_cleanup_resets_state():
 
 if __name__ == "__main__":
     import sys
+
     sys.exit(pytest.main([__file__]))

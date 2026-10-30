@@ -14,12 +14,12 @@ handler becomes a no‑op, keeping unit tests deterministic.
 
 from __future__ import annotations
 
+import builtins
 import logging
 from typing import TYPE_CHECKING
 
-import builtins
+from direct.gui.DirectGui import DirectButton, DirectFrame
 from panda3d.core import WindowProperties
-from direct.gui.DirectGui import DirectFrame, DirectButton
 
 from src.handlers.base import Handler
 
@@ -44,7 +44,7 @@ class PauseHandler(Handler):
 
     _pause_key: str = "escape"  # can be changed to "p" if desired
 
-    def on_attach(self, entity: "Entity") -> None:
+    def on_attach(self, entity: Entity) -> None:
         """Store a reference to the owning entity and optionally the camera handler."""
         super().on_attach(entity)
         self.entity = entity

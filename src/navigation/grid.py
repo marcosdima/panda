@@ -122,7 +122,6 @@ class NavGrid:
 
         return GridPathfinder(self).find_path(start, goal)
 
-
     def neighbors(self, cell: tuple[int, int]) -> list[tuple[tuple[int, int], float]]:
         """Return (neighbour, cost) pairs for the four cardinal directions."""
         x, y = cell

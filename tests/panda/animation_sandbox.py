@@ -15,19 +15,21 @@ from typing import TYPE_CHECKING
 from panda3d.bullet import BulletBoxShape
 from panda3d.core import NodePath, Vec3
 
-from ..__test import Test
-from src.globals.lights import GlobalLights
 from src.globals.clock import GlobalClock
+from src.globals.lights import GlobalLights
 from src.globals.loader import GlobalLoader
 from src.globals.physics import Physics
+from src.handlers.graphics import ActorAnimationHandler
 from src.handlers.input import InputHandler
 from src.handlers.input.action_map import JUMP, SPRINT
-from src.handlers.graphics import ActorAnimationHandler
 from src.handlers.physics.character import CharacterControllerHandler
 from src.prefabs.builder import EntityBuilder
 
+from ..__test import Test
+
 if TYPE_CHECKING:
     from direct.gui.OnscreenText import OnscreenText
+
     from src.entities.entity import Entity
 
 
@@ -37,7 +39,7 @@ logger = logging.getLogger(__name__)
 class _PhaseState:
     """Single step of the scripted locomotion sequence."""
 
-    __slots__ = ("name", "move", "sprint", "duration")
+    __slots__ = ("duration", "move", "name", "sprint")
 
     def __init__(self, name: str, move: float, sprint: bool, duration: float) -> None:
         self.name: str = name
@@ -86,7 +88,10 @@ class TestAnimationSandbox(Test):
         GlobalLights.setup_default_lights()
 
         if self.base is None or getattr(self.base, "render", None) is None:
-            self.p("No graphics context available; animation sandbox needs a window.", color="yellow")
+            self.p(
+                "No graphics context available; animation sandbox needs a window.",
+                color="yellow",
+            )
             return
 
         self._build_environment()
@@ -123,13 +128,17 @@ class TestAnimationSandbox(Test):
             1.0,
         )
         if self.animation is not None:
-            self.expose_field("air_threshold (s)", self.animation, "air_threshold", 0.02, 1.0, 0.02)
+            self.expose_field(
+                "air_threshold (s)", self.animation, "air_threshold", 0.02, 1.0, 0.02
+            )
             for key in ("Idle->Walk", "Walk->Run", "Run->Walk", "Walk->Idle"):
                 self.expose_property(
                     f"{key} (s)",
-                    lambda k=key: self.animation.blend_durations.get(k, 0.0)
-                    if self.animation is not None
-                    else 0.0,
+                    lambda k=key: (
+                        self.animation.blend_durations.get(k, 0.0)
+                        if self.animation is not None
+                        else 0.0
+                    ),
                     lambda v, k=key: self._set_blend(k, v),
                     0.02,
                     0.60,
@@ -152,7 +161,11 @@ class TestAnimationSandbox(Test):
         self.p(" Wireframe: F12", color="magenta")
         self.p(" Pause: P     (toggle)", color="magenta")
         self.space_line()
-        self.p("Scripted Idle -> Walk -> Run -> Walk -> Idle cycle", color="cyan", bold=True)
+        self.p(
+            "Scripted Idle -> Walk -> Run -> Walk -> Idle cycle",
+            color="cyan",
+            bold=True,
+        )
         self.space_line()
 
     def _create_static_box(
@@ -311,8 +324,12 @@ class TestAnimationSandbox(Test):
         return 1.0 / 60.0
 
     def _on_frame_update(self, task):
-        dt = self._replay_dt() if self._replay_mode is not None else (
-            float(GlobalClock.get_dt()) if hasattr(GlobalClock, "get_dt") else 0.016
+        dt = (
+            self._replay_dt()
+            if self._replay_mode is not None
+            else (
+                float(GlobalClock.get_dt()) if hasattr(GlobalClock, "get_dt") else 0.016
+            )
         )
         try:
             if self._replay_mode is not None:
@@ -331,7 +348,10 @@ class TestAnimationSandbox(Test):
                 self.input_h.set_action_state(SPRINT, False)
             self._update_osd()
 
-            if self._replay_mode is not None and self._replay_elapsed >= self._replay_duration:
+            if (
+                self._replay_mode is not None
+                and self._replay_elapsed >= self._replay_duration
+            ):
                 self.finalize_replay()
                 base = getattr(__builtins__, "base", None) if False else None
                 import builtins
@@ -355,8 +375,14 @@ class TestAnimationSandbox(Test):
 
     def _advance_sequence(self, dt: float | None = None) -> None:
         if dt is None:
-            dt = self._replay_dt() if self._replay_mode is not None else (
-                float(GlobalClock.get_dt()) if hasattr(GlobalClock, "get_dt") else 0.016
+            dt = (
+                self._replay_dt()
+                if self._replay_mode is not None
+                else (
+                    float(GlobalClock.get_dt())
+                    if hasattr(GlobalClock, "get_dt")
+                    else 0.016
+                )
             )
         self._phase_time += dt
         phase = self._SEQUENCE[self._phase_index]
@@ -455,8 +481,12 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Animation State Sandbox")
     parser.add_argument("--record", metavar="PATH", help="Record a replay to PATH.")
-    parser.add_argument("--replay", metavar="PATH", help="Replay a recorded scenario from PATH.")
-    parser.add_argument("--duration", type=float, default=5.0, help="Replay/record duration in seconds.")
+    parser.add_argument(
+        "--replay", metavar="PATH", help="Replay a recorded scenario from PATH."
+    )
+    parser.add_argument(
+        "--duration", type=float, default=5.0, help="Replay/record duration in seconds."
+    )
     args = parser.parse_args()
 
     app = game.Game()

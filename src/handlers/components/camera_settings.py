@@ -23,11 +23,11 @@ code is required.
 
 from __future__ import annotations
 
+import builtins
 import logging
 from typing import TYPE_CHECKING
 
-import builtins
-from direct.gui.DirectGui import DirectFrame, DirectSlider, DirectLabel
+from direct.gui.DirectGui import DirectFrame, DirectLabel, DirectSlider
 
 from src.handlers.base import Handler
 
@@ -56,7 +56,7 @@ class CameraSettingsComponent(Handler):
         "offset_z": {"step": 0.05, "width": 0.4},
     }
 
-    def on_attach(self, entity: "Entity") -> None:
+    def on_attach(self, entity: Entity) -> None:
         super().on_attach(entity)
         self.entity = entity
         self._camera_handler: ThirdPersonCameraHandler | None = None
@@ -75,6 +75,7 @@ class CameraSettingsComponent(Handler):
 
         # Resolve the camera handler attached to the same entity.
         from src.handlers.camera.third_person import ThirdPersonCameraHandler
+
         self._camera_handler = self.entity.get_handler(ThirdPersonCameraHandler)  # type: ignore[arg-type]
         if self._camera_handler is None:
             logger.warning(
@@ -90,7 +91,9 @@ class CameraSettingsComponent(Handler):
         )
 
         # Helper to create a labelled slider.
-        def _make_slider(name: str, label: str, lo: float, hi: float, init: float, y: float):
+        def _make_slider(
+            name: str, label: str, lo: float, hi: float, init: float, y: float
+        ):
             # Label
             DirectLabel(
                 parent=self._panel,

@@ -1,5 +1,7 @@
 import pytest
+
 from src.utils.cooldown import Cooldown
+
 
 def test_initial_state_and_invalid_duration():
     # Positive duration
@@ -13,6 +15,7 @@ def test_initial_state_and_invalid_duration():
     with pytest.raises(ValueError):
         Cooldown(-1)
 
+
 def test_start_and_tick_behaviour():
     cd = Cooldown(2.0)
     cd.start()
@@ -24,6 +27,7 @@ def test_start_and_tick_behaviour():
     cd.tick(1.5)
     assert cd.ready
     assert cd.remaining == 0.0
+
 
 def test_reset_and_trigger():
     cd = Cooldown(1.0)
@@ -42,6 +46,7 @@ def test_reset_and_trigger():
     assert not cd.ready
     assert not cd.trigger()
 
+
 def test_duration_is_float():
     cd = Cooldown(3)  # int input
     assert isinstance(cd.duration, float)
@@ -52,4 +57,5 @@ def test_duration_is_float():
 
 if __name__ == "__main__":
     import sys
+
     sys.exit(pytest.main([__file__]))

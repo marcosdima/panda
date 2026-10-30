@@ -1,5 +1,4 @@
 from __future__ import annotations
-from src.utils.handler_phase import HandlerPhase
 
 from enum import Enum
 from typing import TYPE_CHECKING
@@ -9,6 +8,7 @@ from panda3d.core import Vec2, Vec3
 from src.handlers.base import Handler
 from src.handlers.input.action_map import SPRINT
 from src.handlers.input.base import InputHandler
+from src.utils.handler_phase import HandlerPhase
 from src.utils.position import world_position
 
 if TYPE_CHECKING:
@@ -67,7 +67,7 @@ class FollowHandler(Handler):
 
     def __init__(
         self,
-        target: "Entity | None" = None,
+        target: Entity | None = None,
         min_distance: float = 1.5,
         max_distance: float | None = None,
         stop_radius: float | None = None,
@@ -75,7 +75,7 @@ class FollowHandler(Handler):
         chase_sprint: bool = False,
     ) -> None:
         super().__init__()
-        self._target: "Entity | None" = target
+        self._target: Entity | None = target
         self._min_distance: float = float(min_distance)
         self._stop_radius: float = (
             self._min_distance if stop_radius is None else float(stop_radius)
@@ -89,7 +89,7 @@ class FollowHandler(Handler):
         self._last_move_vector: Vec2 = Vec2(0.0, 0.0)
 
     @property
-    def target(self) -> "Entity | None":
+    def target(self) -> Entity | None:
         """Current follow target, or None."""
         return self._target
 
@@ -138,7 +138,7 @@ class FollowHandler(Handler):
         """Last movement intent written to the entity's InputHandler."""
         return Vec2(self._last_move_vector)
 
-    def set_target(self, target: "Entity | None") -> None:
+    def set_target(self, target: Entity | None) -> None:
         """Set or clear the follow target."""
         self._target = target
 
@@ -192,7 +192,7 @@ class FollowHandler(Handler):
         return self._world_position(self._target)
 
     @staticmethod
-    def _world_position(entity: "Entity") -> Vec3:
+    def _world_position(entity: Entity) -> Vec3:
         """Return the world position of an entity (delegates to ``utils.position``)."""
         return world_position(entity)
 

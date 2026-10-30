@@ -9,7 +9,7 @@ import sys
 import pytest
 from direct.task.Task import TaskManager
 from panda3d.bullet import BulletBoxShape
-from panda3d.core import NodePath, Vec3
+from panda3d.core import Vec3
 
 from src.entities.entity import Entity
 from src.game import Game
@@ -30,7 +30,9 @@ from tests.__test import Test
 
 
 class _FakeControl:
-    def __init__(self, name: str, num_frames: int = 30, frame_rate: float = 30.0) -> None:
+    def __init__(
+        self, name: str, num_frames: int = 30, frame_rate: float = 30.0
+    ) -> None:
         self.name = name
         self._num_frames = num_frames
         self._frame_rate = frame_rate
@@ -106,7 +108,9 @@ def test_world_position_and_model_sync_for_dynamic_rigid_body() -> None:
         world.doPhysics(1.0 / 60.0)
 
     fallen_pos = world_position(entity)
-    assert fallen_pos.z < 4.0, f"Expected dynamic body to fall below z=4.0, got {fallen_pos}"
+    assert fallen_pos.z < 4.0, (
+        f"Expected dynamic body to fall below z=4.0, got {fallen_pos}"
+    )
     model_net_pos = model_handler.model_np.getNetTransform().getPos()
     assert (model_net_pos - fallen_pos).length() < 1e-4
 
@@ -211,19 +215,28 @@ def test_actor_one_shot_action_override() -> None:
     controller = CharacterControllerHandler(walk_speed=5.0)
     actor = ActorAnimationHandler(
         animations={},
-        state_clips={"Idle": "Idle_A", "Walk": "Walking_A", "Run": "Running_A", "Jump": "Jump_Idle"},
+        state_clips={
+            "Idle": "Idle_A",
+            "Walk": "Walking_A",
+            "Run": "Running_A",
+            "Jump": "Jump_Idle",
+        },
         blend_duration=0.0,
     )
     entity.add_handler(inp)
     entity.add_handler(controller)
     entity.add_handler(actor)
-    actor.anim_controls = _FakeAnimCollection(("Idle_A", "Walking_A", "Running_A", "Interact"))  # type: ignore[assignment]
+    actor.anim_controls = _FakeAnimCollection(
+        ("Idle_A", "Walking_A", "Running_A", "Interact")
+    )  # type: ignore[assignment]
     entity.start()
 
     assert actor.current_animation == "Idle_A"
     completed: list[str] = []
 
-    assert actor.play_action("Interact", duration=0.20, on_complete=lambda: completed.append("done"))
+    assert actor.play_action(
+        "Interact", duration=0.20, on_complete=lambda: completed.append("done")
+    )
     assert actor.is_playing_action is True
     assert actor.current_animation == "Interact"
 
@@ -275,7 +288,9 @@ def test_scene_root_np_registered_bodies_and_pauseable_tasks() -> None:
 
         fake_base.paused = True
         manager.step()
-        assert len(ticks) == 1, "Pauseable scene task must not run while base.paused is True"
+        assert len(ticks) == 1, (
+            "Pauseable scene task must not run while base.paused is True"
+        )
 
         fake_base.paused = False
         manager.step()
@@ -297,7 +312,9 @@ def test_sandbox_inspector_live_field_editing_and_auto_discovery() -> None:
     """Test sandbox inspector discovers handler fields and mutates numeric/bool/action fields."""
     sandbox = Test()
     hero = Entity("InspectorHero")
-    controller = CharacterControllerHandler(walk_speed=6.0, sprint_speed=12.0, gravity=14.0)
+    controller = CharacterControllerHandler(
+        walk_speed=6.0, sprint_speed=12.0, gravity=14.0
+    )
     ai = AIPatrolHandler(sight_range=8.0, chase_sprint=True)
     hero.add_handler(controller)
     hero.add_handler(ai)

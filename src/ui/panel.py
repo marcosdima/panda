@@ -40,8 +40,6 @@ class UIPanel(UIComponent):
             pos=self._pos,
         )
 
-        from panda3d.core import NodePath
-
         self.content_parent = frame.attachNewNode("panel_content")
         self.content_parent.setPos(0.0, 0.0, 0.0)
 

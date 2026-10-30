@@ -1,5 +1,4 @@
 from __future__ import annotations
-from src.utils.handler_phase import HandlerPhase
 
 from panda3d.bullet import BulletGhostNode, BulletShape
 from panda3d.core import NodePath, TransformState
@@ -8,6 +7,8 @@ from src.entities.entity import Entity
 from src.globals.physics import Physics
 from src.handlers.base import Handler
 from src.utils.event import Event
+from src.utils.handler_phase import HandlerPhase
+
 from .groups import CameraCollision, CollisionGroup, resolve_collision_group
 
 
@@ -35,8 +36,12 @@ class TriggerZoneHandler(Handler):
     ) -> None:
         super().__init__()
         self.shape: BulletShape = shape
-        self.target_groups: set[CollisionGroup] = set(target_groups) if target_groups else set()
-        self.avoid_groups: set[CollisionGroup] = set(avoid_groups) if avoid_groups else set()
+        self.target_groups: set[CollisionGroup] = (
+            set(target_groups) if target_groups else set()
+        )
+        self.avoid_groups: set[CollisionGroup] = (
+            set(avoid_groups) if avoid_groups else set()
+        )
         self.ghost_node: BulletGhostNode | None = None
         self.ghost_np: NodePath | None = None
         self._is_attached_to_world: bool = False
@@ -91,7 +96,9 @@ class TriggerZoneHandler(Handler):
     def on_start(self) -> None:
         """Called when active scene or entity starts."""
         super().on_start()
-        if self.entity is not None and (self.ghost_np is None or self.ghost_np.isEmpty()):
+        if self.entity is not None and (
+            self.ghost_np is None or self.ghost_np.isEmpty()
+        ):
             if self.ghost_node is not None:
                 self.ghost_np = self.entity.node.attachNewNode(self.ghost_node)
                 self._last_parent_net = self.ghost_np.getParent().getNetTransform()

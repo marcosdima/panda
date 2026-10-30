@@ -1,9 +1,11 @@
 from __future__ import annotations
-from src.utils.handler_phase import HandlerPhase
 
 import builtins
 from typing import TYPE_CHECKING
+
 from panda3d.core import Vec2
+
+from src.utils.handler_phase import HandlerPhase
 
 from .action_map import (
     MOVE_BACK,
@@ -25,7 +27,9 @@ class WASDInputHandler(InputHandler):
 
     def __init__(self, action_map: ActionMap | None = None) -> None:
         super().__init__()
-        self.action_map: ActionMap = action_map if action_map is not None else ActionMap.default()
+        self.action_map: ActionMap = (
+            action_map if action_map is not None else ActionMap.default()
+        )
 
     def _get_mouse_watcher(self):
         """Retrieve MouseWatcher node if engine is initialized with an active window/input node."""

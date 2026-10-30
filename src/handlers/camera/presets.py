@@ -8,11 +8,13 @@ Defines standard camera presets for 3D games:
 """
 
 from __future__ import annotations
-from src.utils.handler_phase import HandlerPhase
 
 from dataclasses import dataclass
 from enum import Enum
+
 from panda3d.core import Vec3
+
+from src.utils.handler_phase import HandlerPhase
 
 
 class PresetName(str, Enum):

@@ -11,9 +11,9 @@ from .scroll import UIScrollContainer
 from .theme import UITheme
 
 __all__ = [
-    "UIComponent",
     "UIButton",
     "UIColumn",
+    "UIComponent",
     "UIGrid",
     "UIList",
     "UIPanel",

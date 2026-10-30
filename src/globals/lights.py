@@ -1,4 +1,5 @@
 from panda3d.core import AmbientLight, DirectionalLight, NodePath
+
 from .__global import Global
 
 
@@ -24,7 +25,7 @@ class GlobalLights(Global):
         """Setup default lighting for the scene (ambient + directional with shadow casting)."""
         base = cls.get_instance().base
         if base is None or not hasattr(base, "render") or base.render is None:
-            return None
+            return
         render = base.render
 
         # Remove existing active lights to avoid node accumulation

@@ -14,11 +14,15 @@ from __future__ import annotations
 
 import math
 from typing import TYPE_CHECKING, Any
+
 from panda3d.bullet import BulletBoxShape
 from panda3d.core import NodePath, Vec3
 
-from ..__test import Test
 from src.entities.entity import Entity
+from src.globals.clock import GlobalClock
+from src.globals.lights import GlobalLights
+from src.globals.loader import GlobalLoader
+from src.globals.physics import Physics
 from src.handlers.camera import (
     ADVENTURE_PRESET,
     ISOMETRIC_PRESET,
@@ -28,13 +32,12 @@ from src.handlers.camera import (
 )
 from src.handlers.graphics import ActorAnimationHandler
 from src.handlers.input.wasd import WASDInputHandler
-from src.handlers.physics.character import CharacterControllerHandler, CharacterOrientationMode
+from src.handlers.physics.character import (
+    CharacterControllerHandler,
+    CharacterOrientationMode,
+)
 
-from src.globals.camera import Camera
-from src.globals.clock import GlobalClock
-from src.globals.lights import GlobalLights
-from src.globals.loader import GlobalLoader
-from src.globals.physics import Physics
+from ..__test import Test
 
 if TYPE_CHECKING:
     from direct.gui.OnscreenText import OnscreenText
@@ -53,7 +56,6 @@ class TestCharacterSandbox(Test):
         self.input_handler: WASDInputHandler | None = None
         self.camera_handler: ThirdPersonCameraHandler | None = None
         self.actor_handler: ActorAnimationHandler | None = None
-
 
         # Environment tracking for clean teardown
         self.static_bodies: list[str] = []
@@ -104,39 +106,86 @@ class TestCharacterSandbox(Test):
         if self.controller is not None:
             self.expose_toggle(
                 "Body Follows Cam Yaw",
-                lambda: self.controller.body_follows_camera_yaw if self.controller else False,
-                lambda v: setattr(self.controller, "body_follows_camera_yaw", bool(v)) if self.controller else None,
+                lambda: (
+                    self.controller.body_follows_camera_yaw
+                    if self.controller
+                    else False
+                ),
+                lambda v: (
+                    setattr(self.controller, "body_follows_camera_yaw", bool(v))
+                    if self.controller
+                    else None
+                ),
             )
         self.expose_action("Cycle Camera Preset (C)", self._cycle_camera_preset)
         if self.actor_handler is not None:
             self.expose_action(
                 "Action: Interact",
-                lambda: self.actor_handler.play_action("Interact") if self.actor_handler else None,
+                lambda: (
+                    self.actor_handler.play_action("Interact")
+                    if self.actor_handler
+                    else None
+                ),
             )
 
     def _print_controls_banner(self) -> None:
         """Print formatted ANSI startup banner with control instructions."""
         self.print_subtitle("Interactive Controls & Mechanics", color="yellow")
-        self.p(" Character:     KayKit Knight with animated Idle/Walk/Run/Jump & camera-relative navigation", color="cyan", bold=True)
-        self.p(" Controls:      WASD: Move | SPACE: Jump | LSHIFT: Sprint | Mouse: Look | Tab/Esc: Cursor | Wheel: Zoom | F12: Wireframe", color="cyan", bold=True)
+        self.p(
+            " Character:     KayKit Knight with animated Idle/Walk/Run/Jump & camera-relative navigation",
+            color="cyan",
+            bold=True,
+        )
+        self.p(
+            " Controls:      WASD: Move | SPACE: Jump | LSHIFT: Sprint | Mouse: Look | Tab/Esc: Cursor | Wheel: Zoom | F12: Wireframe",
+            color="cyan",
+            bold=True,
+        )
         self.p(" Movement:      [W, A, S, D] or Arrow Keys", color="green", bold=True)
-        self.p(" Jump:          [Spacebar] (only while grounded)", color="green", bold=True)
-        self.p(" Sprint:        [Left Shift] (12.0 m/s vs 6.0 m/s walk)", color="green", bold=True)
-        self.p(" Camera Presets:[1] Adventure/Orbit | [2] Over-Shoulder Shooter | [3] Isometric | [4] Top-Down | [C] Cycle", color="green", bold=True)
-        self.p(" Body Mode:     [B] Toggle Movement-Dir vs Camera-Look orientation", color="green", bold=True)
-        self.p(" Look / Cursor: [Mouse] Direct Look | [Tab] Toggle Lock | [Esc] Unlock | [LMB] Lock", color="green", bold=True)
+        self.p(
+            " Jump:          [Spacebar] (only while grounded)", color="green", bold=True
+        )
+        self.p(
+            " Sprint:        [Left Shift] (12.0 m/s vs 6.0 m/s walk)",
+            color="green",
+            bold=True,
+        )
+        self.p(
+            " Camera Presets:[1] Adventure/Orbit | [2] Over-Shoulder Shooter | [3] Isometric | [4] Top-Down | [C] Cycle",
+            color="green",
+            bold=True,
+        )
+        self.p(
+            " Body Mode:     [B] Toggle Movement-Dir vs Camera-Look orientation",
+            color="green",
+            bold=True,
+        )
+        self.p(
+            " Look / Cursor: [Mouse] Direct Look | [Tab] Toggle Lock | [Esc] Unlock | [LMB] Lock",
+            color="green",
+            bold=True,
+        )
         self.p(" Zoom:          [Mouse Wheel] Zoom in/out", color="green", bold=True)
-        self.p(" Wireframe:     [F12] Toggle Bullet debug visualization", color="magenta", bold=True)
+        self.p(
+            " Wireframe:     [F12] Toggle Bullet debug visualization",
+            color="magenta",
+            bold=True,
+        )
 
         self.space_line()
         self.p("Test Course Layout:", color="cyan", bold=True)
         self.p(" - Stairs 0.2m: Smooth step climbing test", color="cyan")
         self.p(" - Stairs 0.4m: Controller step height threshold test", color="cyan")
         self.p(" - Stairs 0.6m: Obstacle test (requires jump)", color="cyan")
-        self.p(" - Ramp 15 deg: Low-incline slope leading to elevated platform", color="cyan")
+        self.p(
+            " - Ramp 15 deg: Low-incline slope leading to elevated platform",
+            color="cyan",
+        )
         self.p(" - Ramp 30 deg: Medium-incline slope test", color="cyan")
         self.p(" - Ramp 45 deg: Critical-incline slope / slide test", color="cyan")
-        self.p(" - Elevated Platform at Z=2.0m: Accessible via stairs/ramps", color="cyan")
+        self.p(
+            " - Elevated Platform at Z=2.0m: Accessible via stairs/ramps", color="cyan"
+        )
         self.space_line()
 
     def _create_static_box(
@@ -390,7 +439,10 @@ class TestCharacterSandbox(Test):
             )
         except Exception:
             # Gracefully ignore in non-graphical environments where OnscreenText is not supported
-            self.p("OSD not available in this environment; skipping telemetry overlay.", color="yellow")
+            self.p(
+                "OSD not available in this environment; skipping telemetry overlay.",
+                color="yellow",
+            )
             self.osd_instructions = None
             self.osd_telemetry = None
 
@@ -401,7 +453,11 @@ class TestCharacterSandbox(Test):
             self.current_preset_name = ADVENTURE_PRESET.name
         if self.controller is not None:
             self.controller.orientation_mode = CharacterOrientationMode.MOVE_DIRECTION
-        self.p(f"[Camera Preset] {ADVENTURE_PRESET.name} | Body: MOVE_DIRECTION", color="cyan", bold=True)
+        self.p(
+            f"[Camera Preset] {ADVENTURE_PRESET.name} | Body: MOVE_DIRECTION",
+            color="cyan",
+            bold=True,
+        )
 
     def _set_preset_shooter(self) -> None:
         """Switch to Over-The-Shoulder Shooter camera preset."""
@@ -410,7 +466,11 @@ class TestCharacterSandbox(Test):
             self.current_preset_name = SHOOTER_PRESET.name
         if self.controller is not None:
             self.controller.orientation_mode = CharacterOrientationMode.CAMERA_LOOK
-        self.p(f"[Camera Preset] {SHOOTER_PRESET.name} | Body: CAMERA_LOOK", color="cyan", bold=True)
+        self.p(
+            f"[Camera Preset] {SHOOTER_PRESET.name} | Body: CAMERA_LOOK",
+            color="cyan",
+            bold=True,
+        )
 
     def _set_preset_isometric(self) -> None:
         """Switch to Isometric Strategy camera preset."""
@@ -419,7 +479,11 @@ class TestCharacterSandbox(Test):
             self.current_preset_name = ISOMETRIC_PRESET.name
         if self.controller is not None:
             self.controller.orientation_mode = CharacterOrientationMode.MOVE_DIRECTION
-        self.p(f"[Camera Preset] {ISOMETRIC_PRESET.name} | Body: MOVE_DIRECTION", color="cyan", bold=True)
+        self.p(
+            f"[Camera Preset] {ISOMETRIC_PRESET.name} | Body: MOVE_DIRECTION",
+            color="cyan",
+            bold=True,
+        )
 
     def _set_preset_overhead(self) -> None:
         """Switch to Top-Down Overhead camera preset."""
@@ -428,7 +492,11 @@ class TestCharacterSandbox(Test):
             self.current_preset_name = OVERHEAD_PRESET.name
         if self.controller is not None:
             self.controller.orientation_mode = CharacterOrientationMode.MOVE_DIRECTION
-        self.p(f"[Camera Preset] {OVERHEAD_PRESET.name} | Body: MOVE_DIRECTION", color="cyan", bold=True)
+        self.p(
+            f"[Camera Preset] {OVERHEAD_PRESET.name} | Body: MOVE_DIRECTION",
+            color="cyan",
+            bold=True,
+        )
 
     def _cycle_camera_preset(self) -> None:
         """Cycle sequentially through all available standard camera presets."""
@@ -491,14 +559,22 @@ class TestCharacterSandbox(Test):
             else "MOV-DIR"
         )
         cam_preset = getattr(self, "current_preset_name", "Custom")
-        locomotion = str(self.actor_handler.locomotion.state) if self.actor_handler is not None else "-"
-        clip = (self.actor_handler.current_animation if self.actor_handler is not None else None) or "-"
+        locomotion = (
+            str(self.actor_handler.locomotion.state)
+            if self.actor_handler is not None
+            else "-"
+        )
+        clip = (
+            self.actor_handler.current_animation
+            if self.actor_handler is not None
+            else None
+        ) or "-"
 
         # Update OnscreenText OSD
         if self.osd_telemetry is not None:
             self.osd_telemetry.setText(
                 f"Camera: {cam_preset} | Body: {body_mode} | Pos: ({world_pos.x:6.2f}, {world_pos.y:6.2f}, {world_pos.z:6.2f})\n"
-                f"Speed: {speed:4.1f} m/s ({mode}) | Ground: {str(is_on_ground):5} | CanJump: {str(can_jump):5} | Debug: {wireframe}\n"
+                f"Speed: {speed:4.1f} m/s ({mode}) | Ground: {is_on_ground!s:5} | CanJump: {can_jump!s:5} | Debug: {wireframe}\n"
                 f"Locomotion: {locomotion:6} | Clip: {clip}"
             )
 
@@ -545,7 +621,6 @@ class TestCharacterSandbox(Test):
         self.controller = None
         self.input_handler = None
         self.camera_handler = None
-
 
         # 5. Clear global lights to prevent orphaned light nodes
         GlobalLights.clear_lights()

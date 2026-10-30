@@ -1,13 +1,14 @@
 from __future__ import annotations
-from src.utils.handler_phase import HandlerPhase
 
 import logging
 from typing import TYPE_CHECKING
+
 from panda3d.core import NodePath, Vec3
 
 from config import ASSETS_PATH
 from src.globals.loader import GlobalLoader
 from src.handlers.base import Handler
+from src.utils.handler_phase import HandlerPhase
 
 if TYPE_CHECKING:
     from src.entities.entity import Entity

@@ -6,16 +6,19 @@ Typical usage in ``src/game.py``::
     initialize_services()
 """
 
-from src.services import services
+from src.globals.camera import Camera
+from src.globals.clock import GlobalClock
+from src.globals.lights import GlobalLights
+from src.globals.loader import GlobalLoader
+
 # Import the concrete global singletons (they will be thin wrappers after modification)
 from src.globals.physics import Physics
-from src.globals.loader import GlobalLoader
-from src.globals.camera import Camera
-from src.globals.lights import GlobalLights
 from src.globals.tasks import Tasks
-from src.globals.clock import GlobalClock
+from src.services import services
+
 # Engine-wide event bus (owner-less / cross-entity communication).
 from src.utils import bus
+
 
 def initialize_services() -> None:
     """Register core engine services.

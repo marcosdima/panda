@@ -1,5 +1,7 @@
 import pytest
-from src.utils.math import clamp, lerp, smoothstep, normalize_angle, lerp_angle, remap
+
+from src.utils.math import clamp, lerp, lerp_angle, normalize_angle, remap, smoothstep
+
 
 def test_clamp_basic():
     assert clamp(5, 0, 10) == 5.0
@@ -12,6 +14,7 @@ def test_clamp_basic():
         clamp(5, 10, 0)
     assert clamp(5, 3, 3) == 3.0
 
+
 def test_lerp_basic():
     assert lerp(0, 10, 0.0) == 0.0
     assert lerp(0, 10, 1.0) == 10.0
@@ -19,6 +22,7 @@ def test_lerp_basic():
     # Out‑of‑range t works (no clamping)
     assert lerp(0, 10, -0.5) == -5.0
     assert lerp(0, 10, 1.5) == 15.0
+
 
 def test_smoothstep_basic():
     # Classic smoothstep from 0 to 1
@@ -63,4 +67,5 @@ def test_smoothstep_inverted_edges():
 
 if __name__ == "__main__":
     import sys
+
     sys.exit(pytest.main([__file__]))

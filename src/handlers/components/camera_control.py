@@ -25,10 +25,10 @@ reflected in the next camera update.
 
 from __future__ import annotations
 
+import builtins
 import logging
 from typing import TYPE_CHECKING
 
-import builtins
 from direct.gui.DirectGui import DirectButton
 
 from src.handlers.base import Handler
@@ -49,7 +49,7 @@ class CameraControlComponent(Handler):
 
     _increment: float = 0.5  #: Step size for each button press.
 
-    def on_attach(self, entity: "Entity") -> None:  # noqa: D401
+    def on_attach(self, entity: Entity) -> None:
         """Store a reference to the owning *entity*.
 
         The base implementation registers the entity pointer; we also keep a

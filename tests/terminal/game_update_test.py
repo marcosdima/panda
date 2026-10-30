@@ -1,4 +1,5 @@
 """Headless tests for Game's centralized scene update dispatch (no ShowBase window)."""
+
 import pytest
 
 from src.game import Game
@@ -70,4 +71,5 @@ def test_switching_scene_stops_previous_and_updates_only_new():
 
 if __name__ == "__main__":
     import sys
+
     sys.exit(pytest.main([__file__]))

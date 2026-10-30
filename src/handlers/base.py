@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import TYPE_CHECKING, ClassVar, Sequence
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, ClassVar
 
 if TYPE_CHECKING:
     from src.entities.entity import Entity
@@ -25,12 +26,12 @@ class Handler(ABC):
     """
 
     phase: ClassVar[HandlerPhase] = HandlerPhase.NORMAL
-    requires: ClassVar[Sequence[type["Handler"]]] = ()
-    optional_requires: ClassVar[Sequence[type["Handler"]]] = ()
+    requires: ClassVar[Sequence[type[Handler]]] = ()
+    optional_requires: ClassVar[Sequence[type[Handler]]] = ()
     provides: ClassVar[Sequence[type]] = ()
 
     def __init__(self) -> None:
-        self.entity: "Entity | None" = None
+        self.entity: Entity | None = None
         self._enabled: bool = True
 
     @property
@@ -42,7 +43,7 @@ class Handler(ABC):
         """Enable or disable this handler."""
         self._enabled = enabled
 
-    def on_attach(self, entity: "Entity") -> None:
+    def on_attach(self, entity: Entity) -> None:
         """Called when this handler is added to an entity."""
         self.entity = entity
 
@@ -52,25 +53,21 @@ class Handler(ABC):
 
     def on_start(self) -> None:
         """Called when the scene starts or the entity is activated."""
-        pass
 
     def on_update(self, dt: float) -> None:
         """Frame update hook called every tick if the handler is enabled."""
-        pass
 
     def on_post_update(self, dt: float) -> None:
         """Called after the physics step, for handlers that need the final frame positions."""
-        pass
 
     def on_stop(self) -> None:
         """Called when the scene stops or the entity is deactivated."""
-        pass
 
     def provides_capabilities(self) -> Sequence[type]:
         """Return the capabilities exposed by this handler."""
         return tuple(self.provides)
 
-    def missing_requirements(self, entity: "Entity") -> list[type]:
+    def missing_requirements(self, entity: Entity) -> list[type]:
         """Return required handler types not currently attached to *entity*."""
         missing: list[type] = []
         for required in self.requires:
