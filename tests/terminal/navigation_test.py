@@ -163,3 +163,93 @@ def test_graph_pathfinding():
     entity.update(0.1)
     assert ai.current_path
     assert len(ai.current_path) >= 2
+
+
+def test_navigation_remember_last_target_true_keeps_last_seen_position():
+    target = Entity("Player")
+    target.node.setPos(3, 0, 0)
+    entity, _, ai, _ = make_nav(
+        waypoints=[Vec3(-10, 0, 0)],
+        target=target,
+        sight_range=8.0,
+        lose_range=12.0,
+        search_time=1.0,
+        remember_last_target=True,
+    )
+    entity.update(0.1)
+    assert ai.state == NavigationState.CHASE
+    assert ai.last_known_target is not None
+    assert ai.last_known_target.x == pytest.approx(3.0)
+
+    target.node.setPos(50, 0, 0)
+    entity.update(0.1)
+    assert ai.state == NavigationState.SEARCH
+    assert ai.last_known_target is not None
+    assert ai.last_known_target.x == pytest.approx(3.0)
+
+
+def test_navigation_remember_last_target_false_aims_at_current_position():
+    target = Entity("Player")
+    target.node.setPos(3, 0, 0)
+    entity, _, ai, _ = make_nav(
+        waypoints=[Vec3(-10, 0, 0)],
+        target=target,
+        sight_range=8.0,
+        lose_range=12.0,
+        search_time=1.0,
+        remember_last_target=False,
+    )
+    entity.update(0.1)
+    assert ai.state == NavigationState.CHASE
+
+    target.node.setPos(50, 0, 0)
+    entity.update(0.1)
+    assert ai.state == NavigationState.SEARCH
+    assert ai.last_known_target is not None
+    assert ai.last_known_target.x == pytest.approx(50.0)
+
+
+def test_navigation_search_uses_pathfinding_flag_is_respected():
+    grid = NavGrid(40, 40, 1.0, origin=Vec3(-20, -20, 0))
+    target = Entity("Player")
+    target.node.setPos(3, 0, 0)
+    entity, _, ai, _ = make_nav(
+        waypoints=[Vec3(-10, 0, 0)],
+        grid=grid,
+        target=target,
+        sight_range=8.0,
+        lose_range=12.0,
+        search_time=1.0,
+        remember_last_target=True,
+        search_uses_pathfinding=True,
+    )
+    entity.update(0.1)
+    assert ai.state == NavigationState.CHASE
+
+    target.node.setPos(50, 0, 0)
+    entity.update(0.1)
+    assert ai.state == NavigationState.SEARCH
+    assert ai.search_uses_pathfinding is True
+    assert ai.current_path
+
+
+def test_navigation_search_direct_mode_does_not_require_path():
+    target = Entity("Player")
+    target.node.setPos(3, 0, 0)
+    entity, _, ai, _ = make_nav(
+        waypoints=[Vec3(-10, 0, 0)],
+        target=target,
+        sight_range=8.0,
+        lose_range=12.0,
+        search_time=1.0,
+        remember_last_target=True,
+        search_uses_pathfinding=False,
+        nav_grid=None,
+    )
+    entity.update(0.1)
+    assert ai.state == NavigationState.CHASE
+
+    target.node.setPos(50, 0, 0)
+    entity.update(0.1)
+    assert ai.state == NavigationState.SEARCH
+    assert ai.search_uses_pathfinding is False
