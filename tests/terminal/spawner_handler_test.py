@@ -131,9 +131,7 @@ def test_spawn_on_enter_adds_entity_to_scene():
 
     factory = _Factory()
     spawner_entity = _make_zone_entity("Spawner")
-    spawner_entity.add_handler(
-        SpawnerHandler(entity_factory=factory, scene=scene, spawn_on_enter=True)
-    )
+    spawner_entity.add_handler(SpawnerHandler(entity_factory=factory, scene=scene, spawn_on_enter=True))
     scene.add_entity(spawner_entity)
 
     target_entity = _make_static_target("Target")
@@ -143,9 +141,7 @@ def test_spawn_on_enter_adds_entity_to_scene():
     world.doPhysics(DT)
     spawner_entity.update(DT)
 
-    assert factory.call_count == 1, (
-        f"Expected exactly one spawn, got {factory.call_count}"
-    )
+    assert factory.call_count == 1, f"Expected exactly one spawn, got {factory.call_count}"
     spawner_handler = spawner_entity.get_handler(SpawnerHandler)
     assert spawner_handler is not None
     assert len(spawner_handler.spawned_entities) == 1
@@ -248,9 +244,7 @@ def test_spawn_on_enter_false_only_spawns_manually():
 
     world.doPhysics(DT)
     spawner_entity.update(DT)
-    assert factory.call_count == 0, (
-        "No spawn without manual call when spawn_on_enter=False"
-    )
+    assert factory.call_count == 0, "No spawn without manual call when spawn_on_enter=False"
 
     spawner_handler = spawner_entity.get_handler(SpawnerHandler)
     spawned = spawner_handler.spawn()
@@ -265,9 +259,7 @@ def test_clear_spawned_frees_all_tracked_entities():
 
     factory = _Factory()
     spawner_entity = _make_zone_entity("Spawner")
-    spawner_entity.add_handler(
-        SpawnerHandler(entity_factory=factory, scene=scene, spawn_on_enter=True)
-    )
+    spawner_entity.add_handler(SpawnerHandler(entity_factory=factory, scene=scene, spawn_on_enter=True))
     scene.add_entity(spawner_entity)
 
     target_entity = _make_static_target("Target")
@@ -295,9 +287,7 @@ def test_on_stop_frees_tracked_spawns():
 
     factory = _Factory()
     spawner_entity = _make_zone_entity("Spawner")
-    spawner_entity.add_handler(
-        SpawnerHandler(entity_factory=factory, scene=scene, spawn_on_enter=True)
-    )
+    spawner_entity.add_handler(SpawnerHandler(entity_factory=factory, scene=scene, spawn_on_enter=True))
     scene.add_entity(spawner_entity)
 
     target_entity = _make_static_target("Target")
@@ -430,9 +420,7 @@ def test_subscription_is_symmetric_across_stop_start():
 
     factory = _Factory()
     spawner_entity = _make_zone_entity("Spawner")
-    spawner_handler = SpawnerHandler(
-        entity_factory=factory, scene=scene, spawn_on_enter=True
-    )
+    spawner_handler = SpawnerHandler(entity_factory=factory, scene=scene, spawn_on_enter=True)
     spawner_entity.add_handler(spawner_handler)
     scene.add_entity(spawner_entity)
 
@@ -511,9 +499,7 @@ def test_remove_handler_from_started_entity_frees_spawns():
 
     factory = _Factory()
     spawner_entity = _make_zone_entity("Spawner")
-    spawner_handler = SpawnerHandler(
-        entity_factory=factory, scene=scene, spawn_on_enter=True
-    )
+    spawner_handler = SpawnerHandler(entity_factory=factory, scene=scene, spawn_on_enter=True)
     spawner_entity.add_handler(spawner_handler)
     scene.add_entity(spawner_entity)
 
@@ -565,9 +551,7 @@ def test_clear_spawned_deregisters_a_spawn_freed_elsewhere():
 
     factory = _Factory()
     spawner_entity = _make_zone_entity("Spawner")
-    spawner_handler = SpawnerHandler(
-        entity_factory=factory, scene=scene, spawn_on_enter=False
-    )
+    spawner_handler = SpawnerHandler(entity_factory=factory, scene=scene, spawn_on_enter=False)
     spawner_entity.add_handler(spawner_handler)
 
     spawned = spawner_handler.spawn()
@@ -580,9 +564,7 @@ def test_clear_spawned_deregisters_a_spawn_freed_elsewhere():
 
     spawner_handler.clear_spawned()
 
-    assert scene.get_entity(spawned_id) is None, (
-        "clear_spawned must deregister stale spawns"
-    )
+    assert scene.get_entity(spawned_id) is None, "clear_spawned must deregister stale spawns"
     assert spawner_handler.spawned_entities == []
 
 
@@ -596,9 +578,7 @@ def test_freed_spawn_is_pruned_and_never_stops_recycled_entity():
 
     factory = _Factory()
     spawner_entity = _make_zone_entity("Spawner")
-    spawner_handler = SpawnerHandler(
-        entity_factory=factory, scene=scene, spawn_on_enter=False
-    )
+    spawner_handler = SpawnerHandler(entity_factory=factory, scene=scene, spawn_on_enter=False)
     spawner_entity.add_handler(spawner_handler)
 
     first = spawner_handler.spawn()
@@ -617,9 +597,7 @@ def test_freed_spawn_is_pruned_and_never_stops_recycled_entity():
 
     spawner_handler.clear_spawned()
 
-    assert not unrelated.is_freed, (
-        "clear_spawned must not stop an entity that reused the id"
-    )
+    assert not unrelated.is_freed, "clear_spawned must not stop an entity that reused the id"
     assert scene.get_entity(first_id) is unrelated
 
 
@@ -630,9 +608,7 @@ def test_disabled_spawner_ignores_enter_until_reenabled():
 
     factory = _Factory()
     spawner_entity = _make_zone_entity("Spawner")
-    spawner_handler = SpawnerHandler(
-        entity_factory=factory, scene=scene, spawn_on_enter=True
-    )
+    spawner_handler = SpawnerHandler(entity_factory=factory, scene=scene, spawn_on_enter=True)
     spawner_entity.add_handler(spawner_handler)
     scene.add_entity(spawner_entity)
 

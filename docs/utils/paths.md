@@ -5,7 +5,8 @@
 
 ```python
 from src.utils import resolve_asset_path
-resolve_asset_path('models', 'panda.glb')
+
+resolve_asset_path("models", "panda.glb")
 ```
 
 Source: `src/utils/paths.py`

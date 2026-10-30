@@ -93,37 +93,24 @@ class TestFirstPersonCameraSandbox(Test):
         if self.controller is not None:
             self.expose_toggle(
                 "Body Follows Cam Yaw (B)",
-                lambda: (
-                    self.controller.body_follows_camera_yaw
-                    if self.controller
-                    else False
-                ),
-                lambda v: (
-                    setattr(self.controller, "body_follows_camera_yaw", bool(v))
-                    if self.controller
-                    else None
-                ),
+                lambda: self.controller.body_follows_camera_yaw if self.controller else False,
+                lambda v: setattr(self.controller, "body_follows_camera_yaw", bool(v)) if self.controller else None,
             )
         if self.tp_handler is not None:
-            self.expose_field(
-                "TP Distance", self.tp_handler, "distance", 1.5, 20.0, 0.5
-            )
-            self.expose_field(
-                "TP Smooth Speed", self.tp_handler, "smooth_speed", 0.0, 25.0, 1.0
-            )
+            self.expose_field("TP Distance", self.tp_handler, "distance", 1.5, 20.0, 0.5)
+            self.expose_field("TP Smooth Speed", self.tp_handler, "smooth_speed", 0.0, 25.0, 1.0)
 
     def _print_controls_banner(self) -> None:
         """Print formatted ANSI startup banner with control instructions."""
         self.print_subtitle("Interactive Controls & Mechanics", color="yellow")
         self.p(
-            " Controls:      WASD: Move | SPACE: Jump | LSHIFT: Sprint | Mouse: Look | V: Toggle Camera | Tab/Esc: Cursor | F12: Wireframe",
+            " Controls:      WASD: Move | SPACE: Jump | LSHIFT: Sprint | Mouse: Look | "
+            "V: Toggle Camera | Tab/Esc: Cursor | F12: Wireframe",
             color="cyan",
             bold=True,
         )
         self.p(" Movement:      [W, A, S, D] or Arrow Keys", color="green", bold=True)
-        self.p(
-            " Jump:          [Spacebar] (only while grounded)", color="green", bold=True
-        )
+        self.p(" Jump:          [Spacebar] (only while grounded)", color="green", bold=True)
         self.p(
             " Sprint:        [Left Shift] (12.0 m/s vs 6.0 m/s walk)",
             color="green",
@@ -161,11 +148,13 @@ class TestFirstPersonCameraSandbox(Test):
             color="cyan",
         )
         self.p(
-            " - Sticky wall near start: press against it (look at it from every yaw/pitch, also with F12 on): FP must never see through, TP must never clip into the player",
+            " - Sticky wall near start: press against it (look at it from every yaw/pitch, also with F12 on): "
+            "FP must never see through, TP must never clip into the player",
             color="cyan",
         )
         self.p(
-            " - Low-clearance check: collision_margin can be tuned with +/- (sphere radius, capped to the capsule radius)",
+            " - Low-clearance check: collision_margin can be tuned with +/- "
+            "(sphere radius, capped to the capsule radius)",
             color="cyan",
         )
         self.p(" - Raised blocks: pitch look down/up reference", color="cyan")
@@ -353,7 +342,8 @@ class TestFirstPersonCameraSandbox(Test):
             from panda3d.core import TextNode
 
             self.osd_instructions = OnscreenText(
-                text="WASD: Move | SPACE: Jump | V: Toggle Camera | B: Body Mode | Esc/P: Pause & Inspector | F12: Wireframe",
+                text="WASD: Move | SPACE: Jump | V: Toggle Camera | B: Body Mode | "
+                "Esc/P: Pause & Inspector | F12: Wireframe",
                 pos=(-1.28, 0.92),
                 scale=0.045,
                 fg=(1.0, 1.0, 1.0, 1.0),
@@ -447,14 +437,13 @@ class TestFirstPersonCameraSandbox(Test):
             pitch = 0.0
 
         body_mode = (
-            "CAM-YAW"
-            if (self.controller is not None and self.controller.body_follows_camera_yaw)
-            else "MOV-DIR"
+            "CAM-YAW" if (self.controller is not None and self.controller.body_follows_camera_yaw) else "MOV-DIR"
         )
 
         if self.osd_telemetry is not None:
             self.osd_telemetry.setText(
-                f"Camera: {mode} | Body: {body_mode} | Pos: ({world_pos.x:6.2f}, {world_pos.y:6.2f}, {world_pos.z:6.2f}) | "
+                f"Camera: {mode} | Body: {body_mode} | "
+                f"Pos: ({world_pos.x:6.2f}, {world_pos.y:6.2f}, {world_pos.z:6.2f}) | "
                 f"Speed: {speed:4.1f} m/s | Ground: {is_on_ground!s:5} | Debug: {wireframe}\n"
                 f"Yaw: {yaw:6.1f} | Pitch: {pitch:6.1f} | Fwd: ({fwd.x:5.2f}, {fwd.y:5.2f}, {fwd.z:5.2f})"
             )

@@ -108,15 +108,10 @@ class TestProximitySandbox(Test):
             if not ring.isEmpty():
                 ring.removeNode()
         self._rings.clear()
-        enter_r = (
-            self.sensor_handler.radius
-            if self.sensor_handler is not None
-            else self.ENTER_RADIUS
-        )
+        enter_r = self.sensor_handler.radius if self.sensor_handler is not None else self.ENTER_RADIUS
         exit_r = (
             self.sensor_handler.exit_radius
-            if self.sensor_handler is not None
-            and self.sensor_handler.exit_radius is not None
+            if self.sensor_handler is not None and self.sensor_handler.exit_radius is not None
             else self.EXIT_RADIUS
         )
         self._create_ring(enter_r, (0.2, 0.9, 1.0, 1.0))
@@ -132,9 +127,7 @@ class TestProximitySandbox(Test):
         if self.sensor_handler is not None:
             self.expose_toggle(
                 "Sensor Enabled (L)",
-                lambda: (
-                    self.sensor_handler.is_enabled if self.sensor_handler else False
-                ),
+                lambda: self.sensor_handler.is_enabled if self.sensor_handler else False,
                 lambda _v: self._toggle_sensor(),
             )
             self.expose_field(
@@ -220,8 +213,7 @@ class TestProximitySandbox(Test):
             bold=True,
         )
         self.p(
-            f" Enter ring: {self.ENTER_RADIUS:.1f}m (cyan) | Exit ring: {self.EXIT_RADIUS:.1f}m "
-            "(magenta, hysteresis)",
+            f" Enter ring: {self.ENTER_RADIUS:.1f}m (cyan) | Exit ring: {self.EXIT_RADIUS:.1f}m (magenta, hysteresis)",
             color="green",
             bold=True,
         )
@@ -237,9 +229,7 @@ class TestProximitySandbox(Test):
         )
         self.space_line()
         self.p("Arena Layout:", color="cyan", bold=True)
-        self.p(
-            " - The sensor marker sits at the origin, on a small platform", color="cyan"
-        )
+        self.p(" - The sensor marker sits at the origin, on a small platform", color="cyan")
         self.p(
             f" - The target orbits at {self.ORBIT_RADIUS:.1f}m, crossing both rings every lap",
             color="cyan",
@@ -337,9 +327,7 @@ class TestProximitySandbox(Test):
         # scene registry, so any registration order sees the same entities.
         self.add_entity(sensor)
 
-    def _create_ring(
-        self, radius: float, color: tuple[float, float, float, float]
-    ) -> None:
+    def _create_ring(self, radius: float, color: tuple[float, float, float, float]) -> None:
         """Draw a horizontal ring at ``radius`` around the origin."""
         segments = LineSegs(f"ring_{radius:.1f}")
         segments.setThickness(2.0)
@@ -407,11 +395,7 @@ class TestProximitySandbox(Test):
 
     def _on_frame_update(self, task: Any) -> int:
         """Advance the orbit, then refresh the telemetry."""
-        dt = (
-            self._replay_dt()
-            if self._replay_mode is not None
-            else float(task.dt or (1.0 / 60.0))
-        )
+        dt = self._replay_dt() if self._replay_mode is not None else float(task.dt or (1.0 / 60.0))
         if self._replay_mode is not None:
             self._replay_elapsed += dt
             if self._replay_mode == "record" and self._replay_recorder is not None:
@@ -429,10 +413,7 @@ class TestProximitySandbox(Test):
             )
 
         self._update_osd(task.time)
-        if (
-            self._replay_mode is not None
-            and self._replay_elapsed >= self._replay_duration
-        ):
+        if self._replay_mode is not None and self._replay_elapsed >= self._replay_duration:
             self.finalize_replay()
             import builtins
 
@@ -489,9 +470,7 @@ class TestProximitySandbox(Test):
             "orbiting": bool(self._orbiting),
             "orbit_radius": float(self.orbit_radius),
             "orbit_speed": float(self.orbit_speed),
-            "sensor_enabled": bool(handler.is_enabled)
-            if handler is not None
-            else False,
+            "sensor_enabled": bool(handler.is_enabled) if handler is not None else False,
             "enter_count": int(self._enter_count),
             "exit_count": int(self._exit_count),
             "last_inside": bool(self._last_inside),
@@ -537,9 +516,7 @@ class TestProximitySandbox(Test):
                 owner=self,
                 pos=(-1.05, 0.0, -0.55),
             )
-            column = UIColumn(
-                parent=panel.content_parent, spacing=0.02, owner=self, pos=(0.0, 0.05)
-            )
+            column = UIColumn(parent=panel.content_parent, spacing=0.02, owner=self, pos=(0.0, 0.05))
             column.add(
                 UIButton(
                     parent=column.node,
@@ -612,12 +589,8 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Proximity Sensor Sandbox")
     parser.add_argument("--record", metavar="PATH", help="Record a replay to PATH.")
-    parser.add_argument(
-        "--replay", metavar="PATH", help="Replay a recorded scenario from PATH."
-    )
-    parser.add_argument(
-        "--duration", type=float, default=5.0, help="Replay/record duration in seconds."
-    )
+    parser.add_argument("--replay", metavar="PATH", help="Replay a recorded scenario from PATH.")
+    parser.add_argument("--duration", type=float, default=5.0, help="Replay/record duration in seconds.")
     args = parser.parse_args()
 
     app = Game()

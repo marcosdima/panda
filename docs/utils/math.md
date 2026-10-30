@@ -11,6 +11,7 @@ Scalar helpers, stdlib only.
 
 ```python
 from src.utils import lerp
+
 lerp(0, 10, 0.5)  # 5.0
 ```
 

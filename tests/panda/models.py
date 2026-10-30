@@ -27,9 +27,7 @@ class TestModels(Test):
                 self.models.append(model)
                 self.p(f"Loaded {spec['name']} at {model.getPos()}", color="green")
             except Exception as exc:  # noqa: BLE001
-                self.p(
-                    f"Failed to load {spec['name']} ({spec['key']}): {exc}", color="red"
-                )
+                self.p(f"Failed to load {spec['name']} ({spec['key']}): {exc}", color="red")
 
         # Also create BaseModel actors with animations
         self.__create_base_model()

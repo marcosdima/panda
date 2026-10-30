@@ -159,29 +159,17 @@ class TestAISandbox(Test):
         )
         self.expose_field("Target Speed", self, "target_speed", 0.5, 12.0, 0.5)
         if self.ai_handler is not None:
-            self.expose_field(
-                "Search Time", self.ai_handler, "search_time", 0.0, 10.0, 0.5
-            )
+            self.expose_field("Search Time", self.ai_handler, "search_time", 0.0, 10.0, 0.5)
             self.expose_toggle(
                 "Remember Last Target",
-                lambda: (
-                    self.ai_handler.remember_last_target
-                    if self.ai_handler is not None
-                    else False
-                ),
+                lambda: self.ai_handler.remember_last_target if self.ai_handler is not None else False,
                 lambda v: (
-                    setattr(self.ai_handler, "remember_last_target", bool(v))
-                    if self.ai_handler is not None
-                    else None
+                    setattr(self.ai_handler, "remember_last_target", bool(v)) if self.ai_handler is not None else None
                 ),
             )
             self.expose_toggle(
                 "Search Pathfinding",
-                lambda: (
-                    self.ai_handler.search_uses_pathfinding
-                    if self.ai_handler is not None
-                    else False
-                ),
+                lambda: self.ai_handler.search_uses_pathfinding if self.ai_handler is not None else False,
                 lambda v: (
                     setattr(self.ai_handler, "search_uses_pathfinding", bool(v))
                     if self.ai_handler is not None
@@ -273,9 +261,7 @@ class TestAISandbox(Test):
 
         self.space_line()
         self.p("Arena Layout:", color="cyan", bold=True)
-        self.p(
-            " - Two wall segments at x=0 leave a 2m sight gap around y=0", color="cyan"
-        )
+        self.p(" - Two wall segments at x=0 leave a 2m sight gap around y=0", color="cyan")
         self.p(
             " - The NPC patrols on the left side, the target moves on the right side",
             color="cyan",
@@ -357,9 +343,7 @@ class TestAISandbox(Test):
         """Spawn the target entity as a static rigid body the player can drive around."""
         target = Entity("Target")
         target.node.reparentTo(self.base.render)
-        target.node.setPos(
-            self.TARGET_ROUTE[0].x, self.TARGET_ROUTE[0].y, self.TARGET_HEIGHT
-        )
+        target.node.setPos(self.TARGET_ROUTE[0].x, self.TARGET_ROUTE[0].y, self.TARGET_HEIGHT)
 
         self.target_input = WASDInputHandler()
         target.add_handler(self.target_input)
@@ -390,9 +374,7 @@ class TestAISandbox(Test):
         self.npc_input = InputHandler()
         npc.add_handler(self.npc_input)
 
-        nav_grid = generate_nav_grid(
-            bounds_min=(-20.0, -20.0), bounds_max=(20.0, 20.0), cell_size=1.0
-        )
+        nav_grid = generate_nav_grid(bounds_min=(-20.0, -20.0), bounds_max=(20.0, 20.0), cell_size=1.0)
 
         self.ai_handler = AINavigationHandler(
             waypoints=self.NPC_WAYPOINTS,
@@ -423,10 +405,7 @@ class TestAISandbox(Test):
         )
         npc.add_handler(self.npc_controller)
 
-        if (
-            self.npc_controller.controller_np is not None
-            and not self.npc_controller.controller_np.isEmpty()
-        ):
+        if self.npc_controller.controller_np is not None and not self.npc_controller.controller_np.isEmpty():
             self._attach_box_visual(
                 self.npc_controller.controller_np,
                 "npc_visual",
@@ -496,9 +475,7 @@ class TestAISandbox(Test):
         direction = Vec3(0.0, 0.0, 0.0)
         if self._target_auto:
             goal = self.TARGET_ROUTE[self._route_index]
-            to_goal = Vec3(
-                goal.x - self.target.node.getX(), goal.y - self.target.node.getY(), 0.0
-            )
+            to_goal = Vec3(goal.x - self.target.node.getX(), goal.y - self.target.node.getY(), 0.0)
             if to_goal.length() <= 0.4:
                 self._route_index = (self._route_index + 1) % len(self.TARGET_ROUTE)
                 goal = self.TARGET_ROUTE[self._route_index]
@@ -608,12 +585,14 @@ class TestAISandbox(Test):
             )
         after = list(grid.blocked)
         self.p(
-            f"[Obstacle] blocked before={len(before)} after={len(after)} path={len(self.ai_handler.current_path)} replans={self.ai_handler.replan_count}",
+            f"[Obstacle] blocked before={len(before)} after={len(after)} "
+            f"path={len(self.ai_handler.current_path)} replans={self.ai_handler.replan_count}",
             color="blue",
         )
         self.ai_handler.request_replan()
         self.p(
-            f"[Obstacle] replan done -> path={len(self.ai_handler.current_path)} replans={self.ai_handler.replan_count}",
+            f"[Obstacle] replan done -> path={len(self.ai_handler.current_path)} "
+            f"replans={self.ai_handler.replan_count}",
             color="green",
         )
 
@@ -657,13 +636,9 @@ class TestAISandbox(Test):
 
     def _update_osd(self, current_time: float) -> None:
         """Update the live telemetry on the OSD and print it to the terminal."""
-        state = (
-            self.ai_handler.state.value.upper() if self.ai_handler is not None else "?"
-        )
+        state = self.ai_handler.state.value.upper() if self.ai_handler is not None else "?"
         los_mode = "INJECTED" if self._los_injected else "REAL"
-        visible = (
-            self.ai_handler.can_see_target() if self.ai_handler is not None else False
-        )
+        visible = self.ai_handler.can_see_target() if self.ai_handler is not None else False
         target_mode = "AUTO" if self._target_auto else "MANUAL"
         wireframe = "ON" if Physics.is_debug_enabled() else "OFF"
 
@@ -673,7 +648,8 @@ class TestAISandbox(Test):
 
         if self.osd_telemetry is not None:
             self.osd_telemetry.setText(
-                f"AI state: {state:<7} | LOS: {los_mode:<8} | visible: {'YES' if visible else 'NO ':<3} | dist: {distance:5.2f}m\n"
+                f"AI state: {state:<7} | LOS: {los_mode:<8} | visible: {'YES' if visible else 'NO ':<3} | "
+                f"dist: {distance:5.2f}m\n"
                 f"Target: {target_mode:<6} | Trigger(ENEMY): enter={self._counters['enter']:<3} "
                 f"stay={self._counters['stay']:<5} exit={self._counters['exit']:<3} | Wireframe: {wireframe}"
             )
@@ -695,7 +671,8 @@ class TestAISandbox(Test):
             from panda3d.core import TextNode
 
             self.osd_instructions = OnscreenText(
-                text="WASD: Move Target | Mouse: Look | L: Toggle LOS | T: Target Mode | O: Toggle Obstacle | Esc/P: Pause & Inspector | F12: Wireframe",
+                text="WASD: Move Target | Mouse: Look | L: Toggle LOS | "
+                "T: Target Mode | O: Toggle Obstacle | Esc/P: Pause & Inspector | F12: Wireframe",
                 pos=(-1.28, 0.92),
                 scale=0.045,
                 fg=(1.0, 1.0, 1.0, 1.0),

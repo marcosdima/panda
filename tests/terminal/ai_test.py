@@ -23,18 +23,13 @@ def make_npc(**kwargs):
 def step(entity, inp, ai, dt=0.1, speed=0.0):
     """Tick the entity, then integrate the commanded velocity like a controller would."""
     entity.update(dt)
-    entity.node.setPos(
-        entity.node.getPos()
-        + Vec3(inp.move_vector.x, inp.move_vector.y, 0) * speed * dt
-    )
+    entity.node.setPos(entity.node.getPos() + Vec3(inp.move_vector.x, inp.move_vector.y, 0) * speed * dt)
 
 
 def test_moves_toward_waypoint():
     entity, inp, ai = make_npc(waypoints=[Vec3(10, 0, 0)])
     entity.update(0.1)
-    assert inp.move_vector.x == pytest.approx(
-        1.0
-    ) and inp.move_vector.y == pytest.approx(0.0)
+    assert inp.move_vector.x == pytest.approx(1.0) and inp.move_vector.y == pytest.approx(0.0)
     assert ai.state == PatrolState.PATROL
 
 
@@ -80,9 +75,7 @@ def test_full_patrol_cycle_loops_and_ping_pong():
 def test_chase_and_lose_target():
     target = Entity("Player")
     target.node.setPos(5, 0, 0)
-    entity, inp, ai = make_npc(
-        waypoints=[Vec3(-10, 0, 0)], target=target, sight_range=8.0
-    )
+    entity, inp, ai = make_npc(waypoints=[Vec3(-10, 0, 0)], target=target, sight_range=8.0)
     entity.update(0.1)
     assert ai.state == PatrolState.CHASE
     assert inp.move_vector.x == pytest.approx(1.0)
@@ -98,9 +91,7 @@ def test_chase_and_lose_target():
 def test_line_of_sight_blocks_detection():
     target = Entity("Player")
     target.node.setPos(3, 0, 0)
-    entity, _inp, ai = make_npc(
-        waypoints=[Vec3(-10, 0, 0)], target=target, line_of_sight=lambda a, b: False
-    )
+    entity, _inp, ai = make_npc(waypoints=[Vec3(-10, 0, 0)], target=target, line_of_sight=lambda a, b: False)
     entity.update(0.1)
     assert ai.state == PatrolState.PATROL
 

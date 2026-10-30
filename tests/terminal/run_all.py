@@ -51,9 +51,7 @@ def run_suite(name: str) -> SimpleNamespace:
 
 def main(targets: list[str] | None = None) -> int:
     """Run the requested suites (or all discovered) and return a process exit code."""
-    suites = [
-        s for s in (targets if targets else discover_suites()) if s not in _SKIP_MODULES
-    ]
+    suites = [s for s in (targets if targets else discover_suites()) if s not in _SKIP_MODULES]
     if not suites:
         print("No terminal suites discovered.")
         return 1
@@ -72,9 +70,7 @@ def main(targets: list[str] | None = None) -> int:
 
     failed = [r for r in results if r.exit_code != 0]
     print("=" * 60)
-    print(
-        f"Total: {len(results)} | Passed: {len(results) - len(failed)} | Failed: {len(failed)}"
-    )
+    print(f"Total: {len(results)} | Passed: {len(results) - len(failed)} | Failed: {len(failed)}")
     for r in failed:
         print(f"  FAILED: {r.name} (exit={r.exit_code})")
     return 1 if failed else 0

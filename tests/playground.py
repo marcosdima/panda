@@ -79,9 +79,7 @@ class Playground(Test):
     def __init__(self, timeout: int = DEFAULT_TIMEOUT) -> None:
         super().__init__()
         self.timeout = timeout
-        self._visual_keys = sorted(
-            key for key, value in SCENE_REGISTRY.items() if value[1] == "visual"
-        )
+        self._visual_keys = sorted(key for key, value in SCENE_REGISTRY.items() if value[1] == "visual")
         self._buffer = ""
         self._running_key: str | None = None
         self._last_key: str | None = None
@@ -276,9 +274,7 @@ class Playground(Test):
             return
         self._buffer = self._buffer[:-1]
         if self._status_text is not None:
-            self._status_text.setText(
-                f"Selection: {self._buffer}" if self._buffer else "Idle."
-            )
+            self._status_text.setText(f"Selection: {self._buffer}" if self._buffer else "Idle.")
 
     def _confirm_selection(self) -> None:
         if self._running_key is not None or not self._buffer:
@@ -305,9 +301,7 @@ class Playground(Test):
         self._result = None
         self._launch_started = time.monotonic()
         self._build_menu(f"Launching {key}...")
-        self._worker = threading.Thread(
-            target=self._run_worker, args=(key,), daemon=True
-        )
+        self._worker = threading.Thread(target=self._run_worker, args=(key,), daemon=True)
         self._worker.start()
 
     def _run_worker(self, key: str) -> None:
@@ -336,9 +330,7 @@ class Playground(Test):
             else:
                 elapsed = time.monotonic() - self._launch_started
                 if self._status_text is not None:
-                    self._status_text.setText(
-                        f"Running {self._running_key}... {elapsed:.0f}s / {self.timeout}s"
-                    )
+                    self._status_text.setText(f"Running {self._running_key}... {elapsed:.0f}s / {self.timeout}s")
         return task.cont
 
     def _quit(self) -> None:
@@ -351,12 +343,8 @@ class Playground(Test):
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Panda playground selector")
-    parser.add_argument(
-        "--list", action="store_true", help="List registered scenes and exit."
-    )
-    parser.add_argument(
-        "--scene", metavar="KEY", help="Run one scene directly and exit."
-    )
+    parser.add_argument("--list", action="store_true", help="List registered scenes and exit.")
+    parser.add_argument("--scene", metavar="KEY", help="Run one scene directly and exit.")
     parser.add_argument(
         "--timeout",
         type=int,

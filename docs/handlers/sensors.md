@@ -16,7 +16,7 @@ Because a sensor only reads positions and dispatches callbacks, it works the sam
 ```python
 sensor = ProximitySensorHandler(
     radius=8.0,
-    exit_radius=12.0,          # hysteresis: leave later than you enter
+    exit_radius=12.0,  # hysteresis: leave later than you enter
     scene=scene,
     predicate=lambda entity: entity.name.startswith("NPC"),
 )

@@ -75,9 +75,7 @@ def test_suspend_detaches_body_and_freezes_simulation() -> None:
     """A suspended dynamic body leaves the world and stops falling."""
     world = Physics.get_world()
     entity = _entity("SuspendFreeze", z=10.0)
-    rigid = entity.add_handler(
-        RigidBodyHandler(shape=BulletBoxShape(Vec3(0.5, 0.5, 0.5)), mass=1.0)
-    )
+    rigid = entity.add_handler(RigidBodyHandler(shape=BulletBoxShape(Vec3(0.5, 0.5, 0.5)), mass=1.0))
     entity.start()
 
     _step(entity, 10)
@@ -104,9 +102,7 @@ def test_suspend_detaches_body_and_freezes_simulation() -> None:
 def test_suspend_clears_motion_and_forces_by_default() -> None:
     """A carried body does not resume with the velocity it had when picked up."""
     entity = _entity("SuspendMotion", z=20.0)
-    rigid = entity.add_handler(
-        RigidBodyHandler(shape=BulletBoxShape(Vec3(0.5, 0.5, 0.5)), mass=1.0)
-    )
+    rigid = entity.add_handler(RigidBodyHandler(shape=BulletBoxShape(Vec3(0.5, 0.5, 0.5)), mass=1.0))
     entity.start()
 
     rigid.linear_velocity = Vec3(3.0, 0.0, -4.0)
@@ -123,9 +119,7 @@ def test_suspend_clears_motion_and_forces_by_default() -> None:
 def test_suspend_can_preserve_motion() -> None:
     """preserve_motion=True keeps the velocity across suspend/resume."""
     entity = _entity("SuspendPreserve", z=20.0)
-    rigid = entity.add_handler(
-        RigidBodyHandler(shape=BulletBoxShape(Vec3(0.5, 0.5, 0.5)), mass=1.0)
-    )
+    rigid = entity.add_handler(RigidBodyHandler(shape=BulletBoxShape(Vec3(0.5, 0.5, 0.5)), mass=1.0))
     entity.start()
 
     rigid.linear_velocity = Vec3(2.0, 0.0, 0.0)
@@ -141,9 +135,7 @@ def test_resume_adopts_transform_acquired_while_suspended() -> None:
     """A body carried to a new parent resumes from the new world transform."""
     world = Physics.get_world()
     entity = _entity("SuspendCarried", z=6.0)
-    rigid = entity.add_handler(
-        RigidBodyHandler(shape=BulletBoxShape(Vec3(0.5, 0.5, 0.5)), mass=1.0)
-    )
+    rigid = entity.add_handler(RigidBodyHandler(shape=BulletBoxShape(Vec3(0.5, 0.5, 0.5)), mass=1.0))
     entity.start()
 
     _step(entity, 5)
@@ -171,9 +163,7 @@ def test_resume_without_suspend_is_noop() -> None:
     """Calling resume on an attached body leaves it attached."""
     world = Physics.get_world()
     entity = _entity("ResumeNoop", z=5.0)
-    rigid = entity.add_handler(
-        RigidBodyHandler(shape=BulletBoxShape(Vec3(0.5, 0.5, 0.5)), mass=1.0)
-    )
+    rigid = entity.add_handler(RigidBodyHandler(shape=BulletBoxShape(Vec3(0.5, 0.5, 0.5)), mass=1.0))
     entity.start()
 
     rigid.resume()
@@ -187,9 +177,7 @@ def test_suspension_survives_stop_and_start() -> None:
     """A stopped suspended body does not silently re-enter the simulation."""
     world = Physics.get_world()
     entity = _entity("SuspendRestart", z=8.0)
-    rigid = entity.add_handler(
-        RigidBodyHandler(shape=BulletBoxShape(Vec3(0.5, 0.5, 0.5)), mass=1.0)
-    )
+    rigid = entity.add_handler(RigidBodyHandler(shape=BulletBoxShape(Vec3(0.5, 0.5, 0.5)), mass=1.0))
     entity.start()
     rigid.suspend()
 
@@ -208,9 +196,7 @@ def test_suspension_survives_stop_and_start() -> None:
 def test_rebase_places_drifted_body_at_parent_origin() -> None:
     """A body that drifted from its entity node is re-centred by rebase()."""
     entity = _entity("RebaseDrift", z=20.0)
-    rigid = entity.add_handler(
-        RigidBodyHandler(shape=BulletBoxShape(Vec3(0.5, 0.5, 0.5)), mass=1.0)
-    )
+    rigid = entity.add_handler(RigidBodyHandler(shape=BulletBoxShape(Vec3(0.5, 0.5, 0.5)), mass=1.0))
     entity.start()
     assert rigid.body_np is not None
 

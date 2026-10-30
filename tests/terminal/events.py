@@ -25,12 +25,8 @@ class TestEvents(TerminalTest):
     def test_free_callback_priority(self):
         self.print_subtitle("Testing free callback priority.")
         entity = Entity()
-        entity.on_free.add_callback(
-            lambda: self.p("Low priority callback."), priority=1
-        )
-        entity.on_free.add_callback(
-            lambda: self.p("High priority callback."), priority=10
-        )
+        entity.on_free.add_callback(lambda: self.p("Low priority callback."), priority=1)
+        entity.on_free.add_callback(lambda: self.p("High priority callback."), priority=10)
         entity.free()
         self.space_line()
 
@@ -41,9 +37,7 @@ class TestEvents(TerminalTest):
 
         no_print.on_free.set_check(lambda: False)
         no_print.on_free.add_callback(lambda: self.p("This should not be printed!"))
-        printed_entity.on_free.add_callback(
-            lambda: self.p("Successful print callback.")
-        )
+        printed_entity.on_free.add_callback(lambda: self.p("Successful print callback."))
 
         no_print.free()
         printed_entity.free()

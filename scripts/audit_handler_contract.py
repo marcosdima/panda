@@ -45,11 +45,7 @@ def rel(path: Path) -> str:
 
 
 def is_docstring(stmt: ast.stmt) -> bool:
-    return (
-        isinstance(stmt, ast.Expr)
-        and isinstance(stmt.value, ast.Constant)
-        and isinstance(stmt.value.value, str)
-    )
+    return isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant) and isinstance(stmt.value.value, str)
 
 
 def is_super_call(stmt: ast.stmt) -> bool:
@@ -101,9 +97,7 @@ def check_super_calls(path: Path, cls: ast.ClassDef, advisories: list[str]) -> l
     problems: list[str] = []
     for func in methods(cls):
         if func.name in SUPER_REQUIRED and not calls_super(func):
-            problems.append(
-                f"{rel(path)}:{func.lineno}: {cls.name}.{func.name} must call super()"
-            )
+            problems.append(f"{rel(path)}:{func.lineno}: {cls.name}.{func.name} must call super()")
         if func.name not in ORDERED_HOOKS or not calls_super(func):
             continue
         body = list(func.body)
@@ -111,8 +105,7 @@ def check_super_calls(path: Path, cls: ast.ClassDef, advisories: list[str]) -> l
             body.pop(0)
         if body and not is_super_call(body[0]):
             advisories.append(
-                f"{rel(path)}:{body[0].lineno}: {cls.name}.{func.name} calls super() "
-                "after other statements"
+                f"{rel(path)}:{body[0].lineno}: {cls.name}.{func.name} calls super() after other statements"
             )
     return problems
 
@@ -144,11 +137,7 @@ def check_showbase_imports(path: Path, tree: ast.Module) -> list[str]:
             module = node.module
         elif isinstance(node, ast.Import):
             module = next(
-                (
-                    alias.name
-                    for alias in node.names
-                    if alias.name and alias.name.startswith("direct.showbase")
-                ),
+                (alias.name for alias in node.names if alias.name and alias.name.startswith("direct.showbase")),
                 None,
             )
         if not module or not module.startswith("direct.showbase"):
@@ -185,14 +174,9 @@ def check_handlers_indexing(path: Path, tree: ast.Module) -> list[str]:
         if not isinstance(node, ast.Subscript):
             continue
         value = node.value
-        if (
-            isinstance(value, ast.Call)
-            and isinstance(value.func, ast.Attribute)
-            and value.func.attr == "get_handlers"
-        ):
+        if isinstance(value, ast.Call) and isinstance(value.func, ast.Attribute) and value.func.attr == "get_handlers":
             problems.append(
-                f"{rel(path)}:{node.lineno}: positional get_handlers() indexing; "
-                "use entity.get_handler(Type)"
+                f"{rel(path)}:{node.lineno}: positional get_handlers() indexing; use entity.get_handler(Type)"
             )
     return problems
 
@@ -205,9 +189,7 @@ def check_update_signature(path: Path, cls: ast.ClassDef) -> list[str]:
         args = func.args
         positional = list(args.posonlyargs) + list(args.args)
         if len(positional) != 2 or args.vararg is not None:
-            problems.append(
-                f"{rel(path)}:{func.lineno}: {cls.name}.{func.name} must declare (self, dt)"
-            )
+            problems.append(f"{rel(path)}:{func.lineno}: {cls.name}.{func.name} must declare (self, dt)")
             continue
         if positional[1].arg != "dt":
             problems.append(

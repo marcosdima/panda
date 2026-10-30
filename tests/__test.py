@@ -78,9 +78,7 @@ class Test(Scene):
     # ------------------------------------------------------------------
     # Replay helpers
     # ------------------------------------------------------------------
-    def enable_replay_record(
-        self, path: str, duration: float = 5.0, fixed_dt: float = 0.016
-    ) -> None:
+    def enable_replay_record(self, path: str, duration: float = 5.0, fixed_dt: float = 0.016) -> None:
         from src.utils.replay import ReplayRecorder
 
         self._replay_mode = "record"
@@ -111,23 +109,11 @@ class Test(Scene):
 
     def finalize_replay(self) -> list[str]:
         errors: list[str] = []
-        if (
-            self._replay_mode == "record"
-            and self._replay_recorder is not None
-            and self._replay_path is not None
-        ):
+        if self._replay_mode == "record" and self._replay_recorder is not None and self._replay_path is not None:
             snapshots = self._replay_recorder.snapshots
-            if (
-                not snapshots
-                or abs(float(snapshots[-1].get("t", -1.0)) - self._replay_elapsed)
-                > 1e-6
-            ):
-                self._replay_recorder.record_snapshot(
-                    self._replay_elapsed, self.capture_replay_state()
-                )
-            self._replay_recorder.add_assertion(
-                "end", "_replay_phase", getattr(self, "_replay_phase", None)
-            )
+            if not snapshots or abs(float(snapshots[-1].get("t", -1.0)) - self._replay_elapsed) > 1e-6:
+                self._replay_recorder.record_snapshot(self._replay_elapsed, self.capture_replay_state())
+            self._replay_recorder.add_assertion("end", "_replay_phase", getattr(self, "_replay_phase", None))
             self._replay_recorder.save(self._replay_path)
             self.p(f"Replay recorded: {self._replay_path}", color="green")
         elif self._replay_mode == "replay" and self._replay_player is not None:
@@ -441,9 +427,7 @@ class Test(Scene):
             return
 
         fields = self.get_inspector_fields()
-        total_pages = max(
-            1, (len(fields) + self._ROWS_PER_PAGE - 1) // self._ROWS_PER_PAGE
-        )
+        total_pages = max(1, (len(fields) + self._ROWS_PER_PAGE - 1) // self._ROWS_PER_PAGE)
         self._inspector_page = max(0, min(self._inspector_page, total_pages - 1))
         start_idx = self._inspector_page * self._ROWS_PER_PAGE
         page_fields = fields[start_idx : start_idx + self._ROWS_PER_PAGE]
@@ -581,17 +565,11 @@ class Test(Scene):
                     state = bool(field.get())
                     btn_holder: list[Any] = [None]
 
-                    def _toggle_bool(
-                        f: InspectorField = field, bh: list[Any] = btn_holder
-                    ) -> None:
+                    def _toggle_bool(f: InspectorField = field, bh: list[Any] = btn_holder) -> None:
                         new_state = bool(f.step_by(1))
                         if bh[0] is not None:
                             bh[0]["text"] = "ON" if new_state else "OFF"
-                            bh[0]["frameColor"] = (
-                                (0.18, 0.62, 0.34, 1.0)
-                                if new_state
-                                else (0.45, 0.20, 0.22, 1.0)
-                            )
+                            bh[0]["frameColor"] = (0.18, 0.62, 0.34, 1.0) if new_state else (0.45, 0.20, 0.22, 1.0)
 
                     tbtn = DirectButton(
                         parent=panel,
@@ -599,9 +577,7 @@ class Test(Scene):
                         scale=0.040,
                         pos=(0.14, 0.0, z - 0.01),
                         frameSize=(-2.4, 2.4, -0.45, 0.65),
-                        frameColor=(0.18, 0.62, 0.34, 1.0)
-                        if state
-                        else (0.45, 0.20, 0.22, 1.0),
+                        frameColor=(0.18, 0.62, 0.34, 1.0) if state else (0.45, 0.20, 0.22, 1.0),
                         text_fg=(1, 1, 1, 1),
                         command=_toggle_bool,
                     )
@@ -752,20 +728,16 @@ class Test(Scene):
 
         print(f"{bold_code}{color_code}{out}{reset}")
 
-    def space_line(self, l: int = 40) -> None:
-        self.p("\n*" + "-" * l + "*\n", color="yellow")
+    def space_line(self, length: int = 40) -> None:
+        self.p("\n*" + "-" * length + "*\n", color="yellow")
 
-    def print_title(
-        self, title: str = "TESTS", color: str | None = None, width: int = 40
-    ) -> None:
+    def print_title(self, title: str = "TESTS", color: str | None = None, width: int = 40) -> None:
         """Print a decorated title using the `p` helper for formatting."""
         self.space_line(width)
         self.p(title, bold=True, color=color, center=True, width=width)
         self.space_line(width)
 
-    def print_subtitle(
-        self, subtitle: str, color: str | None = None, width: int = 40
-    ) -> None:
+    def print_subtitle(self, subtitle: str, color: str | None = None, width: int = 40) -> None:
         """Print a decorated subtitle using the `p` helper for formatting."""
         self.p(subtitle, bold=True, color=color, center=True, width=width)
         self.p("-" * width, color=color)

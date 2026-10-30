@@ -36,9 +36,7 @@ PROJECT_TREES = ("src/", "tests/", "docs/", "scripts/", ".opencode/")
 
 
 def git(*args: str) -> str:
-    result = subprocess.run(
-        ["git", *args], cwd=PROJECT_ROOT, capture_output=True, text=True
-    )
+    result = subprocess.run(["git", *args], cwd=PROJECT_ROOT, capture_output=True, text=True)
     if result.returncode != 0:
         print(f"git {' '.join(args)} failed:\n{result.stderr}", file=sys.stderr)
         sys.exit(2)
@@ -91,9 +89,7 @@ def check_file(rel: str, code: str) -> tuple[list[str], list[str]]:
         else:
             text = path.read_text(encoding="utf-8")
             if "pytest.main([__file__])" not in text:
-                (failures if new else advisories).append(
-                    f"terminal test missing pytest main guard: {rel}"
-                )
+                (failures if new else advisories).append(f"terminal test missing pytest main guard: {rel}")
 
     if rel.startswith("src/") and path.suffix == ".py" and path.name != "__init__.py":
         init_file = path.parent / "__init__.py"
@@ -102,10 +98,7 @@ def check_file(rel: str, code: str) -> tuple[list[str], list[str]]:
             text = path.read_text(encoding="utf-8")
             for cls in re.findall(r"^class\s+([A-Z]\w+)", text, re.MULTILINE):
                 if cls not in init_text:
-                    message = (
-                        f"public class {cls} in {rel} not exported from "
-                        f"{init_file.relative_to(PROJECT_ROOT)}"
-                    )
+                    message = f"public class {cls} in {rel} not exported from {init_file.relative_to(PROJECT_ROOT)}"
                     advisories.append(message)
 
     if rel.startswith("docs/") and not rel.startswith("docs/tickets/") and path.suffix == ".md":
@@ -159,8 +152,7 @@ def main(argv: list[str]) -> int:
     for advisory in advisories:
         print(f"  note: {advisory}")
     if ignored:
-        print(f"  note: {len(ignored)} file(s) outside the project trees ignored "
-              "(pass --all to inspect them).")
+        print(f"  note: {len(ignored)} file(s) outside the project trees ignored (pass --all to inspect them).")
     if failures:
         print(f"Scope check failed ({len(failures)} problem(s)):")
         for failure in failures:

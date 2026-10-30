@@ -35,7 +35,7 @@ class TestSomething(Test):
     def on_start(self) -> None:
         super().on_start()
         self.print_title("Something Suite started.", color="cyan")
-        self.check_something()          # shared check functions
+        self.check_something()  # shared check functions
         self.p("Something works.", color="green")
         self.print_subtitle("Something Suite completed.", color="green")
 ```

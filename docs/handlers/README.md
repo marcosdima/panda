@@ -33,10 +33,10 @@ Order matters when a handler consumes what another one writes in the same frame.
 
 ```python
 entity = Entity("Npc")
-entity.add_handler(InputHandler())            # 1. intent source
-entity.add_handler(AIPatrolHandler(...))      # 2. writes intent into the input handler
+entity.add_handler(InputHandler())  # 1. intent source
+entity.add_handler(AIPatrolHandler(...))  # 2. writes intent into the input handler
 entity.add_handler(CharacterControllerHandler())  # 3. consumes the intent
-entity.add_handler(ThirdPersonCameraHandler())    # 4. reads the resulting position
+entity.add_handler(ThirdPersonCameraHandler())  # 4. reads the resulting position
 ```
 
 - The AI handler must be attached **before** the movement handler, so the intent it writes is fresh on the same tick.

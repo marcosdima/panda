@@ -38,9 +38,7 @@ def make(clips=CLIPS):
         controller_node=object(),
         is_on_ground=True,
     )
-    h.entity = SimpleNamespace(
-        get_handler=lambda cls: ctrl if cls is CharacterControllerHandler else None
-    )
+    h.entity = SimpleNamespace(get_handler=lambda cls: ctrl if cls is CharacterControllerHandler else None)
     return h, ctrl
 
 

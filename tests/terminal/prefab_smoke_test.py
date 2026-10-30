@@ -75,9 +75,7 @@ class TestPrefabSmoke(TerminalTest):
         prop.on_stop()
 
         shape = BulletBoxShape(Vec3(0.5, 0.5, 0.5))
-        prop2 = create_static_prop(
-            model_path="X Bot.glb", shape=shape, mass=0.0, position=(3.0, 0.0, 0.0)
-        )
+        prop2 = create_static_prop(model_path="X Bot.glb", shape=shape, mass=0.0, position=(3.0, 0.0, 0.0))
         assert prop2 is not None
         prop2.start()
         prop2.on_stop()
@@ -87,13 +85,7 @@ class TestPrefabSmoke(TerminalTest):
     def test_builder_escape_hatch(self) -> None:
         self.print_subtitle("EntityBuilder composes in explicit order.")
         Entity.reset_ids()
-        entity = (
-            EntityBuilder("Custom")
-            .at(0.0, 0.0, 1.0)
-            .with_input()
-            .with_character()
-            .build()
-        )
+        entity = EntityBuilder("Custom").at(0.0, 0.0, 1.0).with_input().with_character().build()
         assert entity is not None
         assert entity.get_handler(CharacterControllerHandler) is not None
         entity.start()

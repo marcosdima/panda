@@ -73,9 +73,12 @@ def test_add_once_zero_arg_with_event_args():
 def test_add_callback_makes_once_persistent():
     calls = []
     ev = Event()
-    cb = lambda: calls.append(1)
-    ev.add_once(cb)
-    ev.add_callback(cb)
+
+    def _cb() -> None:
+        calls.append(1)
+
+    ev.add_once(_cb)
+    ev.add_callback(_cb)
     ev()
     ev()
     assert calls == [1, 1]

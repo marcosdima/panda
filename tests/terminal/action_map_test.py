@@ -83,10 +83,7 @@ def _run(handler_map, held_names):
 
 def test_wasd_default_map_unchanged():
     wasd = _run(None, ["w", "d", "space", "lshift"])
-    assert (
-        abs(wasd.move_vector.x - 0.7071) < 1e-3
-        and abs(wasd.move_vector.y - 0.7071) < 1e-3
-    )
+    assert abs(wasd.move_vector.x - 0.7071) < 1e-3 and abs(wasd.move_vector.y - 0.7071) < 1e-3
     assert {"jump", "sprint"} <= wasd.down
 
 

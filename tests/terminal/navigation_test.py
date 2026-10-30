@@ -29,13 +29,7 @@ def make_nav(**kwargs):
         chosen_graph = kwargs.pop("nav_graph")
     else:
         chosen_graph = None
-    if (
-        chosen_grid is None
-        and chosen_graph is None
-        and not has_grid
-        and not has_nav_grid
-        and not has_nav_graph
-    ):
+    if chosen_grid is None and chosen_graph is None and not has_grid and not has_nav_grid and not has_nav_graph:
         chosen_grid = NavGrid(40, 40, 1.0, origin=Vec3(-20, -20, 0))
     filtered = {k: v for k, v in kwargs.items()}
     ai = AINavigationHandler(nav_grid=chosen_grid, nav_graph=chosen_graph, **filtered)

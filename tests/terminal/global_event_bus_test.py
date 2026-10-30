@@ -32,10 +32,13 @@ def test_priority_order():
 def test_unsubscribe_removes_listener():
     calls = []
     bus_ = GlobalEventBus()
-    cb = lambda: calls.append("x")
-    bus_.subscribe("e", cb)
+
+    def _cb() -> None:
+        calls.append("x")
+
+    bus_.subscribe("e", _cb)
     bus_.publish("e")
-    bus_.unsubscribe("e", cb)
+    bus_.unsubscribe("e", _cb)
     bus_.publish("e")
     assert calls == ["x"]
 
@@ -43,10 +46,13 @@ def test_unsubscribe_removes_listener():
 def test_has_listeners():
     bus_ = GlobalEventBus()
     assert not bus_.has_listeners("e")
-    cb = lambda: None
-    bus_.subscribe("e", cb)
+
+    def _cb() -> None:
+        return None
+
+    bus_.subscribe("e", _cb)
     assert bus_.has_listeners("e")
-    bus_.unsubscribe("e", cb)
+    bus_.unsubscribe("e", _cb)
     assert not bus_.has_listeners("e")
 
 

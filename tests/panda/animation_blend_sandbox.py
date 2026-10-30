@@ -193,9 +193,7 @@ class TestAnimationBlendSandbox(Test):
                         "Idle->Walk", self.player_rig.animation.blend_duration
                     )
                 )
-                self.player_rig.animation.blend_durations["Idle->Walk"] = (
-                    self._blend_tuning
-                )
+                self.player_rig.animation.blend_durations["Idle->Walk"] = self._blend_tuning
         except Exception:  # noqa: BLE001, S110
             pass
 
@@ -206,8 +204,7 @@ class TestAnimationBlendSandbox(Test):
 
             self.osd_instructions = OnscreenText(
                 text=(
-                    "WASD Move | Space Jump | LShift Sprint | F12 Wireframe\n"
-                    "Move/stop/run/jump to see smooth blends"
+                    "WASD Move | Space Jump | LShift Sprint | F12 Wireframe\nMove/stop/run/jump to see smooth blends"
                 ),
                 pos=(-1.3, 0.9),
                 scale=0.05,
@@ -229,33 +226,22 @@ class TestAnimationBlendSandbox(Test):
 
     def _on_frame_update(self, task):
         try:
-            if (
-                self.player_rig is not None
-                and self.player_rig.animation is not None
-                and self.osd_telemetry is not None
-            ):
-                anim_name = getattr(
-                    self.player_rig.animation, "current_animation", None
-                )
+            if self.player_rig is not None and self.player_rig.animation is not None and self.osd_telemetry is not None:
+                anim_name = getattr(self.player_rig.animation, "current_animation", None)
                 state = getattr(self.player_rig.animation.locomotion, "state", None)
                 blending = getattr(self.player_rig.animation, "_blend_active", False)
                 fw = getattr(self.player_rig.animation, "_blend_from_name", None)
                 tw = getattr(self.player_rig.animation, "_blend_to_name", None)
-                self.osd_telemetry.setText(
-                    f"State: {state} | Anim: {anim_name} | Blending: {blending} ({fw}->{tw})"
-                )
-            if (
-                self.player_rig is not None
-                and self.player_rig.animation is not None
-                and self.osd_blend is not None
-            ):
+                self.osd_telemetry.setText(f"State: {state} | Anim: {anim_name} | Blending: {blending} ({fw}->{tw})")
+            if self.player_rig is not None and self.player_rig.animation is not None and self.osd_blend is not None:
                 acc = (
                     getattr(self.player_rig.controller, "acceleration", 0.0)
                     if self.player_rig.controller is not None
                     else 0.0
                 )
                 self.osd_blend.setText(
-                    f"Idle->Walk: {self.player_rig.animation.blend_durations.get('Idle->Walk', 0):.2f}s | accel: {acc:.0f} | paused: {self._paused}"
+                    f"Idle->Walk: {self.player_rig.animation.blend_durations.get('Idle->Walk', 0):.2f}s | "
+                    f"accel: {acc:.0f} | paused: {self._paused}"
                 )
         except Exception:  # noqa: BLE001, S110
             pass
@@ -350,10 +336,7 @@ class TestAnimationBlendSandbox(Test):
         except Exception:  # noqa: BLE001, S110
             pass
 
-        if (
-            self.player_rig is not None
-            and getattr(self.player_rig, "entity", None) is not None
-        ):
+        if self.player_rig is not None and getattr(self.player_rig, "entity", None) is not None:
             try:
                 self.player_rig.entity.free()
             except Exception:  # noqa: BLE001

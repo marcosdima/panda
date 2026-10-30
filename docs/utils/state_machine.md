@@ -9,9 +9,9 @@
 - Hooks must not call `transition()`; a nested call raises `RuntimeError`.
 
 ```python
-sm = StateMachine('idle', {'idle': ['walk'], 'walk': ['idle']})
-sm.on_enter('walk', lambda prev, new: print('walking'))
-sm.transition('walk')
+sm = StateMachine("idle", {"idle": ["walk"], "walk": ["idle"]})
+sm.on_enter("walk", lambda prev, new: print("walking"))
+sm.transition("walk")
 ```
 
 Source: `src/utils/state_machine.py`

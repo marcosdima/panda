@@ -30,7 +30,7 @@ def test_visual_scenes_present() -> None:
 
 def test_scene_modules_exist() -> None:
     project_root = Path(__file__).resolve().parents[2]
-    for (_title, _category, scene_cls) in SCENE_REGISTRY.values():
+    for _title, _category, scene_cls in SCENE_REGISTRY.values():
         module_name = scene_cls.__module__
         assert module_name.startswith("tests.")
         relative = module_name.replace(".", "/") + ".py"

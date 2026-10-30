@@ -247,7 +247,8 @@ class TestFollowSandbox(Test):
             color="cyan",
         )
         self.p(
-            f" - With the leash ON the follower gives up beyond {self.LEASH_DISTANCE:.1f}m and resumes when the target returns",
+            f" - With the leash ON the follower gives up beyond {self.LEASH_DISTANCE:.1f}m "
+            f"and resumes when the target returns",
             color="cyan",
         )
         self.space_line()
@@ -320,9 +321,7 @@ class TestFollowSandbox(Test):
         """Spawn the camera rig entity that frames the follower from a distance."""
         rig = Entity("CameraRig")
         rig.node.reparentTo(self.base.render)
-        rig.node.setPos(
-            self.FOLLOWER_START.x, self.FOLLOWER_START.y, self.FOLLOWER_START.z
-        )
+        rig.node.setPos(self.FOLLOWER_START.x, self.FOLLOWER_START.y, self.FOLLOWER_START.z)
 
         self.camera_handler = ThirdPersonCameraHandler(
             distance=11.0,
@@ -362,10 +361,7 @@ class TestFollowSandbox(Test):
         )
         target.add_handler(self.target_controller)
 
-        if (
-            self.target_controller.controller_np is not None
-            and not self.target_controller.controller_np.isEmpty()
-        ):
+        if self.target_controller.controller_np is not None and not self.target_controller.controller_np.isEmpty():
             self._attach_box_visual(
                 self.target_controller.controller_np,
                 "target_visual",
@@ -380,9 +376,7 @@ class TestFollowSandbox(Test):
         """Spawn the follower entity: intent, follow brain, then the controller."""
         follower = Entity("Follower")
         follower.node.reparentTo(self.base.render)
-        follower.node.setPos(
-            self.FOLLOWER_START.x, self.FOLLOWER_START.y, self.FOLLOWER_START.z
-        )
+        follower.node.setPos(self.FOLLOWER_START.x, self.FOLLOWER_START.y, self.FOLLOWER_START.z)
 
         self.follower_input = InputHandler()
         follower.add_handler(self.follower_input)
@@ -407,10 +401,7 @@ class TestFollowSandbox(Test):
         )
         follower.add_handler(self.follower_controller)
 
-        if (
-            self.follower_controller.controller_np is not None
-            and not self.follower_controller.controller_np.isEmpty()
-        ):
+        if self.follower_controller.controller_np is not None and not self.follower_controller.controller_np.isEmpty():
             self._attach_box_visual(
                 self.follower_controller.controller_np,
                 "follower_visual",
@@ -478,11 +469,7 @@ class TestFollowSandbox(Test):
     def follower_position(self) -> Vec3:
         """Return the follower world position, preferring the character controller node."""
         controller = self.follower_controller
-        if (
-            controller is not None
-            and controller.controller_np is not None
-            and not controller.controller_np.isEmpty()
-        ):
+        if controller is not None and controller.controller_np is not None and not controller.controller_np.isEmpty():
             return Vec3(controller.controller_np.getPos(self.base.render))
         if self.follower is not None:
             return Vec3(self.follower.node.getPos(self.base.render))
@@ -491,11 +478,7 @@ class TestFollowSandbox(Test):
     def target_position(self) -> Vec3:
         """Return the target world position, preferring the character controller node."""
         controller = self.target_controller
-        if (
-            controller is not None
-            and controller.controller_np is not None
-            and not controller.controller_np.isEmpty()
-        ):
+        if controller is not None and controller.controller_np is not None and not controller.controller_np.isEmpty():
             return Vec3(controller.controller_np.getPos(self.base.render))
         if self.target is not None:
             return Vec3(self.target.node.getPos(self.base.render))
@@ -511,9 +494,7 @@ class TestFollowSandbox(Test):
         """Toggle the follow leash, switching the brain between following and out of range."""
         self._leash_enabled = not self._leash_enabled
         if self.follow_handler is not None:
-            self.follow_handler.max_distance = (
-                self.LEASH_DISTANCE if self._leash_enabled else None
-            )
+            self.follow_handler.max_distance = self.LEASH_DISTANCE if self._leash_enabled else None
         state = "ON" if self._leash_enabled else "OFF"
         self.p(f"[Follow] Leash: {state}", color="yellow", bold=True)
 
@@ -542,29 +523,21 @@ class TestFollowSandbox(Test):
 
     def _update_osd(self, current_time: float) -> None:
         """Update the live telemetry on the OSD and print it to the terminal."""
-        state = (
-            self.follow_handler.state.value.upper()
-            if self.follow_handler is not None
-            else "?"
-        )
-        move = (
-            self.follow_handler.move_vector if self.follow_handler is not None else None
-        )
+        state = self.follow_handler.state.value.upper() if self.follow_handler is not None else "?"
+        move = self.follow_handler.move_vector if self.follow_handler is not None else None
         move_x = move.x if move is not None else 0.0
         move_y = move.y if move is not None else 0.0
         distance = (self.target_position() - self.follower_position()).length()
         target_mode = "AUTO" if self._target_auto else "MANUAL"
         leash = "ON" if self._leash_enabled else "OFF"
         wireframe = "ON" if Physics.is_debug_enabled() else "OFF"
-        sprinting = (
-            self.follower_input is not None
-            and self.follower_input.is_action_down(SPRINT)
-        )
+        sprinting = self.follower_input is not None and self.follower_input.is_action_down(SPRINT)
 
         if self.osd_telemetry is not None:
             self.osd_telemetry.setText(
                 f"Follow state: {state:<12} | move_vector: ({move_x:+.2f}, {move_y:+.2f}) | dist: {distance:5.2f}m\n"
-                f"Leash: {leash:<3} | Target: {target_mode:<6} | Sprint: {'YES' if sprinting else 'NO ':<3} | Wireframe: {wireframe}"
+                f"Leash: {leash:<3} | Target: {target_mode:<6} | "
+                f"Sprint: {'YES' if sprinting else 'NO ':<3} | Wireframe: {wireframe}"
             )
 
         if current_time - self._last_console_telemetry_time >= self._console_interval:
@@ -582,7 +555,8 @@ class TestFollowSandbox(Test):
             from panda3d.core import TextNode
 
             self.osd_instructions = OnscreenText(
-                text="WASD: Move Target | Mouse: Look | T: Target Mode | L: Leash | Esc/P: Pause & Inspector | F12: Wireframe",
+                text="WASD: Move Target | Mouse: Look | T: Target Mode | L: Leash | "
+                "Esc/P: Pause & Inspector | F12: Wireframe",
                 pos=(-1.28, 0.92),
                 scale=0.045,
                 fg=(1.0, 1.0, 1.0, 1.0),

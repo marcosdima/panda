@@ -41,15 +41,9 @@ def _sensor(scene: Scene, **kwargs) -> tuple[Entity, ProximitySensorHandler]:
 
 def _record(handler: ProximitySensorHandler) -> list[tuple[str, Entity, float]]:
     events: list[tuple[str, Entity, float]] = []
-    handler.on_enter.add_callback(
-        lambda entity, distance: events.append(("enter", entity, distance))
-    )
-    handler.on_stay.add_callback(
-        lambda entity, distance: events.append(("stay", entity, distance))
-    )
-    handler.on_exit.add_callback(
-        lambda entity, distance: events.append(("exit", entity, distance))
-    )
+    handler.on_enter.add_callback(lambda entity, distance: events.append(("enter", entity, distance)))
+    handler.on_stay.add_callback(lambda entity, distance: events.append(("stay", entity, distance)))
+    handler.on_exit.add_callback(lambda entity, distance: events.append(("exit", entity, distance)))
     return events
 
 
@@ -135,9 +129,7 @@ def test_sensor_ignores_itself(scene):
 
 
 def test_predicate_filters_candidates(scene):
-    sensor_entity, handler = _sensor(
-        scene, radius=10.0, predicate=lambda entity: entity.name.startswith("NPC")
-    )
+    sensor_entity, handler = _sensor(scene, radius=10.0, predicate=lambda entity: entity.name.startswith("NPC"))
     _entity(scene, "Scenery", (1.0, 0.0, 0.0))
     npc = _entity(scene, "NPC-Guard", (2.0, 0.0, 0.0))
 

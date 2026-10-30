@@ -18,7 +18,7 @@ The sorts are constants on `Game`: `UPDATE_TASK_SORT = -5`, `POST_UPDATE_TASK_SO
 ```python
 class FollowerCamera(Handler):
     def on_update(self, dt: float) -> None:
-        self.yaw = self.read_look()          # input-driven, needed before physics
+        self.yaw = self.read_look()  # input-driven, needed before physics
 
     def on_post_update(self, dt: float) -> None:
         self.camera.setPos(self.target_pos)  # depends on the physics result

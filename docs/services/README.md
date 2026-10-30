@@ -17,7 +17,7 @@ The Service Locator lets handlers obtain engine services by name instead of impo
 from src.services import services
 
 services.register("physics", physics_world)
-physics = services.get("physics")          # KeyError if missing
+physics = services.get("physics")  # KeyError if missing
 physics = services.get("physics", default=None)
 ```
 

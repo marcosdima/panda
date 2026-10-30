@@ -106,26 +106,14 @@ class TestCharacterSandbox(Test):
         if self.controller is not None:
             self.expose_toggle(
                 "Body Follows Cam Yaw",
-                lambda: (
-                    self.controller.body_follows_camera_yaw
-                    if self.controller
-                    else False
-                ),
-                lambda v: (
-                    setattr(self.controller, "body_follows_camera_yaw", bool(v))
-                    if self.controller
-                    else None
-                ),
+                lambda: self.controller.body_follows_camera_yaw if self.controller else False,
+                lambda v: setattr(self.controller, "body_follows_camera_yaw", bool(v)) if self.controller else None,
             )
         self.expose_action("Cycle Camera Preset (C)", self._cycle_camera_preset)
         if self.actor_handler is not None:
             self.expose_action(
                 "Action: Interact",
-                lambda: (
-                    self.actor_handler.play_action("Interact")
-                    if self.actor_handler
-                    else None
-                ),
+                lambda: self.actor_handler.play_action("Interact") if self.actor_handler else None,
             )
 
     def _print_controls_banner(self) -> None:
@@ -137,21 +125,21 @@ class TestCharacterSandbox(Test):
             bold=True,
         )
         self.p(
-            " Controls:      WASD: Move | SPACE: Jump | LSHIFT: Sprint | Mouse: Look | Tab/Esc: Cursor | Wheel: Zoom | F12: Wireframe",
+            " Controls:      WASD: Move | SPACE: Jump | LSHIFT: Sprint | Mouse: Look | Tab/Esc: Cursor | "
+            "Wheel: Zoom | F12: Wireframe",
             color="cyan",
             bold=True,
         )
         self.p(" Movement:      [W, A, S, D] or Arrow Keys", color="green", bold=True)
-        self.p(
-            " Jump:          [Spacebar] (only while grounded)", color="green", bold=True
-        )
+        self.p(" Jump:          [Spacebar] (only while grounded)", color="green", bold=True)
         self.p(
             " Sprint:        [Left Shift] (12.0 m/s vs 6.0 m/s walk)",
             color="green",
             bold=True,
         )
         self.p(
-            " Camera Presets:[1] Adventure/Orbit | [2] Over-Shoulder Shooter | [3] Isometric | [4] Top-Down | [C] Cycle",
+            " Camera Presets:[1] Adventure/Orbit | [2] Over-Shoulder Shooter | "
+            "[3] Isometric | [4] Top-Down | [C] Cycle",
             color="green",
             bold=True,
         )
@@ -183,9 +171,7 @@ class TestCharacterSandbox(Test):
         )
         self.p(" - Ramp 30 deg: Medium-incline slope test", color="cyan")
         self.p(" - Ramp 45 deg: Critical-incline slope / slide test", color="cyan")
-        self.p(
-            " - Elevated Platform at Z=2.0m: Accessible via stairs/ramps", color="cyan"
-        )
+        self.p(" - Elevated Platform at Z=2.0m: Accessible via stairs/ramps", color="cyan")
         self.space_line()
 
     def _create_static_box(
@@ -421,7 +407,8 @@ class TestCharacterSandbox(Test):
             from panda3d.core import TextNode
 
             self.osd_instructions = OnscreenText(
-                text="WASD: Move | SPACE: Jump | 1-4/C: Cam Presets | B: Body Mode | Esc/P: Pause & Inspector | F12: Wireframe",
+                text="WASD: Move | SPACE: Jump | 1-4/C: Cam Presets | B: Body Mode | "
+                "Esc/P: Pause & Inspector | F12: Wireframe",
                 pos=(-1.28, 0.92),
                 scale=0.040,
                 fg=(1.0, 1.0, 1.0, 1.0),
@@ -553,27 +540,19 @@ class TestCharacterSandbox(Test):
         mode = "SPRINT" if is_sprinting else "WALK"
         wireframe = "ON" if Physics.is_debug_enabled() else "OFF"
         body_mode = (
-            "CAM-LOOK"
-            if self.controller.orientation_mode == CharacterOrientationMode.CAMERA_LOOK
-            else "MOV-DIR"
+            "CAM-LOOK" if self.controller.orientation_mode == CharacterOrientationMode.CAMERA_LOOK else "MOV-DIR"
         )
         cam_preset = getattr(self, "current_preset_name", "Custom")
-        locomotion = (
-            str(self.actor_handler.locomotion.state)
-            if self.actor_handler is not None
-            else "-"
-        )
-        clip = (
-            self.actor_handler.current_animation
-            if self.actor_handler is not None
-            else None
-        ) or "-"
+        locomotion = str(self.actor_handler.locomotion.state) if self.actor_handler is not None else "-"
+        clip = (self.actor_handler.current_animation if self.actor_handler is not None else None) or "-"
 
         # Update OnscreenText OSD
         if self.osd_telemetry is not None:
             self.osd_telemetry.setText(
-                f"Camera: {cam_preset} | Body: {body_mode} | Pos: ({world_pos.x:6.2f}, {world_pos.y:6.2f}, {world_pos.z:6.2f})\n"
-                f"Speed: {speed:4.1f} m/s ({mode}) | Ground: {is_on_ground!s:5} | CanJump: {can_jump!s:5} | Debug: {wireframe}\n"
+                f"Camera: {cam_preset} | Body: {body_mode} | "
+                f"Pos: ({world_pos.x:6.2f}, {world_pos.y:6.2f}, {world_pos.z:6.2f})\n"
+                f"Speed: {speed:4.1f} m/s ({mode}) | Ground: {is_on_ground!s:5} | "
+                f"CanJump: {can_jump!s:5} | Debug: {wireframe}\n"
                 f"Locomotion: {locomotion:6} | Clip: {clip}"
             )
 
@@ -581,7 +560,8 @@ class TestCharacterSandbox(Test):
         if current_time - self._last_console_telemetry_time >= self._console_interval:
             self._last_console_telemetry_time = current_time
             self.p(
-                f"[Telemetry] Cam: {cam_preset} | Body: {body_mode} | Pos: ({world_pos.x:.2f}, {world_pos.y:.2f}, {world_pos.z:.2f}) | "
+                f"[Telemetry] Cam: {cam_preset} | Body: {body_mode} | "
+                f"Pos: ({world_pos.x:.2f}, {world_pos.y:.2f}, {world_pos.z:.2f}) | "
                 f"Speed: {speed:.1f} m/s ({mode}) | Grounded: {is_on_ground} | "
                 f"Wireframe: {wireframe} | Locomotion: {locomotion} | Clip: {clip}",
                 color="blue",
