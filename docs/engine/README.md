@@ -34,6 +34,8 @@ physics = services.get("physics")
 
 `initialize_services()` (called from `Game.__init__`) registers `physics`, `loader`, `camera`, `lights`, `tasks`, `clock` and `events`. `services.get(name)` raises `KeyError` for an unknown name unless a `default` is given.
 
+The full API and the registration keys are documented in [services/README.md](../services/README.md).
+
 The `events` key holds the shared [`GlobalEventBus`](../utils/global_event_bus.md) instance (`from src.utils import bus`). Unlike the other entries, which register classes, `events` registers an already-built instance; this is intentional because the bus is a passive registry with no ShowBase dependency.
 
 Source: `src/globals/`, `src/services/`, `src/game.py`

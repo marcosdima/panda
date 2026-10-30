@@ -23,6 +23,8 @@ Every general feature of the engine is documented in its own file. This page is 
 | Handlers | [handlers/components.md](handlers/components.md) | `PauseHandler`, `CameraControlComponent`, `CameraSettingsComponent`, `HealthHandler`, `SpawnerHandler`. |
 | Testing | [testing/README.md](testing/README.md) | Test framework, headless suites, interactive sandboxes. |
 | Utilities | [utils/README.md](utils/README.md) | `Event`, `GlobalEventBus`, `Cooldown`, math helpers, `StateMachine`, paths, world position. |
+| Services | [services/README.md](services/README.md) | Service Locator for engine-wide resources. |
+| Handlers | [handlers/capabilities.md](handlers/capabilities.md) | Protocol-based capability lookup on entities. |
 
 ## Editorial rules
 

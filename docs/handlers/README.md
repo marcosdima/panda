@@ -16,6 +16,7 @@ The contract every handler follows is in [pattern.md](pattern.md). This page is 
 | AI | [ai.md](ai.md) | `AIPatrolHandler`, `PatrolState`, `AINavigationHandler`, `NavigationState`, `FollowHandler`, `FollowState`. |
 | Sensors | [sensors.md](sensors.md) | `ProximitySensorHandler`: distance-based enter/stay/exit detection without physics. |
 | Components | [components.md](components.md) | `PauseHandler`, `CameraControlComponent`, `CameraSettingsComponent`, `HealthHandler`, `SpawnerHandler`. |
+| Capabilities | [capabilities.md](capabilities.md) | `IntentSource`, `Mover`, `PhysicsBody`, `AnimationPlayer`, `CameraRig` Protocols. |
 
 ## Choosing a handler
 

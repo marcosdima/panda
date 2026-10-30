@@ -75,10 +75,7 @@ How it works in Bullet:
 - `Physics.debug_dump()` returns `{"bodies", "ghosts", "constraints", "orphan_nodes"}`.
 - CLI: `./venv/bin/python -m src.globals.physics --dump` prints the diagnostic snapshot as JSON.
 
-Source: `src/globals/physics.py`
-Tests: `tests/terminal/physics_cleanup_test.py`
-
 - The wireframe requires a display; in headless mode it is simply not created.
 
 Source: `src/globals/physics.py`, `src/handlers/physics/groups.py`
-Tests: `tests/terminal/physics_handlers.py`, `tests/terminal/ai_test.py`, `tests/terminal/camera_handler.py`, `tests/terminal/phase1_stabilization_test.py`
+Tests: `tests/terminal/physics_cleanup_test.py`, `tests/terminal/physics_handlers.py`, `tests/terminal/ai_test.py`, `tests/terminal/camera_handler.py`, `tests/terminal/phase1_stabilization_test.py`
