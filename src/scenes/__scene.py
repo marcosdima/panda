@@ -145,7 +145,7 @@ class Scene(ABC):
                 logging.getLogger(__name__).info(
                     "Physics debug dump: %s", Physics.debug_dump()
                 )
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
 
         if self.root_np is not None and not self.root_np.isEmpty():

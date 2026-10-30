@@ -98,10 +98,9 @@ class TriggerZoneHandler(Handler):
         super().on_start()
         if self.entity is not None and (
             self.ghost_np is None or self.ghost_np.isEmpty()
-        ):
-            if self.ghost_node is not None:
-                self.ghost_np = self.entity.node.attachNewNode(self.ghost_node)
-                self._last_parent_net = self.ghost_np.getParent().getNetTransform()
+        ) and self.ghost_node is not None:
+            self.ghost_np = self.entity.node.attachNewNode(self.ghost_node)
+            self._last_parent_net = self.ghost_np.getParent().getNetTransform()
         self._attach_to_world()
 
     def on_update(self, dt: float) -> None:
@@ -161,9 +160,7 @@ class TriggerZoneHandler(Handler):
         """Return True if an overlap from the given group should be accepted."""
         if self.target_groups and group not in self.target_groups:
             return False
-        if self.avoid_groups and group in self.avoid_groups:
-            return False
-        return True
+        return not (self.avoid_groups and group in self.avoid_groups)
 
     def _is_ambient(self, group: CollisionGroup) -> bool:
         """Return True for ungrouped environment overlaps of a selective zone.

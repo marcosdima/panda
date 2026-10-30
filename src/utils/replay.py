@@ -160,7 +160,7 @@ class ReplayPlayer:
         if callable(handler):
             try:
                 handler(event)
-            except Exception:  # noqa: BLE001
+            except Exception:  # noqa: BLE001, S110
                 pass
 
     @staticmethod

@@ -437,7 +437,7 @@ class TestCharacterSandbox(Test):
                 align=TextNode.ALeft,
                 mayChange=True,
             )
-        except Exception:
+        except Exception:  # noqa: BLE001
             # Gracefully ignore in non-graphical environments where OnscreenText is not supported
             self.p(
                 "OSD not available in this environment; skipping telemetry overlay.",
@@ -532,7 +532,7 @@ class TestCharacterSandbox(Test):
 
     def _on_frame_update(self, task: Any) -> int:
         """Per-frame update driving scene entity updates and telemetry."""
-        dt = GlobalClock.get_dt() if hasattr(GlobalClock, "get_dt") else 0.016
+        GlobalClock.get_dt() if hasattr(GlobalClock, "get_dt") else 0.016
 
         # Scene entities are updated centrally by Game's update task.
         # Update telemetry
@@ -550,7 +550,6 @@ class TestCharacterSandbox(Test):
         can_jump = self.controller.can_jump
         is_sprinting = self.controller.is_sprinting
         speed = self.controller.current_speed
-        velocity = self.controller.linear_velocity
         mode = "SPRINT" if is_sprinting else "WALK"
         wireframe = "ON" if Physics.is_debug_enabled() else "OFF"
         body_mode = (

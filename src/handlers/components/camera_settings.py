@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import builtins
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from direct.gui.DirectGui import DirectFrame, DirectLabel, DirectSlider
 
@@ -49,7 +49,7 @@ class CameraSettingsComponent(Handler):
     """
 
     # Slider configuration – step size is small enough for fine control.
-    _slider_cfg = {
+    _slider_cfg: ClassVar[dict[str, dict[str, float]]] = {
         "distance": {"step": 0.1, "width": 0.4},
         "pitch": {"step": 0.5, "width": 0.4},
         "yaw": {"step": 1.0, "width": 0.4},

@@ -182,9 +182,8 @@ class RigidBodyHandler(Handler):
             not to_body
             and self.entity.node is not None
             and not self.entity.node.isEmpty()
-        ):
-            if model_handler.model_np.getParent() == self.body_np:
-                model_handler.model_np.reparentTo(self.entity.node)
+        ) and model_handler.model_np.getParent() == self.body_np:
+            model_handler.model_np.reparentTo(self.entity.node)
 
     def on_attach(self, entity: Entity) -> None:
         """Create the rigid body node, parent it to the entity, and join the world."""

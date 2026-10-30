@@ -25,7 +25,7 @@ class UIRow(UIComponent):
         try:
             node.reparentTo(parent)
             node.setPos(self._pos)
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110
             pass
 
         super().__init__(node=node, owner=owner)
@@ -50,7 +50,7 @@ class UIRow(UIComponent):
             mins, maxs = node.getTightBounds()
             if mins is not None and maxs is not None:
                 return (float(maxs.x - mins.x), float(maxs.z - mins.z))
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110
             pass
         return (0.2, 0.1)
 
@@ -58,7 +58,7 @@ class UIRow(UIComponent):
         node = self._node_of(child)
         try:
             node.reparentTo(self.node)
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110
             pass
         self._children.append(child)
         self.relayout()
@@ -73,7 +73,7 @@ class UIRow(UIComponent):
             node = self._node_of(child)
             try:
                 node.setPos(x + size[0] / 2.0, 0.0, 0.0)
-            except Exception:  # noqa: BLE001
+            except Exception:  # noqa: BLE001, S110
                 pass
             x += size[0] + self._spacing
 
@@ -85,7 +85,7 @@ class UIRow(UIComponent):
                 destroy = getattr(child, "destroy", None)
                 if callable(destroy):
                     destroy()
-            except Exception:  # noqa: BLE001
+            except Exception:  # noqa: BLE001, S110
                 pass
         self._children.clear()
         super().destroy()

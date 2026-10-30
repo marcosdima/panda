@@ -595,7 +595,7 @@ class TestProximitySandbox(Test):
                 align=TextNode.ALeft,
                 mayChange=True,
             )
-        except Exception as exc:  # OSD is optional in constrained environments
+        except Exception as exc:  # OSD is optional in constrained environments  # noqa: BLE001
             self.p(
                 f"OSD not available ({exc}); skipping telemetry overlay.",
                 color="yellow",

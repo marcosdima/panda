@@ -196,7 +196,7 @@ class TestAnimationBlendSandbox(Test):
                 self.player_rig.animation.blend_durations["Idle->Walk"] = (
                     self._blend_tuning
                 )
-        except Exception:
+        except Exception:  # noqa: BLE001, S110
             pass
 
     def _setup_osd(self) -> None:
@@ -223,7 +223,7 @@ class TestAnimationBlendSandbox(Test):
                 align=TextNode.ALeft,
                 mayChange=True,
             )
-        except Exception:
+        except Exception:  # noqa: BLE001
             self.osd_instructions = None
             self.osd_telemetry = None
 
@@ -257,18 +257,18 @@ class TestAnimationBlendSandbox(Test):
                 self.osd_blend.setText(
                     f"Idle->Walk: {self.player_rig.animation.blend_durations.get('Idle->Walk', 0):.2f}s | accel: {acc:.0f} | paused: {self._paused}"
                 )
-        except Exception:
+        except Exception:  # noqa: BLE001, S110
             pass
         return task.cont
 
     def _toggle_physics_debug(self) -> None:
         try:
             Physics.get_instance().toggle_debug()
-        except Exception:
+        except Exception:  # noqa: BLE001
             try:
                 if self.base is not None and hasattr(self.base, "toggleBulletDebug"):
                     self.base.toggleBulletDebug()
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
 
     def _blend_down(self) -> None:
@@ -295,7 +295,7 @@ class TestAnimationBlendSandbox(Test):
         self._paused = not self._paused
         try:
             self.manager.set_paused(self._paused)
-        except Exception:
+        except Exception:  # noqa: BLE001, S110
             pass
 
     def on_stop(self) -> None:
@@ -309,45 +309,45 @@ class TestAnimationBlendSandbox(Test):
                 self.base.ignore("]")
                 self.base.ignore("g")
                 self.base.ignore("p")
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
 
         if self.osd_telemetry is not None:
             try:
                 self.osd_telemetry.destroy()
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
             self.osd_telemetry = None
         if self.osd_instructions is not None:
             try:
                 self.osd_instructions.destroy()
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
             self.osd_instructions = None
         if getattr(self, "osd_blend", None) is not None:
             try:
                 self.osd_blend.destroy()
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
             self.osd_blend = None
 
         for body_name in list(getattr(self, "static_bodies", [])):
             try:
                 Physics.remove_body(body_name)
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
         for node in list(getattr(self, "static_nodes", [])):
             try:
                 if node is not None and not node.isEmpty():
                     node.removeNode()
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
         self.static_nodes.clear()
         self.static_bodies.clear()
 
         try:
             GlobalLights.clear_lights()
-        except Exception:
+        except Exception:  # noqa: BLE001, S110
             pass
 
         if (
@@ -356,10 +356,10 @@ class TestAnimationBlendSandbox(Test):
         ):
             try:
                 self.player_rig.entity.free()
-            except Exception:
+            except Exception:  # noqa: BLE001
                 try:
                     self.remove_entity(self.player_rig.entity)
-                except Exception:
+                except Exception:  # noqa: BLE001, S110
                     pass
         self.player_rig = None
 

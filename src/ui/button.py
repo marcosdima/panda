@@ -55,7 +55,7 @@ class UIButton(UIComponent):
             return
         try:
             self._command()
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110
             pass
 
     def set_text(self, text: str) -> None:
@@ -63,7 +63,7 @@ class UIButton(UIComponent):
             return
         try:
             self.node["text"] = text
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110
             pass
 
     def set_command(self, command) -> None:
@@ -76,7 +76,7 @@ class UIButton(UIComponent):
         try:
             self.node["state"] = "normal" if self._enabled else "disabled"
             self.node["frameColor"] = self.theme.button_state_colors(self._enabled)
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110
             pass
 
     @property

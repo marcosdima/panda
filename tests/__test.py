@@ -417,7 +417,7 @@ class Test(Scene):
         if self._inspector_frame is not None:
             try:
                 self._inspector_frame.destroy()
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
             self._inspector_frame = None
 
@@ -437,7 +437,7 @@ class Test(Scene):
                 DirectSlider,
             )
             from panda3d.core import TextNode
-        except Exception:
+        except Exception:  # noqa: BLE001
             return
 
         fields = self.get_inspector_fields()

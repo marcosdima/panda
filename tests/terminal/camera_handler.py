@@ -776,7 +776,7 @@ class TestCameraHandler(TerminalTest):
             entity.update_post(0.016)
 
         ideal = handler.compute_ideal_position()
-        target_pos = handler.get_target_pos()
+        handler.get_target_pos()
 
         # With yaw=0, pitch=0, distance=8: ideal base = (0, -8, 0)
         # Shoulder offset rotated by yaw=0: (1.0, 0.0, 0.0)
@@ -829,7 +829,7 @@ class TestCameraHandler(TerminalTest):
 
         eye_pos = handler.get_eye_pos()
         body_pos = handler.get_body_pos()
-        eye_to_wall = (Vec3(0.0, 1.0, 0.0) - body_pos).length()
+        (Vec3(0.0, 1.0, 0.0) - body_pos).length()
 
         # El ojo no debe quedar dentro o tras la pared (distancia cuerpo-ojomuy corta)
         # Si el ojo está a menos de collision_margin de la pared, se ajusta
@@ -1086,7 +1086,7 @@ class TestCameraHandler(TerminalTest):
         wall = self._make_static_box(
             "fp_smooth_wall", Vec3(0.0, 1.0, 0.0), Vec3(6.0, 0.2, 6.0)
         )
-        entity, controller, handler, cam_np, lens = self._make_fp_rig(
+        entity, controller, handler, cam_np, _lens = self._make_fp_rig(
             "FPSmoothHero", smooth_factor=0.1
         )
         handler.yaw = 0.0

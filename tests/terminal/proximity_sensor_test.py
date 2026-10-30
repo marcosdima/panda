@@ -323,7 +323,7 @@ def test_distance_to_and_is_in_range(scene):
 
 def test_distance_matches_world_position(scene):
     """Distance is measured from the same authoritative position the helper reports."""
-    sensor_entity, handler = _sensor(scene, radius=5.0)
+    _sensor_entity, handler = _sensor(scene, radius=5.0)
     target = _entity(scene, "Target", (0.0, 0.0, 0.0))
     target.node.setPos(2.0, 0.0, 0.0)
 

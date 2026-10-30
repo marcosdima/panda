@@ -73,7 +73,7 @@ def test_clip_fallbacks_and_missing_jump():
 
 
 def test_manual_override_is_reconciled_and_no_clips_is_safe():
-    h, c = make()
+    h, _c = make()
     step(h)
     h.loop_animation("Walking_A")
     assert step(h) == ("Idle", "Idle_A")

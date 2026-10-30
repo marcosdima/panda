@@ -17,7 +17,7 @@ class UIComponent:
         if owner is not None and hasattr(owner, "_ui_components"):
             try:
                 owner._ui_components.append(self)
-            except Exception:  # noqa: BLE001
+            except Exception:  # noqa: BLE001, S110
                 pass
 
     @property
@@ -35,7 +35,7 @@ class UIComponent:
                 self.node.show()
             else:
                 self.node.hide()
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110
             pass
 
     def destroy(self) -> None:
@@ -50,12 +50,12 @@ class UIComponent:
             except Exception:  # noqa: BLE001
                 try:
                     node.removeNode()
-                except Exception:  # noqa: BLE001
+                except Exception:  # noqa: BLE001, S110
                     pass
         if self.owner is not None and hasattr(self.owner, "_ui_components"):
             try:
                 owner_components = self.owner._ui_components
                 if self in owner_components:
                     owner_components.remove(self)
-            except Exception:  # noqa: BLE001
+            except Exception:  # noqa: BLE001, S110
                 pass

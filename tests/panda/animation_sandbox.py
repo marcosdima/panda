@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 import math
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from panda3d.bullet import BulletBoxShape
 from panda3d.core import NodePath, Vec3
@@ -51,7 +51,7 @@ class _PhaseState:
 class TestAnimationSandbox(Test):
     """Visual sandbox to evaluate velocity-driven locomotion state transitions."""
 
-    _SEQUENCE: list[_PhaseState] = [
+    _SEQUENCE: ClassVar[list[_PhaseState]] = [
         _PhaseState("Idle", 0.0, False, 2.0),
         _PhaseState("Walk", 1.0, False, 3.0),
         _PhaseState("Run", 1.0, True, 3.0),
@@ -249,7 +249,7 @@ class TestAnimationSandbox(Test):
                 align=TextNode.ALeft,
                 mayChange=True,
             )
-        except Exception:
+        except Exception:  # noqa: BLE001
             self.osd_instructions = None
             self.osd_telemetry = None
 
@@ -260,11 +260,11 @@ class TestAnimationSandbox(Test):
     def _toggle_physics_debug(self) -> None:
         try:
             Physics.get_instance().toggle_debug()
-        except Exception:
+        except Exception:  # noqa: BLE001
             try:
                 if self.base is not None and hasattr(self.base, "toggleBulletDebug"):
                     self.base.toggleBulletDebug()
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
 
     def capture_replay_state(self) -> dict:
@@ -422,48 +422,48 @@ class TestAnimationSandbox(Test):
                 self.base.ignore("a")
                 self.base.ignore("j")
                 self.base.ignore("p")
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
 
         if self.osd_telemetry is not None:
             try:
                 self.osd_telemetry.destroy()
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
             self.osd_telemetry = None
         if self.osd_instructions is not None:
             try:
                 self.osd_instructions.destroy()
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
             self.osd_instructions = None
 
         for body_name in list(getattr(self, "static_bodies", [])):
             try:
                 Physics.remove_body(body_name)
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
         for node in list(getattr(self, "static_nodes", [])):
             try:
                 if node is not None and not node.isEmpty():
                     node.removeNode()
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
         self.static_nodes.clear()
         self.static_bodies.clear()
 
         try:
             GlobalLights.clear_lights()
-        except Exception:
+        except Exception:  # noqa: BLE001, S110
             pass
 
         if self._entity is not None:
             try:
                 self._entity.free()
-            except Exception:
+            except Exception:  # noqa: BLE001
                 try:
                     self.remove_entity(self._entity)
-                except Exception:
+                except Exception:  # noqa: BLE001, S110
                     pass
         self._entity = None
         self.animation = None

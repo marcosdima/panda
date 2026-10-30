@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from panda3d.core import NodePath
 
@@ -18,7 +18,7 @@ class Entity:
     and a collection of modular behavioral Handlers.
     """
 
-    _free_ids: list[int] = []
+    _free_ids: ClassVar[list[int]] = []
     _next_id: int = 0
     strict_handler_validation: bool = False
 
@@ -140,7 +140,7 @@ class Entity:
         if not self._started or self._freed:
             return
         for handler in sorted(
-            list(self._handlers),
+            self._handlers,
             key=lambda item: getattr(item, "phase", HandlerPhase.NORMAL),
         ):
             if handler.is_enabled:
@@ -155,7 +155,7 @@ class Entity:
         if not self._started or self._freed:
             return
         for handler in sorted(
-            list(self._handlers),
+            self._handlers,
             key=lambda item: getattr(item, "phase", HandlerPhase.NORMAL),
         ):
             if handler.is_enabled:

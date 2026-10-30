@@ -243,7 +243,7 @@ class ActorAnimationHandler(Handler):
                     self.model_root = GlobalLoader.load_copy(
                         full_model_path, parent=self.visual_pivot
                     )
-                except Exception:
+                except Exception:  # noqa: BLE001
                     self.model_root = loader.loadModel(full_model_path)
                     self.model_root.reparentTo(self.visual_pivot)
             else:
@@ -302,7 +302,7 @@ class ActorAnimationHandler(Handler):
         try:
             try:
                 anim_model = GlobalLoader.load_copy(full_path)
-            except Exception:
+            except Exception:  # noqa: BLE001
                 anim_model = loader.loadModel(full_path)
         except OSError:
             logger.warning(
@@ -394,7 +394,7 @@ class ActorAnimationHandler(Handler):
                 if ctrl is not None:
                     try:
                         ctrl.loop(True)
-                    except Exception:
+                    except Exception:  # noqa: BLE001, S110
                         pass
                     self._set_control_weight(ctrl, 1.0)
                     self._current_anim = idle
@@ -513,12 +513,12 @@ class ActorAnimationHandler(Handler):
             try:
                 if self._blend_from_ctrl is not None:
                     self._set_control_weight(self._blend_from_ctrl, 0.0)
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
             try:
                 if self._blend_to_ctrl is not None:
                     self._set_control_weight(self._blend_to_ctrl, 1.0)
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
         self._blend_active = False
         self._blend_time = 0.0
@@ -543,9 +543,9 @@ class ActorAnimationHandler(Handler):
                 try:
                     bundle = anim_np.node().getBundle()
                     bundles.add(bundle)
-                except Exception:
+                except Exception:  # noqa: BLE001
                     continue
-        except Exception:
+        except Exception:  # noqa: BLE001, S110
             pass
         try:
             for char_np in self.visual_pivot.findAllMatches("**/+Character"):
@@ -553,9 +553,9 @@ class ActorAnimationHandler(Handler):
                     char_node = char_np.node()
                     for bi in range(char_node.getNumBundles()):
                         bundles.add(char_node.getBundle(bi))
-                except Exception:
+                except Exception:  # noqa: BLE001
                     continue
-        except Exception:
+        except Exception:  # noqa: BLE001, S110
             pass
         for bundle in bundles:
             try:
@@ -563,7 +563,7 @@ class ActorAnimationHandler(Handler):
                     bundle.setAnimBlendFlag(True)
                 elif hasattr(bundle, "anim_blend_flag"):
                     bundle.anim_blend_flag = True
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
         self._part_bundles = list(bundles)
 
@@ -578,33 +578,33 @@ class ActorAnimationHandler(Handler):
                 if hasattr(bundle, "setControlEffect"):
                     bundle.setControlEffect(ctrl, weight)
                     continue
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
             try:
                 if hasattr(bundle, "getControlEffect") or hasattr(
                     bundle, "clearControlEffects"
                 ):
                     pass
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
         # Fallbacks for other APIs if present
         if hasattr(ctrl, "setControlEffect"):
             try:
                 ctrl.setControlEffect(weight)
                 return
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
         if hasattr(ctrl, "setBlendAmount"):
             try:
                 ctrl.setBlendAmount(weight)
                 return
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
         if hasattr(ctrl, "setWeight"):
             try:
                 ctrl.setWeight(weight)
                 return
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
 
     def _start_crossfade(self, target_name: str, duration: float | None = None) -> bool:
@@ -627,20 +627,20 @@ class ActorAnimationHandler(Handler):
                 try:
                     self._set_control_weight(old_from, 0.0)
                     old_from.stop()
-                except Exception:
+                except Exception:  # noqa: BLE001, S110
                     pass
             if old_to is not None and old_to != to_ctrl:
                 try:
                     self._set_control_weight(old_to, 0.0)
                     old_to.stop()
-                except Exception:
+                except Exception:  # noqa: BLE001, S110
                     pass
             try:
                 to_ctrl.loop(True)
-            except Exception:
+            except Exception:  # noqa: BLE001
                 try:
                     to_ctrl.play()
-                except Exception:
+                except Exception:  # noqa: BLE001, S110
                     pass
             self._set_control_weight(to_ctrl, 1.0)
             self._current_anim = target_name
@@ -668,22 +668,22 @@ class ActorAnimationHandler(Handler):
                                         self.anim_controls.getAnimName(i) or from_name
                                     )
                                     break
-                            except Exception:
+                            except Exception:  # noqa: BLE001
                                 continue
-                except Exception:
+                except Exception:  # noqa: BLE001, S110
                     pass
 
         if from_ctrl is to_ctrl:
             self._cancel_blend(reset_weights=False)
             try:
                 to_ctrl.loop(True)
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
             self._set_control_weight(to_ctrl, 1.0)
             if self._blend_from_ctrl is not None and self._blend_from_ctrl != to_ctrl:
                 try:
                     self._set_control_weight(self._blend_from_ctrl, 0.0)
-                except Exception:
+                except Exception:  # noqa: BLE001, S110
                     pass
             self._current_anim = target_name
             return True
@@ -700,7 +700,6 @@ class ActorAnimationHandler(Handler):
         # Cancel previous blend cleanly
         if self._blend_active:
             prev_from = self._blend_from_ctrl
-            prev_to = self._blend_to_ctrl
             self._blend_active = False
             if (
                 prev_from is not None
@@ -710,7 +709,7 @@ class ActorAnimationHandler(Handler):
                 try:
                     self._set_control_weight(prev_from, 0.0)
                     prev_from.stop()
-                except Exception:
+                except Exception:  # noqa: BLE001, S110
                     pass
 
         # Align walk/run phase to reduce start pop
@@ -734,9 +733,9 @@ class ActorAnimationHandler(Handler):
                             try:
                                 to_ctrl.pose(f)
                                 phase_applied = True
-                            except Exception:
+                            except Exception:  # noqa: BLE001, S110
                                 pass
-        except Exception:
+        except Exception:  # noqa: BLE001, S110
             pass
 
         try:
@@ -745,10 +744,10 @@ class ActorAnimationHandler(Handler):
                 to_ctrl.loop(False)
             else:
                 to_ctrl.loop(True)
-        except Exception:
+        except Exception:  # noqa: BLE001
             try:
                 to_ctrl.play()
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
 
         self._blend_from_ctrl = from_ctrl
@@ -763,18 +762,18 @@ class ActorAnimationHandler(Handler):
         if from_ctrl is not None and from_ctrl != to_ctrl:
             try:
                 self._set_control_weight(from_ctrl, 1.0)
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
             try:
                 self._set_control_weight(to_ctrl, 0.0)
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
             return True
         else:
             # No known source to blend from; fade in new and fade out others
             try:
                 self._set_control_weight(to_ctrl, 0.0)
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
             if hasattr(self.anim_controls, "getNumAnims"):
                 try:
@@ -784,9 +783,9 @@ class ActorAnimationHandler(Handler):
                             continue
                         try:
                             self._set_control_weight(c, 1.0)
-                        except Exception:
+                        except Exception:  # noqa: BLE001, S110
                             pass
-                except Exception:
+                except Exception:  # noqa: BLE001, S110
                     pass
             return True
 
@@ -818,18 +817,18 @@ class ActorAnimationHandler(Handler):
             ):
                 try:
                     self._set_control_weight(self._blend_from_ctrl, 0.0)
-                except Exception:
+                except Exception:  # noqa: BLE001, S110
                     pass
                 try:
                     self._blend_from_ctrl.stop()
-                except Exception:
+                except Exception:  # noqa: BLE001, S110
                     pass
             if self._blend_to_ctrl is not None:
                 try:
                     # Continue from the current frame instead of restarting at
                     # frame 0, which would snap the animation at blend end.
                     self._blend_to_ctrl.loop(False)
-                except Exception:
+                except Exception:  # noqa: BLE001, S110
                     pass
                 self._set_control_weight(self._blend_to_ctrl, 1.0)
             self._current_anim = self._blend_to_name
@@ -857,7 +856,7 @@ class ActorAnimationHandler(Handler):
                 )
                 if num_frames and frame_rate and frame_rate > 0.0:
                     clip_dur = float(num_frames) / float(frame_rate)
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
         else:
             clip_dur = float(duration)
@@ -893,13 +892,13 @@ class ActorAnimationHandler(Handler):
                 try:
                     self._set_control_weight(old_from, 0.0)
                     old_from.stop()
-                except Exception:
+                except Exception:  # noqa: BLE001, S110
                     pass
             if old_to is not None and old_to != ctrl:
                 try:
                     self._set_control_weight(old_to, 0.0)
                     old_to.stop()
-                except Exception:
+                except Exception:  # noqa: BLE001, S110
                     pass
             if self._current_anim and self._current_anim != anim_name:
                 prev_ctrl = self.anim_controls.findAnim(self._current_anim)
@@ -907,19 +906,19 @@ class ActorAnimationHandler(Handler):
                     try:
                         self._set_control_weight(prev_ctrl, 0.0)
                         prev_ctrl.stop()
-                    except Exception:
+                    except Exception:  # noqa: BLE001, S110
                         pass
             try:
                 ctrl.play()
-            except Exception:
+            except Exception:  # noqa: BLE001
                 try:
                     ctrl.loop(False)
-                except Exception:
+                except Exception:  # noqa: BLE001, S110
                     pass
             self._current_anim = anim_name
             try:
                 self._set_control_weight(ctrl, 1.0)
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
             return True
         return False
@@ -936,25 +935,25 @@ class ActorAnimationHandler(Handler):
                 try:
                     self._set_control_weight(old_from, 0.0)
                     old_from.stop()
-                except Exception:
+                except Exception:  # noqa: BLE001, S110
                     pass
             if old_to is not None and old_to != ctrl:
                 try:
                     self._set_control_weight(old_to, 0.0)
                     old_to.stop()
-                except Exception:
+                except Exception:  # noqa: BLE001, S110
                     pass
             try:
                 ctrl.loop(True)
-            except Exception:
+            except Exception:  # noqa: BLE001
                 try:
                     ctrl.play()
-                except Exception:
+                except Exception:  # noqa: BLE001, S110
                     pass
             self._current_anim = anim_name
             try:
                 self._set_control_weight(ctrl, 1.0)
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
             return True
         return False
@@ -972,12 +971,12 @@ class ActorAnimationHandler(Handler):
                 try:
                     self._set_control_weight(c, 0.0)
                     c.stop()
-                except Exception:
+                except Exception:  # noqa: BLE001, S110
                     pass
         if self.anim_controls is not None and hasattr(self.anim_controls, "stopAll"):
             try:
                 self.anim_controls.stopAll()
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
         self._current_anim = None
 

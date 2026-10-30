@@ -81,7 +81,7 @@ class UIScrollContainer(UIComponent):
         try:
             node.reparentTo(canvas)
             node.setPos(0.0, 0.0, 0.0)
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110
             pass
 
     def scroll_to_top(self) -> None:
@@ -89,7 +89,7 @@ class UIScrollContainer(UIComponent):
             return
         try:
             self.node.setScroll(0.0, 0.0)
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110
             pass
 
     def scroll_to_bottom(self) -> None:
@@ -97,5 +97,5 @@ class UIScrollContainer(UIComponent):
             return
         try:
             self.node.setScroll(0.0, 1.0)
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110
             pass

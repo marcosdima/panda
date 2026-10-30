@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import ClassVar, Literal
 
 from direct.showbase.Loader import Loader
 from panda3d.core import NodePath
@@ -13,7 +13,7 @@ ModelKey = Literal["box", "panda", "environment", "teapot"]
 class GlobalLoader(Global):
     """A singleton class to manage the global loader object."""
 
-    __models: dict[str, NodePath] = {}  # Cache for loaded models.
+    __models: ClassVar[dict[str, NodePath]] = {}  # Cache for loaded models.
 
     @classmethod
     def get_global_loader(cls) -> Loader:

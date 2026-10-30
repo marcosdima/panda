@@ -37,7 +37,7 @@ class UIList(UIComponent):
         try:
             self._root.reparentTo(parent)
             self._root.setPos(self._pos)
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110
             pass
 
         super().__init__(node=self._root, theme=self.theme, owner=owner)
@@ -110,12 +110,12 @@ class UIList(UIComponent):
                     button.node["frameColor"] = self.theme.highlight_color
                 else:
                     button.node["frameColor"] = self.theme.button_frame_color(True)
-            except Exception:  # noqa: BLE001
+            except Exception:  # noqa: BLE001, S110
                 pass
         if self._on_select is not None:
             try:
                 self._on_select(index, self._items[index]["value"])
-            except Exception:  # noqa: BLE001
+            except Exception:  # noqa: BLE001, S110
                 pass
 
     def _handle_click(self, index: int) -> None:
@@ -125,7 +125,7 @@ class UIList(UIComponent):
         for index, button in enumerate(self._buttons):
             try:
                 button.node.setPos(0.0, 0.0, -index * self._item_height)
-            except Exception:  # noqa: BLE001
+            except Exception:  # noqa: BLE001, S110
                 pass
 
     def destroy(self) -> None:

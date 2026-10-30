@@ -499,7 +499,7 @@ class TestTriggersSandbox(Test):
                 align=TextNode.ALeft,
                 mayChange=True,
             )
-        except Exception:
+        except Exception:  # noqa: BLE001
             self.p(
                 "OSD not available in this environment; skipping telemetry overlay.",
                 color="yellow",

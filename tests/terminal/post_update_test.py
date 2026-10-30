@@ -93,7 +93,7 @@ def test_scene_on_post_update_propagates_to_entities():
 
 
 def test_game_post_update_task_registered_with_sort_1_after_physics_sort_0():
-    game = make_game()
+    make_game()
     assert hasattr(Game, "POST_UPDATE_TASK_NAME")
     assert hasattr(Game, "POST_UPDATE_TASK_SORT")
     assert Game.POST_UPDATE_TASK_NAME == "game_post_update"

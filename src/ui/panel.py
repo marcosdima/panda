@@ -74,7 +74,7 @@ class UIPanel(UIComponent):
         if getattr(self, "_title", None) is not None:
             try:
                 self._title.destroy()
-            except Exception:  # noqa: BLE001
+            except Exception:  # noqa: BLE001, S110
                 pass
             self._title = None
         super().destroy()

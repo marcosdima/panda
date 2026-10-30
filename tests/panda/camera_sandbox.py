@@ -369,7 +369,7 @@ class TestFirstPersonCameraSandbox(Test):
                 align=TextNode.ALeft,
                 mayChange=True,
             )
-        except Exception:
+        except Exception:  # noqa: BLE001
             self.p(
                 "OSD not available in this environment; skipping telemetry overlay.",
                 color="yellow",
@@ -416,7 +416,7 @@ class TestFirstPersonCameraSandbox(Test):
 
     def _on_frame_update(self, task: Any) -> int:
         """Per-frame update driving scene entities and telemetry."""
-        dt = GlobalClock.get_dt() if hasattr(GlobalClock, "get_dt") else 0.016
+        GlobalClock.get_dt() if hasattr(GlobalClock, "get_dt") else 0.016
         self._poll_camera_toggle()
         self._poll_body_follow_toggle()
         self._update_telemetry(task.time)

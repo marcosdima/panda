@@ -38,7 +38,7 @@ def run_scene(key: str, timeout: int) -> tuple[int, str, bool, float]:
     """Launch ``key`` in an isolated subprocess and return its outcome."""
     if key not in SCENE_REGISTRY:
         raise KeyError(f"Unknown scene key: {key}")
-    title, category, scene_cls = SCENE_REGISTRY[key]
+    title, _category, scene_cls = SCENE_REGISTRY[key]
     module = scene_cls.__module__
     cmd = [sys.executable, "-u", "-m", module]
     started = time.monotonic()
@@ -311,7 +311,7 @@ class Playground(Test):
         self._worker.start()
 
     def _run_worker(self, key: str) -> None:
-        exit_code, output, timed_out, duration = run_scene(key, self.timeout)
+        exit_code, _output, timed_out, duration = run_scene(key, self.timeout)
         self._result = (key, exit_code, timed_out, duration)
 
     def _poll(self, task) -> int:

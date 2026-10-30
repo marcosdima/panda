@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING
 from .__global import Global
 
 if TYPE_CHECKING:
+    from typing import ClassVar
+
     from direct.task.Task import AsyncTask, TaskManager
 
 
@@ -18,7 +20,7 @@ class Tasks(Global):
     removed by handle, so unrelated tasks are never killed by accident.
     """
 
-    _tasks: dict[str, AsyncTask] = {}
+    _tasks: ClassVar[dict[str, AsyncTask]] = {}
 
     @classmethod
     def add_task(cls, name: str, task: Callable) -> AsyncTask | None:

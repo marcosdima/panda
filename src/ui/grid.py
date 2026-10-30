@@ -27,7 +27,7 @@ class UIGrid(UIComponent):
         try:
             node.reparentTo(parent)
             node.setPos(self._pos)
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110
             pass
 
         super().__init__(node=node, owner=owner)
@@ -52,7 +52,7 @@ class UIGrid(UIComponent):
             mins, maxs = node.getTightBounds()
             if mins is not None and maxs is not None:
                 return (float(maxs.x - mins.x), float(maxs.z - mins.z))
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110
             pass
         return (0.2, 0.1)
 
@@ -60,7 +60,7 @@ class UIGrid(UIComponent):
         node = self._node_of(child)
         try:
             node.reparentTo(self.node)
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110
             pass
         self._children.append(child)
         self.relayout()
@@ -85,7 +85,7 @@ class UIGrid(UIComponent):
             z = total_height / 2.0 - row * cell_height - size[1] / 2.0
             try:
                 node.setPos(x, 0.0, z)
-            except Exception:  # noqa: BLE001
+            except Exception:  # noqa: BLE001, S110
                 pass
 
     def destroy(self) -> None:
@@ -96,7 +96,7 @@ class UIGrid(UIComponent):
                 destroy = getattr(child, "destroy", None)
                 if callable(destroy):
                     destroy()
-            except Exception:  # noqa: BLE001
+            except Exception:  # noqa: BLE001, S110
                 pass
         self._children.clear()
         super().destroy()

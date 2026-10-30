@@ -1,4 +1,5 @@
 import logging
+from typing import ClassVar
 
 from direct.task import Task
 from panda3d.bullet import (
@@ -24,16 +25,16 @@ class Physics(Global):
     MAX_SUBSTEPS: int = 10
 
     _world: BulletWorld | None = None
-    _bodies: dict[str, BulletRigidBodyNode] = {}
-    _ghosts: dict[str, BulletGhostNode] = {}
+    _bodies: ClassVar[dict[str, BulletRigidBodyNode]] = {}
+    _ghosts: ClassVar[dict[str, BulletGhostNode]] = {}
     _debug_np: NodePath | None = None
     _paused: bool = False
-    _registry: dict[str, set] = {
+    _registry: ClassVar[dict[str, set]] = {
         "bodies": set(),
         "ghosts": set(),
         "constraints": set(),
     }
-    _constraints: dict[str, object] = {}
+    _constraints: ClassVar[dict[str, object]] = {}
 
     def __init__(self) -> None:
         super().__init__()
@@ -190,7 +191,7 @@ class Physics(Global):
             cls._registry["bodies"].discard(node)
             try:
                 world.removeRigidBody(node)
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
 
     @classmethod
@@ -211,7 +212,7 @@ class Physics(Global):
             cls._registry["ghosts"].discard(node)
             try:
                 world.removeGhost(node)
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
 
     @classmethod
@@ -229,7 +230,7 @@ class Physics(Global):
         for node in all_bodies:
             try:
                 world.removeRigidBody(node)
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
             removed["bodies"] += 1
 
@@ -238,7 +239,7 @@ class Physics(Global):
         for node in all_ghosts:
             try:
                 world.removeGhost(node)
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
             removed["ghosts"] += 1
 
@@ -249,7 +250,7 @@ class Physics(Global):
         for node in all_constraints:
             try:
                 world.removeConstraint(node)
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
             removed["constraints"] += 1
 
@@ -315,7 +316,7 @@ class Physics(Global):
         if step_physics:
             try:
                 world.doPhysics(1e-6)
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
         result = world.rayTestClosest(from_pos, to_pos, mask)
         if result is None or not result.hasHit():

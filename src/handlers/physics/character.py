@@ -186,11 +186,10 @@ class CharacterControllerHandler(Handler):
         super().on_start()
         if self.entity is not None and (
             self.controller_np is None or self.controller_np.isEmpty()
-        ):
-            if self.controller_node is not None:
-                self.controller_np = self.entity.node.attachNewNode(
-                    self.controller_node
-                )
+        ) and self.controller_node is not None:
+            self.controller_np = self.entity.node.attachNewNode(
+                self.controller_node
+            )
         self._attach_to_world()
 
     def on_update(self, dt: float) -> None:

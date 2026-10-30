@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 from panda3d.core import AmbientLight, DirectionalLight, NodePath
 
 from .__global import Global
@@ -6,7 +8,7 @@ from .__global import Global
 class GlobalLights(Global):
     """A singleton class to manage global lighting and prevent orphaned light nodes."""
 
-    _active_light_nodes: list[NodePath] = []
+    _active_light_nodes: ClassVar[list[NodePath]] = []
 
     @classmethod
     def clear_lights(cls) -> None:
