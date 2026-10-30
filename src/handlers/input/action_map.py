@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.utils.handler_phase import HandlerPhase
 
 from typing import Callable, Iterable, Mapping
 
@@ -55,6 +56,7 @@ def resolve_button(key: str) -> ButtonHandle:
 
 
 class ActionMap:
+    phase = HandlerPhase.INPUT
     """Maps logical action names to configurable physical keys, decoupled from any handler.
 
     The map is hardware-agnostic at the query level: ``is_down`` receives a

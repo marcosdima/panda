@@ -1,8 +1,13 @@
+from __future__ import annotations
+
 from abc import ABC
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar, Sequence
 
 if TYPE_CHECKING:
     from src.entities.entity import Entity
+
+
+from src.utils.handler_phase import HandlerPhase
 
 
 class Handler(ABC):
@@ -10,7 +15,19 @@ class Handler(ABC):
 
     Lifecycle hooks are called in order: ``on_attach`` -> ``on_start`` -> ``on_update``
     (per frame) -> ``on_post_update`` (after physics step) -> ``on_stop`` -> ``on_detach``.
+
+    Handlers may declare lightweight metadata to make composition safer:
+
+    - ``phase``: execution phase within a frame.
+    - ``requires``: handler types that must already be attached.
+    - ``optional_requires``: handler types used when present.
+    - ``provides``: capability types this handler exposes.
     """
+
+    phase: ClassVar[HandlerPhase] = HandlerPhase.NORMAL
+    requires: ClassVar[Sequence[type["Handler"]]] = ()
+    optional_requires: ClassVar[Sequence[type["Handler"]]] = ()
+    provides: ClassVar[Sequence[type]] = ()
 
     def __init__(self) -> None:
         self.entity: "Entity | None" = None
@@ -48,3 +65,15 @@ class Handler(ABC):
     def on_stop(self) -> None:
         """Called when the scene stops or the entity is deactivated."""
         pass
+
+    def provides_capabilities(self) -> Sequence[type]:
+        """Return the capabilities exposed by this handler."""
+        return tuple(self.provides)
+
+    def missing_requirements(self, entity: "Entity") -> list[type]:
+        """Return required handler types not currently attached to *entity*."""
+        missing: list[type] = []
+        for required in self.requires:
+            if entity.get_handler(required) is None:
+                missing.append(required)
+        return missing

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.utils.handler_phase import HandlerPhase
 
 import builtins
 from typing import TYPE_CHECKING
@@ -19,6 +20,7 @@ if TYPE_CHECKING:
 
 
 class WASDInputHandler(InputHandler):
+    phase = HandlerPhase.INPUT
     """Input handler polling an ``ActionMap`` (defaults: WASD/arrows, Space=jump, LShift=sprint)."""
 
     def __init__(self, action_map: ActionMap | None = None) -> None:

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.utils.handler_phase import HandlerPhase
 
 from enum import Enum
 import math
@@ -21,6 +22,7 @@ if TYPE_CHECKING:
 
 
 class CharacterOrientationMode(str, Enum):
+    phase = HandlerPhase.PHYSICS
     """Visual rotation mode for the character controller.
 
     - MOVE_DIRECTION: Character rotates to face the direction of movement (Adventure / RPG style).
@@ -34,6 +36,7 @@ class CharacterOrientationMode(str, Enum):
 
 
 class _CharacterControllerNode(BulletCharacterControllerNode):
+    phase = HandlerPhase.PHYSICS
     """BulletCharacterControllerNode subclass providing jump() as an alias for doJump()."""
 
     def jump(self) -> None:
@@ -42,6 +45,7 @@ class _CharacterControllerNode(BulletCharacterControllerNode):
 
 
 class CharacterControllerHandler(Handler):
+    phase = HandlerPhase.PHYSICS
     """Modular physics handler managing a Bullet Character Controller for responsive 3D movement."""
 
     def __init__(

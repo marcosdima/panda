@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.utils.handler_phase import HandlerPhase
 
 from typing import TYPE_CHECKING
 
@@ -14,6 +15,7 @@ if TYPE_CHECKING:
 
 
 class RigidBodyHandler(Handler):
+    phase = HandlerPhase.PHYSICS
     """Modular physics handler encapsulating a BulletRigidBodyNode.
 
     Supports static terrain (mass=0) and dynamic props (mass>0). The body

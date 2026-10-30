@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.utils.handler_phase import HandlerPhase
 
 import logging
 import math
@@ -34,6 +35,7 @@ _STATE_CLIP_FALLBACK: dict[str, tuple[str, ...]] = {
 
 
 class ActorAnimationHandler(Handler):
+    phase = HandlerPhase.POST
     """Modular graphics handler managing animated 3D character models (glTF/Actor).
 
     Preserves the complete character hierarchy (joints, armor plates, armature) and

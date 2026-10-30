@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.utils.handler_phase import HandlerPhase
 
 from panda3d.core import Vec2
 
@@ -6,6 +7,7 @@ from src.handlers.base import Handler
 
 
 class InputHandler(Handler):
+    phase = HandlerPhase.INPUT
     """Base class for entity input handlers providing movement intent and action state querying."""
 
     def __init__(self) -> None:

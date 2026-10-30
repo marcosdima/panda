@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.utils.handler_phase import HandlerPhase
 
 import logging
 from typing import TYPE_CHECKING
@@ -16,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class ModelHandler(Handler):
+    phase = HandlerPhase.POST
     """Static geometry handler that loads a model asset and reparents it onto the entity.
 
     The model template is resolved through `GlobalLoader` (cached) and a deep

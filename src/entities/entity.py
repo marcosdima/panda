@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 from panda3d.core import NodePath
 
 from src.utils.event import Event
+from src.utils.handler_phase import HandlerPhase
 
 if TYPE_CHECKING:
     from src.handlers.base import Handler
@@ -18,6 +19,7 @@ class Entity:
 
     _free_ids: list[int] = []
     _next_id: int = 0
+    strict_handler_validation: bool = False
 
     @classmethod
     def _allocate_id(cls) -> int:
@@ -68,11 +70,30 @@ class Entity:
     def add_handler[H: Handler](self, handler: H) -> H:
         """Attach a handler to this entity and return it."""
         if handler not in self._handlers:
+            missing = handler.missing_requirements(self)
+            if missing and self.strict_handler_validation:
+                raise ValueError(
+                    f"{type(handler).__name__} requires {missing} on {self.name}"
+                )
             self._handlers.append(handler)
             handler.on_attach(self)
             if self._started:
                 handler.on_start()
         return handler
+
+    def get_capability[T](self, capability_type: type[T]) -> T | None:
+        """Return the first attached handler exposing *capability_type*.
+
+        A handler matches when it is an instance of *capability_type* or lists
+        *capability_type* in its ``provides`` metadata.
+        """
+        for handler in self._handlers:
+            if isinstance(handler, capability_type):
+                return handler  # type: ignore[return-value]
+            provides = getattr(handler, "provides", ())
+            if capability_type in tuple(provides):
+                return handler  # type: ignore[return-value]
+        return None
 
     def get_handler[T](self, handler_type: type[T]) -> T | None:
         """Return the first attached handler matching handler_type, or None."""
@@ -115,7 +136,10 @@ class Entity:
         """Update all enabled handlers attached to this entity."""
         if not self._started or self._freed:
             return
-        for handler in list(self._handlers):
+        for handler in sorted(
+            list(self._handlers),
+            key=lambda item: getattr(item, "phase", HandlerPhase.NORMAL),
+        ):
             if handler.is_enabled:
                 handler.on_update(dt)
 
@@ -127,7 +151,10 @@ class Entity:
         """Post-physics update for all enabled handlers attached to this entity."""
         if not self._started or self._freed:
             return
-        for handler in list(self._handlers):
+        for handler in sorted(
+            list(self._handlers),
+            key=lambda item: getattr(item, "phase", HandlerPhase.NORMAL),
+        ):
             if handler.is_enabled:
                 handler.on_post_update(dt)
 

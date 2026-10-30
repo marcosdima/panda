@@ -8,6 +8,7 @@ Defines standard camera presets for 3D games:
 """
 
 from __future__ import annotations
+from src.utils.handler_phase import HandlerPhase
 
 from dataclasses import dataclass
 from enum import Enum
@@ -15,6 +16,7 @@ from panda3d.core import Vec3
 
 
 class PresetName(str, Enum):
+    phase = HandlerPhase.POST
     ADVENTURE = "adventure"
     SHOOTER = "shooter"
     ISOMETRIC = "isometric"
@@ -23,6 +25,7 @@ class PresetName(str, Enum):
 
 @dataclass(frozen=True)
 class CameraPreset:
+    phase = HandlerPhase.POST
     """Immutable data configuration for a third-person camera perspective."""
 
     name: str

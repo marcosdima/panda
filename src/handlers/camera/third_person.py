@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.utils.handler_phase import HandlerPhase
 
 import builtins
 import logging
@@ -19,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class ThirdPersonCameraHandler(Handler):
+    phase = HandlerPhase.POST
     """Third-person orbit camera handler with spherical coordinates, mouse orbit, and position smoothing."""
 
     def __init__(

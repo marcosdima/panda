@@ -7,6 +7,7 @@ This handler allows the user to modify a numeric attribute on a target handler
 '''
 
 from __future__ import annotations
+from src.utils.handler_phase import HandlerPhase
 
 import logging
 from typing import Any
@@ -19,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class ParameterAdjustHandler(Handler):
+    phase = HandlerPhase.INPUT
     """Adjust a numeric attribute of a target handler at runtime.
 
     Parameters

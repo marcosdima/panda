@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.utils.handler_phase import HandlerPhase
 
 from enum import Enum
 from typing import TYPE_CHECKING, Callable, Sequence
@@ -18,6 +19,7 @@ if TYPE_CHECKING:
 
 
 class PatrolState(str, Enum):
+    phase = HandlerPhase.DECISION
     """Behavior states of :class:`AIPatrolHandler`."""
 
     PATROL = "patrol"
@@ -33,6 +35,7 @@ _TRANSITIONS = {
 
 
 class AIPatrolHandler(Handler):
+    phase = HandlerPhase.DECISION
     """Waypoint patrol with optional target detection and chase.
 
     The handler is a *virtual input source*: each frame it writes a horizontal

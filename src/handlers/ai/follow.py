@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.utils.handler_phase import HandlerPhase
 
 from enum import Enum
 from typing import TYPE_CHECKING
@@ -15,6 +16,7 @@ if TYPE_CHECKING:
 
 
 class FollowState(str, Enum):
+    phase = HandlerPhase.DECISION
     """Behavior states of :class:`FollowHandler`."""
 
     STOPPED = "stopped"
@@ -23,6 +25,7 @@ class FollowState(str, Enum):
 
 
 class FollowHandler(Handler):
+    phase = HandlerPhase.DECISION
     """Lightweight "follow at distance" AI as a virtual input source.
 
     Each frame it computes the planar direction from its entity to a target

@@ -1,4 +1,5 @@
 from enum import Enum
+from src.utils.handler_phase import HandlerPhase
 from typing import TYPE_CHECKING
 
 from panda3d.core import BitMask32
@@ -8,6 +9,7 @@ if TYPE_CHECKING:
 
 
 class CollisionGroup(Enum):
+    phase = HandlerPhase.PHYSICS
     """Semantic collision groups used to classify physics entities.
 
     Groups are Python-side labels stored on handlers; trigger volumes use
@@ -28,6 +30,7 @@ class CollisionGroup(Enum):
 
 
 class CameraCollision:
+    phase = HandlerPhase.PHYSICS
     """Bit-mask convention used by camera collision queries.
 
     World geometry keeps Bullet's default ``all_on`` into-collide mask, so it
@@ -48,6 +51,7 @@ class CameraCollision:
 
 
 class LineOfSight:
+    phase = HandlerPhase.PHYSICS
     """Bit-mask convention used by line-of-sight queries.
 
     A sight ray is cast with :attr:`QUERY_MASK` as its collision mask, so only

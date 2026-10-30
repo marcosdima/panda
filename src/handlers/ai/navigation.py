@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.utils.handler_phase import HandlerPhase
 
 from collections.abc import Callable, Sequence
 from enum import Enum
@@ -19,6 +20,7 @@ if TYPE_CHECKING:
 
 
 class NavigationState(str, Enum):
+    phase = HandlerPhase.DECISION
     PATROL = "patrol"
     WAIT = "wait"
     CHASE = "chase"
@@ -41,6 +43,7 @@ _NAV_TRANSITIONS = {
 
 
 class AINavigationHandler(AIPatrolHandler):
+    phase = HandlerPhase.DECISION
     def __init__(
         self,
         waypoints: Sequence[Vec3] = (),

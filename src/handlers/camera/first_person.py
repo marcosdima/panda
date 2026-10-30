@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.utils.handler_phase import HandlerPhase
 
 import builtins
 import logging
@@ -30,6 +31,7 @@ _SMOOTH_SNAP_DISTANCE: float = 5.0
 
 
 class FirstPersonCameraHandler(Handler):
+    phase = HandlerPhase.POST
     """First-person camera handler that locks the camera to the character's eye position."""
 
     def __init__(

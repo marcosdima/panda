@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.utils.handler_phase import HandlerPhase
 
 from panda3d.bullet import BulletGhostNode, BulletShape
 from panda3d.core import NodePath, TransformState
@@ -11,6 +12,7 @@ from .groups import CameraCollision, CollisionGroup, resolve_collision_group
 
 
 class TriggerZoneHandler(Handler):
+    phase = HandlerPhase.PHYSICS
     """Modular physics handler encapsulating a BulletGhostNode trigger volume.
 
     Detects overlapping physics entities each frame and emits edge-triggered

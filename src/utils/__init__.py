@@ -6,6 +6,7 @@ from .state_machine import StateMachine
 from .paths import get_project_root, resolve_asset_path
 from .position import world_position
 from .replay import ReplayPlayer, ReplayRecorder
+from .handler_phase import HandlerPhase
 
 __all__ = [
     'Event',
@@ -24,4 +25,5 @@ __all__ = [
     'world_position',
     'ReplayPlayer',
     'ReplayRecorder',
+    'HandlerPhase',
 ]
