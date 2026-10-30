@@ -225,7 +225,8 @@ class ActorAnimationHandler(Handler):
         if self.visual_pivot is None or self.visual_pivot.isEmpty():
             self.visual_pivot = parent_np.attachNewNode("visual_pivot")
             self.visual_pivot.setPos(0.0, 0.0, 0.0)
-        elif self.visual_pivot.getParent() != parent_np:
+        assert self.visual_pivot is not None
+        if self.visual_pivot.getParent() != parent_np:
             self.visual_pivot.reparentTo(parent_np)
             self.visual_pivot.setPos(0.0, 0.0, 0.0)
 
@@ -245,11 +246,13 @@ class ActorAnimationHandler(Handler):
                     )
                 except Exception:  # noqa: BLE001
                     self.model_root = loader.loadModel(full_model_path)
+                if self.model_root is not None:
                     self.model_root.reparentTo(self.visual_pivot)
             else:
                 self.model_root = NodePath("ModelFallback")
                 self.model_root.reparentTo(self.visual_pivot)
 
+            assert self.model_root is not None
             self.model_root.setScale(self.scale)
             self.model_root.setPos(self.offset)
             self.model_root.setHpr(self.hpr)
@@ -272,6 +275,7 @@ class ActorAnimationHandler(Handler):
                 for anim_rel_path in self.animation_files:
                     self._load_anim_file(loader, anim_rel_path)
 
+                assert self.visual_pivot is not None
                 autoBind(self.visual_pivot.node(), self.anim_controls, ~0)
 
         # Bind controller.visual_node to visual_pivot for drift-free rotation

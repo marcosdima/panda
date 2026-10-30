@@ -106,6 +106,7 @@ class ModelHandler(Handler):
             return
 
         self.model_np = template.copyTo(target_parent)
+        assert self.model_np is not None
         self.model_np.setScale(self.scale)
         self.model_np.setPos(self.offset)
         self.model_np.setHpr(self.hpr)
