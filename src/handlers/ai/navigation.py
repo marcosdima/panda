@@ -245,27 +245,11 @@ class AINavigationHandler(AIPatrolHandler):
             return
 
         if self.has_pathfinding:
-            self._ensure_path(goal)
-
-            pt = self._next_path_point()
+            pt = self._next_follow_point(goal)
             if pt is None:
-                same_cell = (
-                    self.nav_grid is not None
-                    and self.nav_grid.world_to_cell(self._position()) is not None
-                    and self.nav_grid.world_to_cell(self._position())
-                    == self.nav_grid.world_to_cell(goal)
-                )
-                if self.has_pathfinding and not self._current_path and not same_cell:
-                    self._drive(Vec3(0, 0, 0), sprint=False)
-                    return
-                pt = Vec3(goal)
+                self._drive(Vec3(0, 0, 0), sprint=False)
+                return
             to_goal = self._planar(pt - self._position())
-            if to_goal.length() <= (self.arrive_radius if self.nav_grid is None else max(self.arrive_radius, self.nav_grid.cell_size * 0.5)):
-                self._path_index += 1
-                pt = self._next_path_point()
-                if pt is None:
-                    pt = Vec3(goal)
-                to_goal = self._planar(pt - self._position())
             if (pt - goal).length_squared() < 1e-8 and self._planar(goal - self._position()).length() <= self.arrive_radius:
                 self._advance_waypoint()
                 self._wait_left = self.wait_time
@@ -300,26 +284,11 @@ class AINavigationHandler(AIPatrolHandler):
         assert self.target is not None
         goal = self._target_position()
         if self.has_pathfinding:
-            self._ensure_path(goal)
-            pt = self._next_path_point()
+            pt = self._next_follow_point(goal)
             if pt is None:
-                same_cell = (
-                    self.nav_grid is not None
-                    and self.nav_grid.world_to_cell(self._position()) is not None
-                    and self.nav_grid.world_to_cell(self._position())
-                    == self.nav_grid.world_to_cell(goal)
-                )
-                if self.has_pathfinding and not self._current_path and not same_cell:
-                    self._drive(Vec3(0, 0, 0), sprint=False)
-                    return
-                pt = Vec3(goal)
+                self._drive(Vec3(0, 0, 0), sprint=False)
+                return
             to_target = self._planar(pt - self._position())
-            if to_target.length() <= (self.arrive_radius if self.nav_grid is None else max(self.arrive_radius, self.nav_grid.cell_size * 0.5)):
-                self._path_index += 1
-                pt = self._next_path_point()
-                if pt is None:
-                    pt = Vec3(goal)
-                to_target = self._planar(pt - self._position())
             if self._planar(goal - self._position()).length() <= self.arrive_radius:
                 self._drive(Vec3(0, 0, 0), sprint=False)
                 return
@@ -343,42 +312,22 @@ class AINavigationHandler(AIPatrolHandler):
         goal = Vec3(self._last_known_target)
 
         if self.search_uses_pathfinding and self.has_pathfinding:
-            self._ensure_path(goal)
-            pt = self._next_path_point()
+            pt = self._next_follow_point(goal)
             if pt is None:
-                same_cell = (
-                    self.nav_grid is not None
-                    and self.nav_grid.world_to_cell(self._position()) is not None
-                    and self.nav_grid.world_to_cell(self._position())
-                    == self.nav_grid.world_to_cell(goal)
-                )
-                if self.has_pathfinding and not self._current_path and not same_cell:
-                    to_goal = self._planar(goal - self._position())
-                    if to_goal.length() <= self.arrive_radius:
-                        self.machine.transition(NavigationState.PATROL)
-                        return
-                    to_goal = self._avoid(to_goal)
-                    self._drive(to_goal, sprint=False)
-                    self._search_left -= dt
-                    if self._search_left <= 0.0:
-                        self.machine.transition(NavigationState.PATROL)
+                to_goal = self._planar(goal - self._position())
+                if to_goal.length() <= self.arrive_radius:
+                    self.machine.transition(NavigationState.PATROL)
                     return
-                pt = Vec3(goal)
-            to_goal = self._planar(pt - self._position())
-            arrive_threshold = (
-                self.arrive_radius
-                if self.nav_grid is None
-                else max(self.arrive_radius, self.nav_grid.cell_size * 0.5)
-            )
-            if to_goal.length() <= arrive_threshold:
-                self._path_index += 1
-                pt = self._next_path_point()
-                if pt is None:
-                    pt = Vec3(goal)
-                to_goal = self._planar(pt - self._position())
+                to_goal = self._avoid(to_goal)
+                self._drive(to_goal, sprint=False)
+                self._search_left -= dt
+                if self._search_left <= 0.0:
+                    self.machine.transition(NavigationState.PATROL)
+                return
             if self._planar(goal - self._position()).length() <= self.arrive_radius:
                 self.machine.transition(NavigationState.PATROL)
                 return
+            to_goal = self._planar(pt - self._position())
             to_goal = self._avoid(to_goal)
             if to_goal.length_squared() <= 1e-8 and self._obstacle_detected and self.has_pathfinding:
                 self.machine.transition(NavigationState.BLOCKED)
@@ -448,6 +397,39 @@ class AINavigationHandler(AIPatrolHandler):
             path = smooth_path(path, lambda a, b: self._line_clear(a, b))
         self._current_path = [Vec3(p) for p in path]
         self._path_index = 0
+
+    def _next_follow_point(self, goal: Vec3) -> Vec3 | None:
+        """Resolve the next point to follow toward *goal* using the active path.
+
+        Returns ``None`` when pathfinding is available but no route can be built
+        and the start and goal do not share a nav cell. Callers should stop in
+        that case.
+        """
+        self._ensure_path(goal)
+        pt = self._next_path_point()
+        if pt is None:
+            same_cell = (
+                self.nav_grid is not None
+                and self.nav_grid.world_to_cell(self._position()) is not None
+                and self.nav_grid.world_to_cell(self._position())
+                == self.nav_grid.world_to_cell(goal)
+            )
+            if self.has_pathfinding and not self._current_path and not same_cell:
+                return None
+            pt = Vec3(goal)
+        to_pt = self._planar(pt - self._position())
+        arrive_threshold = (
+            self.arrive_radius
+            if self.nav_grid is None
+            else max(self.arrive_radius, self.nav_grid.cell_size * 0.5)
+        )
+        if to_pt.length() <= arrive_threshold:
+            self._path_index += 1
+            pt = self._next_path_point()
+            if pt is None:
+                pt = Vec3(goal)
+            to_pt = self._planar(pt - self._position())
+        return Vec3(pt)
 
     def _next_path_point(self) -> Vec3 | None:
         if not self._current_path or self._path_index >= len(self._current_path):
