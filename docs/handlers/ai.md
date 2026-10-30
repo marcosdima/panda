@@ -123,6 +123,9 @@ dedicated handler so `AIPatrolHandler` keeps its original contract.
 | `avoidance` | `True` | Enable local obstacle avoidance. |
 | `avoidance_check` | `None` | Callable `(a, b) -> bool` replacing the raycast. |
 | `search_time` | `2.0` | Seconds spent investigating the last known target position. |
+| `remember_last_target` | `True` | Keep the last *seen* target position for the search state. When `False`, search aims at the target's current position instead. |
+| `search_uses_pathfinding` | `False` | Use the configured pathfinder while searching. When `False`, move directly toward the last known position. |
+| `nav_graph` | `None` | `NavGraph` used for weighted graph routing. Can be used instead of, or in addition to, `nav_grid`. |
 
 ### States
 

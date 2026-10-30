@@ -14,3 +14,6 @@ geometry is planned for a later iteration.
 `NavGraph` and `GraphPathfinder` provide weighted graph routing between named
 nodes. `AINavigationHandler` can use a `nav_graph` instead of (or in addition
 to) a `NavGrid`.
+
+Source: `src/navigation/`
+Tests: `tests/terminal/navigation_test.py`
