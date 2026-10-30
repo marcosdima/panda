@@ -27,9 +27,7 @@ class WASDInputHandler(InputHandler):
 
     def __init__(self, action_map: ActionMap | None = None) -> None:
         super().__init__()
-        self.action_map: ActionMap = (
-            action_map if action_map is not None else ActionMap.default()
-        )
+        self.action_map: ActionMap = action_map if action_map is not None else ActionMap.default()
 
     def _get_mouse_watcher(self):
         """Retrieve MouseWatcher node if engine is initialized with an active window/input node."""
@@ -80,7 +78,5 @@ class WASDInputHandler(InputHandler):
 
         # Action polling (every non-movement action in the map, e.g. jump, sprint, interact)
         self._current_actions = {
-            action
-            for action in amap.actions
-            if action not in MOVEMENT_ACTIONS and amap.is_down(action, is_down)
+            action for action in amap.actions if action not in MOVEMENT_ACTIONS and amap.is_down(action, is_down)
         }

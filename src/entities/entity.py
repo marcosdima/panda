@@ -73,9 +73,7 @@ class Entity:
         if handler not in self._handlers:
             missing = handler.missing_requirements(self)
             if missing and self.strict_handler_validation:
-                raise ValueError(
-                    f"{type(handler).__name__} requires {missing} on {self.name}"
-                )
+                raise ValueError(f"{type(handler).__name__} requires {missing} on {self.name}")
             self._handlers.append(handler)
             handler.on_attach(self)
             if self._started:
@@ -105,9 +103,7 @@ class Entity:
 
     def get_handlers[T](self, handler_type: type[T]) -> list[T]:
         """Return all attached handlers matching handler_type."""
-        return [
-            handler for handler in self._handlers if isinstance(handler, handler_type)
-        ]
+        return [handler for handler in self._handlers if isinstance(handler, handler_type)]
 
     def remove_handler(self, handler: Handler) -> bool:
         """Remove a handler from this entity. Return True if removed, False otherwise."""

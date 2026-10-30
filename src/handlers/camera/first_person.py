@@ -37,7 +37,7 @@ class FirstPersonCameraHandler(Handler):
 
     def __init__(
         self,
-        eye_offset: Vec3 = Vec3(0.0, 0.0, 1.5),
+        eye_offset: Vec3 | None = None,
         yaw: float = 0.0,
         pitch: float = 0.0,
         min_pitch: float = -89.0,
@@ -77,7 +77,7 @@ class FirstPersonCameraHandler(Handler):
             ``CharacterControllerHandler`` is attached, otherwise half of ``eye_offset``.
         """
         super().__init__()
-        self.eye_offset: Vec3 = Vec3(eye_offset)
+        self.eye_offset: Vec3 = Vec3(eye_offset) if eye_offset is not None else Vec3(0.0, 0.0, 1.5)
 
         self.min_pitch: float = float(min_pitch)
         self.max_pitch: float = float(max_pitch)
@@ -92,9 +92,7 @@ class FirstPersonCameraHandler(Handler):
         self.hide_self: bool = hide_self
         self.near_plane: float = float(max(near_plane, _MIN_NEAR_PLANE))
         self.far_plane: float = float(far_plane)
-        self.pivot_offset: Vec3 | None = (
-            Vec3(pivot_offset) if pivot_offset is not None else None
-        )
+        self.pivot_offset: Vec3 | None = Vec3(pivot_offset) if pivot_offset is not None else None
 
         self.smooth_factor: float = clamp(smooth_factor, 0.0, 1.0)
         self._smoothed_eye: Vec3 | None = None
@@ -341,9 +339,7 @@ class FirstPersonCameraHandler(Handler):
             return Vec3(eye_pos)
 
         for _ in range(_MAX_RADIUS_RETRIES):
-            hit = physics.sweep_sphere_closest(
-                pivot, eye_pos, radius, CameraCollision.QUERY_MASK
-            )
+            hit = physics.sweep_sphere_closest(pivot, eye_pos, radius, CameraCollision.QUERY_MASK)
             if hit is None:
                 self._effective_radius = radius
                 return Vec3(eye_pos)
@@ -491,19 +487,17 @@ class FirstPersonCameraHandler(Handler):
     def on_attach(self, entity: Entity) -> None:
         super().on_attach(entity)
         cam = self.get_camera_node()
-        if cam is not None and not cam.isEmpty():
-            if self._saved_cam_pos is None:
-                self._saved_cam_pos = Vec3(cam.getPos())
-                self._saved_cam_hpr = Vec3(cam.getHpr())
+        if cam is not None and not cam.isEmpty() and self._saved_cam_pos is None:
+            self._saved_cam_pos = Vec3(cam.getPos())
+            self._saved_cam_hpr = Vec3(cam.getHpr())
 
     def on_start(self) -> None:
         super().on_start()
         self._hide_entity_model()
         cam = self.get_camera_node()
-        if cam is not None and not cam.isEmpty():
-            if self._saved_cam_pos is None:
-                self._saved_cam_pos = Vec3(cam.getPos())
-                self._saved_cam_hpr = Vec3(cam.getHpr())
+        if cam is not None and not cam.isEmpty() and self._saved_cam_pos is None:
+            self._saved_cam_pos = Vec3(cam.getPos())
+            self._saved_cam_hpr = Vec3(cam.getHpr())
 
         base = getattr(builtins, "base", None)
         if base is not None and hasattr(base, "accept"):
@@ -520,11 +514,7 @@ class FirstPersonCameraHandler(Handler):
 
     def on_update(self, dt: float) -> None:
         super().on_update(dt)
-        if (
-            self.entity is None
-            or self.entity.node is None
-            or self.entity.node.isEmpty()
-        ):
+        if self.entity is None or self.entity.node is None or self.entity.node.isEmpty():
             return
 
         base = getattr(builtins, "base", None)
@@ -570,11 +560,7 @@ class FirstPersonCameraHandler(Handler):
 
     def on_post_update(self, dt: float) -> None:
         super().on_post_update(dt)
-        if (
-            self.entity is None
-            or self.entity.node is None
-            or self.entity.node.isEmpty()
-        ):
+        if self.entity is None or self.entity.node is None or self.entity.node.isEmpty():
             return
         self._apply_camera_transform(dt)
 

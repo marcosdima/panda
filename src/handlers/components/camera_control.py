@@ -79,9 +79,7 @@ class CameraControlComponent(Handler):
 
         self._camera_handler = self.entity.get_handler(ThirdPersonCameraHandler)  # type: ignore[arg-type]
         if self._camera_handler is None:
-            logger.warning(
-                "CameraControlComponent attached to entity without a ThirdPersonCameraHandler."
-            )
+            logger.warning("CameraControlComponent attached to entity without a ThirdPersonCameraHandler.")
             return
 
         # Simple helper to create a button.

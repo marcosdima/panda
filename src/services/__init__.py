@@ -11,16 +11,16 @@ Typical usage:
 from src.services import services
 
 # Register a service (once, usually during engine start‑up)
-services.register('physics', physics_world)
+services.register("physics", physics_world)
 
 # Retrieve a service elsewhere
-physics = services.get('physics')
+physics = services.get("physics")
 ```
 """
 
 from __future__ import annotations
 
-from typing import Any, Dict, TypeVar, cast
+from typing import Any, TypeVar, cast
 
 _T = TypeVar("_T")
 _SENTINEL = object()

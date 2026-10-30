@@ -116,8 +116,6 @@ class ActionMap:
         for key in keys:
             self.bind(action, key)
 
-    def is_down(
-        self, action: str, is_button_down: Callable[[ButtonHandle], bool]
-    ) -> bool:
+    def is_down(self, action: str, is_button_down: Callable[[ButtonHandle], bool]) -> bool:
         """Return True if any key bound to ``action`` is currently down."""
         return any(is_button_down(button) for button in self._bindings.get(action, ()))

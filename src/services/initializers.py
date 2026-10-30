@@ -3,6 +3,7 @@
 Typical usage in ``src/game.py``::
 
     from src.services.initializers import initialize_services
+
     initialize_services()
 """
 

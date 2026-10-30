@@ -68,9 +68,9 @@ class PauseHandler(Handler):
         from src.handlers.camera.third_person import ThirdPersonCameraHandler
 
         if self.entity is not None:
-            self._camera_handler = self.entity.get_handler(
-                ThirdPersonCameraHandler
-            ) or self.entity.get_handler(FirstPersonCameraHandler)  # type: ignore[assignment]
+            self._camera_handler = self.entity.get_handler(ThirdPersonCameraHandler) or self.entity.get_handler(
+                FirstPersonCameraHandler
+            )  # type: ignore[assignment]
 
         # Register the key that toggles pause.
         if hasattr(base, "accept"):

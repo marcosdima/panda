@@ -85,9 +85,7 @@ class AIPatrolHandler(Handler):
         self.sight_range = sight_range
         self.lose_range = lose_range if lose_range is not None else sight_range * 1.5
         self.chase_sprint = chase_sprint
-        self.obstacle_mask = (
-            obstacle_mask if obstacle_mask is not None else LineOfSight.QUERY_MASK
-        )
+        self.obstacle_mask = obstacle_mask if obstacle_mask is not None else LineOfSight.QUERY_MASK
         self.eye_height = eye_height
         self._line_of_sight = line_of_sight
 

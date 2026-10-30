@@ -67,8 +67,7 @@ class CharacterControllerHandler(Handler):
         acceleration: float = 0.0,
         deceleration: float = 0.0,
         collision_group: CollisionGroup = CollisionGroup.DEFAULT,
-        orientation_mode: CharacterOrientationMode
-        | str = CharacterOrientationMode.MOVE_DIRECTION,
+        orientation_mode: CharacterOrientationMode | str = CharacterOrientationMode.MOVE_DIRECTION,
         body_follows_camera_yaw: bool | None = None,
     ) -> None:
         super().__init__()
@@ -112,9 +111,7 @@ class CharacterControllerHandler(Handler):
     @body_follows_camera_yaw.setter
     def body_follows_camera_yaw(self, value: bool) -> None:
         self.orientation_mode = (
-            CharacterOrientationMode.CAMERA_LOOK
-            if value
-            else CharacterOrientationMode.MOVE_DIRECTION
+            CharacterOrientationMode.CAMERA_LOOK if value else CharacterOrientationMode.MOVE_DIRECTION
         )
 
     @property
@@ -165,9 +162,7 @@ class CharacterControllerHandler(Handler):
         """Attach controller node to entity.node and register with BulletWorld."""
         super().on_attach(entity)
         if self.controller_node is None:
-            self.controller_node = _CharacterControllerNode(
-                self.shape, self.step_height, entity.name
-            )
+            self.controller_node = _CharacterControllerNode(self.shape, self.step_height, entity.name)
             self.controller_node.setGravity(self.gravity)
             self.controller_node.setJumpSpeed(self.jump_speed)
             # Camera queries must never hit the character's own capsule.
@@ -184,12 +179,12 @@ class CharacterControllerHandler(Handler):
     def on_start(self) -> None:
         """Called when active scene or entity starts."""
         super().on_start()
-        if self.entity is not None and (
-            self.controller_np is None or self.controller_np.isEmpty()
-        ) and self.controller_node is not None:
-            self.controller_np = self.entity.node.attachNewNode(
-                self.controller_node
-            )
+        if (
+            self.entity is not None
+            and (self.controller_np is None or self.controller_np.isEmpty())
+            and self.controller_node is not None
+        ):
+            self.controller_np = self.entity.node.attachNewNode(self.controller_node)
         self._attach_to_world()
 
     def on_update(self, dt: float) -> None:
@@ -209,9 +204,9 @@ class CharacterControllerHandler(Handler):
             from src.handlers.camera.first_person import FirstPersonCameraHandler
             from src.handlers.camera.third_person import ThirdPersonCameraHandler
 
-            camera_handler = self.entity.get_handler(
-                ThirdPersonCameraHandler
-            ) or self.entity.get_handler(FirstPersonCameraHandler)
+            camera_handler = self.entity.get_handler(ThirdPersonCameraHandler) or self.entity.get_handler(
+                FirstPersonCameraHandler
+            )
 
         is_local = True
         # Read movement vector, scale by current speed (walk vs sprint)
@@ -220,9 +215,7 @@ class CharacterControllerHandler(Handler):
             current_speed = self.sprint_speed if is_sprinting else self.walk_speed
             move_vec = input_handler.move_vector
 
-            if camera_handler is not None and hasattr(
-                camera_handler, "get_forward_vector"
-            ):
+            if camera_handler is not None and hasattr(camera_handler, "get_forward_vector"):
                 # Horizontal projection of camera's forward vector
                 cam_fwd = camera_handler.get_forward_vector()
                 fwd_h = Vec3(cam_fwd.x, cam_fwd.y, 0.0)
@@ -248,42 +241,29 @@ class CharacterControllerHandler(Handler):
                 target_velocity = world_dir * current_speed
                 is_local = False
             else:
-                target_velocity = Vec3(
-                    move_vec.x * current_speed, move_vec.y * current_speed, 0.0
-                )
+                target_velocity = Vec3(move_vec.x * current_speed, move_vec.y * current_speed, 0.0)
                 is_local = True
 
             # If the jump action is triggered and controller_node.isOnGround(), triggers controller_node.jump()
-            if (
-                input_handler.is_action_pressed(JUMP)
-                and self.controller_node.isOnGround()
-            ):
+            if input_handler.is_action_pressed(JUMP) and self.controller_node.isOnGround():
                 if hasattr(self.controller_node, "jump"):
                     self.controller_node.jump()
                 else:
                     self.controller_node.doJump()
         else:
             target_velocity = Vec3(0.0, 0.0, 0.0)
-            is_local = camera_handler is None or not hasattr(
-                camera_handler, "get_forward_vector"
-            )
+            is_local = camera_handler is None or not hasattr(camera_handler, "get_forward_vector")
 
         # Smoothly blend velocity using acceleration / deceleration damping
         if self.acceleration > 0.0 and self.deceleration > 0.0:
             is_braking = (
                 target_velocity.length_squared() < 1e-6
-                or target_velocity.length_squared()
-                < self._linear_velocity.length_squared()
+                or target_velocity.length_squared() < self._linear_velocity.length_squared()
             )
             rate = self.deceleration if is_braking else self.acceleration
             step = clamp(dt * rate, 0.0, 1.0)
-            self._linear_velocity = (
-                self._linear_velocity + (target_velocity - self._linear_velocity) * step
-            )
-            if (
-                target_velocity.length_squared() < 1e-6
-                and self._linear_velocity.length_squared() < 1e-6
-            ):
+            self._linear_velocity = self._linear_velocity + (target_velocity - self._linear_velocity) * step
+            if target_velocity.length_squared() < 1e-6 and self._linear_velocity.length_squared() < 1e-6:
                 self._linear_velocity = Vec3(0.0, 0.0, 0.0)
         else:
             self._linear_velocity = target_velocity
@@ -308,18 +288,12 @@ class CharacterControllerHandler(Handler):
                 and self._linear_velocity.length_squared() > 1e-4
             ):
                 # Face movement direction (both camera-relative players and camera-less NPCs)
-                target_h = -math.degrees(
-                    math.atan2(self._linear_velocity.x, self._linear_velocity.y)
-                )
+                target_h = -math.degrees(math.atan2(self._linear_velocity.x, self._linear_velocity.y))
 
             if target_h is not None:
                 curr_h = self._visual_node.getH()
                 diff = normalize_angle(target_h - curr_h)
-                step = (
-                    1.0
-                    if self.turn_speed <= 0.0
-                    else clamp(self.turn_speed * dt, 0.0, 1.0)
-                )
+                step = 1.0 if self.turn_speed <= 0.0 else clamp(self.turn_speed * dt, 0.0, 1.0)
                 self._visual_node.setH(curr_h + diff * step)
 
     def jump(self) -> bool:
@@ -352,20 +326,12 @@ class CharacterControllerHandler(Handler):
     @property
     def is_on_ground(self) -> bool:
         """Return whether controller is on ground."""
-        return (
-            self.controller_node.isOnGround()
-            if self.controller_node is not None
-            else False
-        )
+        return self.controller_node.isOnGround() if self.controller_node is not None else False
 
     @property
     def can_jump(self) -> bool:
         """Return whether controller is currently capable of jumping."""
-        return (
-            self.controller_node.canJump()
-            if self.controller_node is not None
-            else False
-        )
+        return self.controller_node.canJump() if self.controller_node is not None else False
 
     @property
     def linear_velocity(self) -> Vec3:

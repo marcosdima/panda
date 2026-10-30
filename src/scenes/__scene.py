@@ -62,9 +62,7 @@ class Scene(ABC):
         """Retrieve an entity by its unique ID, or None if not found."""
         return self.entities.get(entity_id)
 
-    def add_task(
-        self, name: str, func: Callable[..., int], sort: int = 0, pauseable: bool = True
-    ) -> None:
+    def add_task(self, name: str, func: Callable[..., int], sort: int = 0, pauseable: bool = True) -> None:
         """Register a task owned by this scene, replacing any task already using that name."""
         task_mgr = self._get_task_manager()
         if task_mgr is None:
@@ -142,9 +140,7 @@ class Scene(ABC):
 
                 from src.globals.physics import Physics
 
-                logging.getLogger(__name__).info(
-                    "Physics debug dump: %s", Physics.debug_dump()
-                )
+                logging.getLogger(__name__).info("Physics debug dump: %s", Physics.debug_dump())
             except Exception:  # noqa: BLE001, S110
                 pass
 

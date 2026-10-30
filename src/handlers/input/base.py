@@ -25,17 +25,11 @@ class InputHandler(Handler):
 
     def is_action_pressed(self, action_name: str) -> bool:
         """Return True only on the frame the action was initially pressed."""
-        return (
-            action_name in self._current_actions
-            and action_name not in self._previous_actions
-        )
+        return action_name in self._current_actions and action_name not in self._previous_actions
 
     def is_action_released(self, action_name: str) -> bool:
         """Return True only on the frame the action was released."""
-        return (
-            action_name not in self._current_actions
-            and action_name in self._previous_actions
-        )
+        return action_name not in self._current_actions and action_name in self._previous_actions
 
     def set_action_state(self, action_name: str, is_down: bool) -> None:
         """Manually set an action state (primarily for testing or virtual inputs)."""

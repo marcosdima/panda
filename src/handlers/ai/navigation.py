@@ -92,14 +92,10 @@ class AINavigationHandler(AIPatrolHandler):
         self.nav_grid = nav_grid
         self.nav_graph = nav_graph
         self.pathfinder = (
-            pathfinder
-            if pathfinder is not None
-            else (GridPathfinder(nav_grid) if nav_grid is not None else None)
+            pathfinder if pathfinder is not None else (GridPathfinder(nav_grid) if nav_grid is not None else None)
         )
         self.avoidance = bool(avoidance)
-        self.avoidance_check = (
-            avoidance_check or obstacle_check or raycast or clear_check
-        )
+        self.avoidance_check = avoidance_check or obstacle_check or raycast or clear_check
         self.search_time = float(search_time)
         self.remember_last_target = bool(remember_last_target)
         self.search_uses_pathfinding = bool(search_uses_pathfinding)
@@ -143,9 +139,7 @@ class AINavigationHandler(AIPatrolHandler):
 
     @property
     def last_known_target(self) -> Vec3 | None:
-        return (
-            None if self._last_known_target is None else Vec3(self._last_known_target)
-        )
+        return None if self._last_known_target is None else Vec3(self._last_known_target)
 
     @property
     def obstacle_detected(self) -> bool:
@@ -201,11 +195,7 @@ class AINavigationHandler(AIPatrolHandler):
             return
         dist = self._distance_to_target()
         if self.state == NavigationState.CHASE:
-            if (
-                self._can_see_target()
-                and self.remember_last_target
-                and self._distance_to_target() <= self.lose_range
-            ):
+            if self._can_see_target() and self.remember_last_target and self._distance_to_target() <= self.lose_range:
                 self._last_known_target = self._target_position()
             if dist > self.lose_range:
                 if not self.remember_last_target:
@@ -247,9 +237,7 @@ class AINavigationHandler(AIPatrolHandler):
         # Arrive at the waypoint even when pathfinding is unavailable or the
         # start and goal fall in the same nav cell (which yields an empty path).
         arrive_threshold = (
-            self.arrive_radius
-            if self.nav_grid is None
-            else max(self.arrive_radius, self.nav_grid.cell_size * 0.5)
+            self.arrive_radius if self.nav_grid is None else max(self.arrive_radius, self.nav_grid.cell_size * 0.5)
         )
         if self._planar(goal - self._position()).length() <= arrive_threshold:
             self._advance_waypoint()
@@ -285,11 +273,7 @@ class AINavigationHandler(AIPatrolHandler):
                 return
 
         to_goal = self._avoid(to_goal)
-        if (
-            to_goal.length_squared() <= 1e-8
-            and self._obstacle_detected
-            and self.has_pathfinding
-        ):
+        if to_goal.length_squared() <= 1e-8 and self._obstacle_detected and self.has_pathfinding:
             self.machine.transition(NavigationState.BLOCKED)
             self._drive(Vec3(0, 0, 0), sprint=False)
             return
@@ -320,11 +304,7 @@ class AINavigationHandler(AIPatrolHandler):
                 return
 
         to_target = self._avoid(to_target)
-        if (
-            to_target.length_squared() <= 1e-8
-            and self._obstacle_detected
-            and self.has_pathfinding
-        ):
+        if to_target.length_squared() <= 1e-8 and self._obstacle_detected and self.has_pathfinding:
             self.machine.transition(NavigationState.BLOCKED)
             self._drive(Vec3(0, 0, 0), sprint=False)
             return
@@ -354,11 +334,7 @@ class AINavigationHandler(AIPatrolHandler):
                 return
             to_goal = self._planar(pt - self._position())
             to_goal = self._avoid(to_goal)
-            if (
-                to_goal.length_squared() <= 1e-8
-                and self._obstacle_detected
-                and self.has_pathfinding
-            ):
+            if to_goal.length_squared() <= 1e-8 and self._obstacle_detected and self.has_pathfinding:
                 self.machine.transition(NavigationState.BLOCKED)
                 self._drive(Vec3(0, 0, 0), sprint=False)
                 return
@@ -405,20 +381,14 @@ class AINavigationHandler(AIPatrolHandler):
 
         if self.nav_grid is None or self.pathfinder is None:
             return
-        if (
-            self._current_path
-            and self._path_index < len(self._current_path)
-            and self._path_goal is not None
-        ):
+        if self._current_path and self._path_index < len(self._current_path) and self._path_goal is not None:
             blocked = False
             for pt in self._current_path[self._path_index :]:
                 cell = self.nav_grid.world_to_cell(pt)
                 if cell is None or not self.nav_grid.is_walkable(cell):
                     blocked = True
                     break
-            if not blocked and (self._path_goal - goal).length() < max(
-                0.25, self.nav_grid.cell_size * 0.5
-            ):
+            if not blocked and (self._path_goal - goal).length() < max(0.25, self.nav_grid.cell_size * 0.5):
                 return
             if blocked:
                 self.request_replan()
@@ -446,17 +416,14 @@ class AINavigationHandler(AIPatrolHandler):
             same_cell = (
                 self.nav_grid is not None
                 and self.nav_grid.world_to_cell(self._position()) is not None
-                and self.nav_grid.world_to_cell(self._position())
-                == self.nav_grid.world_to_cell(goal)
+                and self.nav_grid.world_to_cell(self._position()) == self.nav_grid.world_to_cell(goal)
             )
             if self.has_pathfinding and not self._current_path and not same_cell:
                 return None
             pt = Vec3(goal)
         to_pt = self._planar(pt - self._position())
         arrive_threshold = (
-            self.arrive_radius
-            if self.nav_grid is None
-            else max(self.arrive_radius, self.nav_grid.cell_size * 0.5)
+            self.arrive_radius if self.nav_grid is None else max(self.arrive_radius, self.nav_grid.cell_size * 0.5)
         )
         if to_pt.length() <= arrive_threshold:
             self._path_index += 1

@@ -36,9 +36,7 @@ class Event(Generic[T]):
         self.__once.discard(cb)
         self.__takes_args[cb] = self.__accepts_args(cb)
 
-        self.__callback = dict(
-            sorted(self.__callback.items(), key=lambda item: item[1], reverse=True)
-        )
+        self.__callback = dict(sorted(self.__callback.items(), key=lambda item: item[1], reverse=True))
 
     def add_once(self, cb: Callable[..., None], priority: int = 0) -> None:
         """Add a callback that is removed after its first execution."""
@@ -61,11 +59,7 @@ class Event(Generic[T]):
 
     def debug(self) -> None:
         """Add a debug callback that prints when the event is triggered."""
-        self.add_callback(
-            lambda *args, **kwargs: print(
-                "Event triggered with args:", args, "and kwargs:", kwargs
-            )
-        )
+        self.add_callback(lambda *args, **kwargs: print("Event triggered with args:", args, "and kwargs:", kwargs))
 
     def __call__(self, *args, **kwargs) -> None:
         """Call the event, executing all callbacks if working."""

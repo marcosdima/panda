@@ -65,9 +65,7 @@ class UIColumn(UIComponent):
 
     def relayout(self) -> None:
         sizes = [self._size(child) for child in self._children]
-        total_height = sum(size[1] for size in sizes) + self._spacing * max(
-            len(sizes) - 1, 0
-        )
+        total_height = sum(size[1] for size in sizes) + self._spacing * max(len(sizes) - 1, 0)
         z = total_height / 2.0
         for child, size in zip(self._children, sizes):
             node = self._node_of(child)

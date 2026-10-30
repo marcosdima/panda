@@ -24,9 +24,7 @@ class UIScrollContainer(UIComponent):
         self.theme = theme if theme is not None else UITheme()
         self._width = float(width)
         self._height = float(height)
-        self._canvas_height = (
-            float(canvas_height) if canvas_height is not None else self._height * 2.0
-        )
+        self._canvas_height = float(canvas_height) if canvas_height is not None else self._height * 2.0
         self._pos = self._normalize_pos(pos)
 
         frame_size = (

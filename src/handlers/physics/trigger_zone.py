@@ -36,12 +36,8 @@ class TriggerZoneHandler(Handler):
     ) -> None:
         super().__init__()
         self.shape: BulletShape = shape
-        self.target_groups: set[CollisionGroup] = (
-            set(target_groups) if target_groups else set()
-        )
-        self.avoid_groups: set[CollisionGroup] = (
-            set(avoid_groups) if avoid_groups else set()
-        )
+        self.target_groups: set[CollisionGroup] = set(target_groups) if target_groups else set()
+        self.avoid_groups: set[CollisionGroup] = set(avoid_groups) if avoid_groups else set()
         self.ghost_node: BulletGhostNode | None = None
         self.ghost_np: NodePath | None = None
         self._is_attached_to_world: bool = False
@@ -96,9 +92,11 @@ class TriggerZoneHandler(Handler):
     def on_start(self) -> None:
         """Called when active scene or entity starts."""
         super().on_start()
-        if self.entity is not None and (
-            self.ghost_np is None or self.ghost_np.isEmpty()
-        ) and self.ghost_node is not None:
+        if (
+            self.entity is not None
+            and (self.ghost_np is None or self.ghost_np.isEmpty())
+            and self.ghost_node is not None
+        ):
             self.ghost_np = self.entity.node.attachNewNode(self.ghost_node)
             self._last_parent_net = self.ghost_np.getParent().getNetTransform()
         self._attach_to_world()
@@ -177,10 +175,7 @@ class TriggerZoneHandler(Handler):
             return False
         if not self.target_groups:
             return False
-        return (
-            CollisionGroup.DEFAULT not in self.target_groups
-            and CollisionGroup.DEFAULT not in self.avoid_groups
-        )
+        return CollisionGroup.DEFAULT not in self.target_groups and CollisionGroup.DEFAULT not in self.avoid_groups
 
     def on_stop(self) -> None:
         """Detach the ghost from the world, remove its NodePath, and reset state."""

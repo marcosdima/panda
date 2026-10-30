@@ -127,9 +127,7 @@ class RigidBodyHandler(Handler):
             self.body_node.setTransformDirty()
         self._attach_to_world()
 
-    def rebase(
-        self, offset: Vec3 = Vec3(0.0, 0.0, 0.0), hpr: Vec3 = Vec3(0.0, 0.0, 0.0)
-    ) -> None:
+    def rebase(self, offset: Vec3 | None = None, hpr: Vec3 | None = None) -> None:
         """Move the body node to a new local transform under its current parent.
 
         Bullet keeps the simulated transform in ``body_np``, so moving only
@@ -140,6 +138,8 @@ class RigidBodyHandler(Handler):
         """
         if self.body_np is None or self.body_np.isEmpty():
             return
+        offset = offset if offset is not None else Vec3(0.0, 0.0, 0.0)
+        hpr = hpr if hpr is not None else Vec3(0.0, 0.0, 0.0)
         self.body_np.setPos(offset)
         self.body_np.setHpr(hpr)
         parent = self.body_np.getParent()
@@ -169,19 +169,13 @@ class RigidBodyHandler(Handler):
         from src.handlers.graphics.model import ModelHandler
 
         model_handler = self.entity.get_handler(ModelHandler)
-        if (
-            model_handler is None
-            or model_handler.model_np is None
-            or model_handler.model_np.isEmpty()
-        ):
+        if model_handler is None or model_handler.model_np is None or model_handler.model_np.isEmpty():
             return
         if to_body and self.body_np is not None and not self.body_np.isEmpty():
             if model_handler.model_np.getParent() != self.body_np:
                 model_handler.model_np.reparentTo(self.body_np)
         elif (
-            not to_body
-            and self.entity.node is not None
-            and not self.entity.node.isEmpty()
+            not to_body and self.entity.node is not None and not self.entity.node.isEmpty()
         ) and model_handler.model_np.getParent() == self.body_np:
             model_handler.model_np.reparentTo(self.entity.node)
 
@@ -208,10 +202,9 @@ class RigidBodyHandler(Handler):
     def on_start(self) -> None:
         """Called when active scene or entity starts."""
         super().on_start()
-        if self.entity is not None and (self.body_np is None or self.body_np.isEmpty()):
-            if self.body_node is not None:
-                self.body_np = self.entity.node.attachNewNode(self.body_node)
-                self._last_parent_net = self.body_np.getParent().getNetTransform()
+        if self.entity is not None and (self.body_np is None or self.body_np.isEmpty()) and self.body_node is not None:
+            self.body_np = self.entity.node.attachNewNode(self.body_node)
+            self._last_parent_net = self.body_np.getParent().getNetTransform()
         self._attach_to_world()
         self._sync_sibling_model_parent(to_body=True)
 

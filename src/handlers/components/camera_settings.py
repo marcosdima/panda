@@ -78,9 +78,7 @@ class CameraSettingsComponent(Handler):
 
         self._camera_handler = self.entity.get_handler(ThirdPersonCameraHandler)  # type: ignore[arg-type]
         if self._camera_handler is None:
-            logger.warning(
-                "CameraSettingsComponent attached to entity without a ThirdPersonCameraHandler."
-            )
+            logger.warning("CameraSettingsComponent attached to entity without a ThirdPersonCameraHandler.")
             return
 
         # Build a simple panel in the top‑right corner.
@@ -91,9 +89,7 @@ class CameraSettingsComponent(Handler):
         )
 
         # Helper to create a labelled slider.
-        def _make_slider(
-            name: str, label: str, lo: float, hi: float, init: float, y: float
-        ):
+        def _make_slider(name: str, label: str, lo: float, hi: float, init: float, y: float):
             # Label
             DirectLabel(
                 parent=self._panel,

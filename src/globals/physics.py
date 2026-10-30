@@ -52,9 +52,12 @@ class Physics(Global):
     def _setup_debug_and_tasks(self) -> None:
         """Initialize debug visualization and physics world update task if engine is active."""
         self._debug()
-        if self.base is not None and getattr(self.base, "task_mgr", None) is not None:
-            if not self.base.task_mgr.hasTaskNamed("physics_world_updater"):
-                self.base.task_mgr.add(self._update_world, "physics_world_updater")
+        if (
+            self.base is not None
+            and getattr(self.base, "task_mgr", None) is not None
+            and not self.base.task_mgr.hasTaskNamed("physics_world_updater")
+        ):
+            self.base.task_mgr.add(self._update_world, "physics_world_updater")
 
     def _debug(self) -> None:
         """Set up debug visualization for Bullet Physics bodies and ghosts if display is active."""
@@ -78,9 +81,7 @@ class Physics(Global):
             Physics._debug_np = debug_np
             Physics._world.setDebugNode(debug_np.node())
         except Exception:
-            logger.warning(
-                "Failed to set up Bullet debug visualization.", exc_info=True
-            )
+            logger.warning("Failed to set up Bullet debug visualization.", exc_info=True)
 
     @classmethod
     def toggle_debug(cls) -> bool:
@@ -94,11 +95,7 @@ class Physics(Global):
                 return False
 
         # If debug node hasn't been attached yet, attempt to initialize it
-        base = (
-            getattr(cls.get_instance(), "base", None)
-            if hasattr(cls, "_instance")
-            else None
-        )
+        base = getattr(cls.get_instance(), "base", None) if hasattr(cls, "_instance") else None
         if base is None:
             import builtins
 
@@ -117,9 +114,7 @@ class Physics(Global):
                 cls.get_world().setDebugNode(debug_np.node())
                 return True
             except Exception:
-                logger.warning(
-                    "Failed to enable Bullet debug visualization.", exc_info=True
-                )
+                logger.warning("Failed to enable Bullet debug visualization.", exc_info=True)
                 return False
         return False
 
@@ -243,9 +238,7 @@ class Physics(Global):
                 pass
             removed["ghosts"] += 1
 
-        all_constraints = set(cls._registry["constraints"]) | set(
-            world.getConstraints()
-        )
+        all_constraints = set(cls._registry["constraints"]) | set(world.getConstraints())
         cls._registry["constraints"].clear()
         for node in all_constraints:
             try:
@@ -374,9 +367,7 @@ if __name__ == "__main__":
     import json
 
     parser = argparse.ArgumentParser(description="Physics diagnostics")
-    parser.add_argument(
-        "--dump", action="store_true", help="Print a JSON diagnostic snapshot and exit."
-    )
+    parser.add_argument("--dump", action="store_true", help="Print a JSON diagnostic snapshot and exit.")
     args = parser.parse_args()
 
     if args.dump:

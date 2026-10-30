@@ -9,9 +9,8 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Union
 
-PathLike = Union[str, os.PathLike]
+PathLike = str | os.PathLike
 
 
 def get_project_root(start_path: PathLike | None = None) -> Path:

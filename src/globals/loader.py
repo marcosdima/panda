@@ -10,6 +10,10 @@ from .__global import Global
 ModelKey = Literal["box", "panda", "environment", "teapot"]
 
 
+class LoaderNotInitializedError(RuntimeError):
+    """Raised when the global loader is requested before initialization."""
+
+
 class GlobalLoader(Global):
     """A singleton class to manage the global loader object."""
 
@@ -23,7 +27,7 @@ class GlobalLoader(Global):
         base = cls._instance.base
         loader = getattr(base, "loader", None) if base is not None else None
         if loader is None:
-            raise Exception("Loader is not initialized.")
+            raise LoaderNotInitializedError("Loader is not initialized.")
         return loader
 
     @classmethod
@@ -69,9 +73,7 @@ class GlobalLoader(Global):
         return cls.load(asset_path)
 
     @classmethod
-    def load_actor(
-        cls, asset_path: str, animations: dict[str, str] | None = None
-    ) -> NodePath:
+    def load_actor(cls, asset_path: str, animations: dict[str, str] | None = None) -> NodePath:
         """Load an Actor model from the given asset path using caching."""
         import gltf  # noqa: F401
         from direct.actor.Actor import Actor
@@ -83,9 +85,7 @@ class GlobalLoader(Global):
 
             # If animations are provided, prepend ASSETS_PATH to each one
             if animations:
-                full_animations = {
-                    name: ASSETS_PATH + path for name, path in animations.items()
-                }
+                full_animations = {name: ASSETS_PATH + path for name, path in animations.items()}
                 template = Actor(full_path, anims=full_animations)
             else:
                 # Load without animations - will use embedded animations if present

@@ -9,7 +9,7 @@ Defines standard camera presets for 3D games:
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 
 from panda3d.core import Vec3
@@ -34,7 +34,7 @@ class CameraPreset:
     distance: float
     pitch: float
     target_offset: Vec3
-    shoulder_offset: Vec3 = Vec3(0.0, 0.0, 0.0)
+    shoulder_offset: Vec3 = field(default_factory=lambda: Vec3(0.0, 0.0, 0.0))
     min_distance: float = 1.5
     max_distance: float = 25.0
     min_pitch: float = -89.0

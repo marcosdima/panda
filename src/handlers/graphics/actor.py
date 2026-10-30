@@ -51,8 +51,8 @@ class ActorAnimationHandler(Handler):
         model_path: str = "X Bot.glb",
         animations: dict[str, str] | None = None,
         scale: float = 100.0,
-        offset: Vec3 = Vec3(0.0, 0.0, -1.0),
-        hpr: Vec3 = Vec3(0.0, 0.0, 0.0),
+        offset: Vec3 | None = None,
+        hpr: Vec3 | None = None,
         animation_files: list[str] | None = None,
         state_clips: dict[str, str] | None = None,
         air_threshold: float = 0.12,
@@ -81,16 +81,12 @@ class ActorAnimationHandler(Handler):
         """
         super().__init__()
         self.model_path: str = model_path
-        self.animations: dict[str, str] = (
-            animations if animations is not None else {"Idle": "anims/X Bot@Idle.glb"}
-        )
+        self.animations: dict[str, str] = animations if animations is not None else {"Idle": "anims/X Bot@Idle.glb"}
         self.scale: float = float(scale)
-        self.offset: Vec3 = Vec3(offset)
-        self.hpr: Vec3 = Vec3(hpr)
+        self.offset: Vec3 = Vec3(offset) if offset is not None else Vec3(0.0, 0.0, -1.0)
+        self.hpr: Vec3 = Vec3(hpr) if hpr is not None else Vec3(0.0, 0.0, 0.0)
 
-        self.animation_files: list[str] = (
-            list(animation_files) if animation_files else []
-        )
+        self.animation_files: list[str] = list(animation_files) if animation_files else []
         self.state_clips: dict[str, str] = {
             "Idle": "Idle",
             "Walk": "Walk",
@@ -129,7 +125,10 @@ class ActorAnimationHandler(Handler):
         self._current_anim: str | None = None
         self._last_locomotion_state: str | None = None
         self.locomotion = StateMachine("Idle", LOCOMOTION_TRANSITIONS)
-        enter_hook = lambda _prev, _new: self._apply_state_clip()
+
+        def enter_hook(_prev, _new):
+            self._apply_state_clip()
+
         for state in LOCOMOTION_TRANSITIONS:
             self.locomotion.on_enter(state, enter_hook)
 
@@ -149,9 +148,7 @@ class ActorAnimationHandler(Handler):
         self._action_on_complete: Callable[[], None] | None = None
 
     @classmethod
-    def kaykit_rig_medium(
-        cls, character: str = "Knight", **kwargs: Any
-    ) -> ActorAnimationHandler:
+    def kaykit_rig_medium(cls, character: str = "Knight", **kwargs: Any) -> ActorAnimationHandler:
         """Build a handler for a KayKit Adventurers character that uses the shared ``Rig_Medium`` clips.
 
         ``character`` is any model in ``Characters/gltf`` (Knight, Barbarian, Mage, Ranger, Rogue,
@@ -191,9 +188,7 @@ class ActorAnimationHandler(Handler):
     def get_anim_names(self) -> list[str]:
         """Return the list of available animation names."""
         names: list[str] = []
-        if self.anim_controls is not None and hasattr(
-            self.anim_controls, "getNumAnims"
-        ):
+        if self.anim_controls is not None and hasattr(self.anim_controls, "getNumAnims"):
             for i in range(self.anim_controls.getNumAnims()):
                 name = self.anim_controls.getAnimName(i)
                 if name and name not in names:
@@ -234,16 +229,13 @@ class ActorAnimationHandler(Handler):
         if self.model_root is None or self.model_root.isEmpty():
             full_model_path = (
                 ASSETS_PATH + self.model_path
-                if not self.model_path.startswith("/")
-                and not self.model_path.startswith(ASSETS_PATH)
+                if not self.model_path.startswith("/") and not self.model_path.startswith(ASSETS_PATH)
                 else self.model_path
             )
 
             if loader is not None:
                 try:
-                    self.model_root = GlobalLoader.load_copy(
-                        full_model_path, parent=self.visual_pivot
-                    )
+                    self.model_root = GlobalLoader.load_copy(full_model_path, parent=self.visual_pivot)
                 except Exception:  # noqa: BLE001
                     self.model_root = loader.loadModel(full_model_path)
                 if self.model_root is not None:
@@ -269,9 +261,7 @@ class ActorAnimationHandler(Handler):
                         char_node.getBundle(bi).sortDescendants()
 
                 for anim_name, anim_rel_path in self.animations.items():
-                    self._load_anim_file(
-                        loader, anim_rel_path, rename=anim_name, keep_model=True
-                    )
+                    self._load_anim_file(loader, anim_rel_path, rename=anim_name, keep_model=True)
                 for anim_rel_path in self.animation_files:
                     self._load_anim_file(loader, anim_rel_path)
 
@@ -309,9 +299,7 @@ class ActorAnimationHandler(Handler):
             except Exception:  # noqa: BLE001
                 anim_model = loader.loadModel(full_path)
         except OSError:
-            logger.warning(
-                "Failed to load animation file %s.", full_path, exc_info=True
-            )
+            logger.warning("Failed to load animation file %s.", full_path, exc_info=True)
             return
 
         if keep_model:
@@ -347,12 +335,11 @@ class ActorAnimationHandler(Handler):
 
         if self.entity is not None:
             controller = self.entity.get_handler(CharacterControllerHandler)
-            if controller is not None:
-                if controller.visual_node == self.visual_pivot or (
-                    controller.visual_node is not None
-                    and controller.visual_node.isEmpty()
-                ):
-                    controller.visual_node = None
+            if controller is not None and (
+                controller.visual_node == self.visual_pivot
+                or (controller.visual_node is not None and controller.visual_node.isEmpty())
+            ):
+                controller.visual_node = None
 
         if self.visual_pivot is not None and not self.visual_pivot.isEmpty():
             self.visual_pivot.removeNode()
@@ -386,11 +373,7 @@ class ActorAnimationHandler(Handler):
             idle = "idle"
         if idle is not None:
             # Try to crossfade from any playing animation if exists
-            if (
-                self.blend_duration > 0.0
-                and self._current_anim
-                and self._current_anim != idle
-            ):
+            if self.blend_duration > 0.0 and self._current_anim and self._current_anim != idle:
                 self._start_crossfade(idle, duration=min(0.12, self.blend_duration))
             else:
                 self._cancel_blend(reset_weights=False)
@@ -426,10 +409,7 @@ class ActorAnimationHandler(Handler):
                 vel = controller.linear_velocity
                 speed = math.hypot(vel.x, vel.y)
                 is_sprinting = controller.is_sprinting
-                if (
-                    controller.controller_node is not None
-                    and not controller.is_on_ground
-                ):
+                if controller.controller_node is not None and not controller.is_on_ground:
                     self._air_time += dt
                     airborne = self._air_time >= self.air_threshold
                 else:
@@ -465,16 +445,10 @@ class ActorAnimationHandler(Handler):
 
         # Entering a state plays its clip; reconcile every frame so manual
         # play/loop calls or late-loaded clips fall back to the state's clip.
-        if (
-            prev_state == "Idle"
-            and curr_state in ("Walk", "Run")
-            and not self._blend_active
-        ):
+        if prev_state == "Idle" and curr_state in ("Walk", "Run") and not self._blend_active:
             target = self._state_clip(curr_state, anim_names)
             if target is not None:
-                dur = self.blend_durations.get(
-                    f"Idle->{curr_state}", self.blend_duration
-                )
+                dur = self.blend_durations.get(f"Idle->{curr_state}", self.blend_duration)
                 self._start_crossfade(target, duration=dur)
         else:
             self._apply_state_clip()
@@ -538,16 +512,16 @@ class ActorAnimationHandler(Handler):
         if self.visual_pivot is None or self.visual_pivot.isEmpty():
             return
         try:
-            from panda3d.core import PartBundle
-        except Exception:
-            PartBundle = None
+            from panda3d.core import PartBundle  # noqa: F401
+        except Exception:  # noqa: BLE001, S110
+            pass
         bundles = set()
         try:
             for anim_np in self.visual_pivot.findAllMatches("**/+AnimBundleNode"):
                 try:
                     bundle = anim_np.node().getBundle()
                     bundles.add(bundle)
-                except Exception:  # noqa: BLE001
+                except Exception:  # noqa: BLE001, S112
                     continue
         except Exception:  # noqa: BLE001, S110
             pass
@@ -557,7 +531,7 @@ class ActorAnimationHandler(Handler):
                     char_node = char_np.node()
                     for bi in range(char_node.getNumBundles()):
                         bundles.add(char_node.getBundle(bi))
-                except Exception:  # noqa: BLE001
+                except Exception:  # noqa: BLE001, S112
                     continue
         except Exception:  # noqa: BLE001, S110
             pass
@@ -585,9 +559,7 @@ class ActorAnimationHandler(Handler):
             except Exception:  # noqa: BLE001, S110
                 pass
             try:
-                if hasattr(bundle, "getControlEffect") or hasattr(
-                    bundle, "clearControlEffects"
-                ):
+                if hasattr(bundle, "getControlEffect") or hasattr(bundle, "clearControlEffects"):
                     pass
             except Exception:  # noqa: BLE001, S110
                 pass
@@ -668,11 +640,9 @@ class ActorAnimationHandler(Handler):
                             try:
                                 if c is not None and c.isPlaying():
                                     from_ctrl = c
-                                    from_name = (
-                                        self.anim_controls.getAnimName(i) or from_name
-                                    )
+                                    from_name = self.anim_controls.getAnimName(i) or from_name
                                     break
-                            except Exception:  # noqa: BLE001
+                            except Exception:  # noqa: BLE001, S112
                                 continue
                 except Exception:  # noqa: BLE001, S110
                     pass
@@ -693,11 +663,7 @@ class ActorAnimationHandler(Handler):
             return True
 
         # If reversing to the clip we came from, swap
-        if (
-            self._blend_active
-            and self._blend_to_name == target_name
-            and self._blend_from_name is not None
-        ):
+        if self._blend_active and self._blend_to_name == target_name and self._blend_from_name is not None:
             # will be handled by normal flow, but ensure weights consistent
             pass
 
@@ -705,11 +671,7 @@ class ActorAnimationHandler(Handler):
         if self._blend_active:
             prev_from = self._blend_from_ctrl
             self._blend_active = False
-            if (
-                prev_from is not None
-                and prev_from != from_ctrl
-                and prev_from != to_ctrl
-            ):
+            if prev_from is not None and prev_from != from_ctrl and prev_from != to_ctrl:
                 try:
                     self._set_control_weight(prev_from, 0.0)
                     prev_from.stop()
@@ -815,10 +777,7 @@ class ActorAnimationHandler(Handler):
 
         if t >= 1.0:
             # Finish blend: keep to clip looping, fade out from clip
-            if (
-                self._blend_from_ctrl is not None
-                and self._blend_from_ctrl != self._blend_to_ctrl
-            ):
+            if self._blend_from_ctrl is not None and self._blend_from_ctrl != self._blend_to_ctrl:
                 try:
                     self._set_control_weight(self._blend_from_ctrl, 0.0)
                 except Exception:  # noqa: BLE001, S110
@@ -855,9 +814,7 @@ class ActorAnimationHandler(Handler):
             clip_dur = 0.6
             try:
                 num_frames = ctrl.getNumFrames() if hasattr(ctrl, "getNumFrames") else 0
-                frame_rate = (
-                    ctrl.getFrameRate() if hasattr(ctrl, "getFrameRate") else 0.0
-                )
+                frame_rate = ctrl.getFrameRate() if hasattr(ctrl, "getFrameRate") else 0.0
                 if num_frames and frame_rate and frame_rate > 0.0:
                     clip_dur = float(num_frames) / float(frame_rate)
             except Exception:  # noqa: BLE001, S110

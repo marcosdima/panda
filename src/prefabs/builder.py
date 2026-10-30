@@ -90,9 +90,7 @@ class EntityBuilder:
         self._handlers.append(handler)
         return self
 
-    def with_camera(
-        self, mode: str = "third_person", handler: Any = None, **kwargs: Any
-    ) -> EntityBuilder:
+    def with_camera(self, mode: str = "third_person", handler: Any = None, **kwargs: Any) -> EntityBuilder:
         if handler is not None:
             self._handlers.append(handler)
             return self

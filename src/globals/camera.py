@@ -13,10 +13,7 @@ class Camera(Global):
             cls()
         cam = getattr(cls._instance.base, "camera", None)
         if cam is None:
-            if (
-                cls._instance.base is not None
-                and getattr(cls._instance.base, "render", None) is not None
-            ):
+            if cls._instance.base is not None and getattr(cls._instance.base, "render", None) is not None:
                 cam = cls._instance.base.render.attachNewNode("headless_camera")
                 cls._instance.base.camera = cam
             else:

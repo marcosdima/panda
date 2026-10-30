@@ -27,9 +27,7 @@ class Game(ShowBase):
 
         # Centralized per-frame scene update (runs before scene-specific tasks).
         self.paused: bool = False
-        self._update_task = self.taskMgr.add(
-            self._update_main_scene, self.UPDATE_TASK_NAME, sort=self.UPDATE_TASK_SORT
-        )
+        self._update_task = self.taskMgr.add(self._update_main_scene, self.UPDATE_TASK_NAME, sort=self.UPDATE_TASK_SORT)
         self._post_update_task = self.taskMgr.add(
             self._post_update_main_scene,
             self.POST_UPDATE_TASK_NAME,

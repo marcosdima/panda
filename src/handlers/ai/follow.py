@@ -77,13 +77,9 @@ class FollowHandler(Handler):
         super().__init__()
         self._target: Entity | None = target
         self._min_distance: float = float(min_distance)
-        self._stop_radius: float = (
-            self._min_distance if stop_radius is None else float(stop_radius)
-        )
+        self._stop_radius: float = self._min_distance if stop_radius is None else float(stop_radius)
         self._stop_radius_is_explicit: bool = stop_radius is not None
-        self.max_distance: float | None = (
-            None if max_distance is None else float(max_distance)
-        )
+        self.max_distance: float | None = None if max_distance is None else float(max_distance)
         self.speed_factor: float = float(speed_factor)
         self.chase_sprint: bool = bool(chase_sprint)
         self._last_move_vector: Vec2 = Vec2(0.0, 0.0)
@@ -110,7 +106,8 @@ class FollowHandler(Handler):
         """Stop distance that mirrors ``stop_radius`` when it was not set explicitly.
 
         This property returns the value last assigned to ``min_distance``
-        (the construction value by default). ``stop_radius`` is the only mutable stop-distance knob read at runtime. Assigning to ``min_distance``
+        (the construction value by default). ``stop_radius`` is the only
+        mutable stop-distance knob read at runtime. Assigning to ``min_distance``
         rewrites ``stop_radius`` too — unless ``stop_radius`` was set
         explicitly, in which case the write is inert and ``stop_radius``
         keeps its explicit value.

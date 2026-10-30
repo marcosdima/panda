@@ -55,14 +55,10 @@ class ProximitySensorHandler(Handler):
         super().__init__()
         self._radius: float = self._validate_radius(radius, "radius")
         self._exit_radius: float = (
-            self._radius
-            if exit_radius is None
-            else self._validate_radius(exit_radius, "exit_radius")
+            self._radius if exit_radius is None else self._validate_radius(exit_radius, "exit_radius")
         )
         if self._exit_radius < self._radius:
-            raise ValueError(
-                f"exit_radius ({self._exit_radius}) must be >= radius ({self._radius})"
-            )
+            raise ValueError(f"exit_radius ({self._exit_radius}) must be >= radius ({self._radius})")
         self._scene: Scene | None = scene
         self.predicate: Callable[[Entity], bool] | None = predicate
 
@@ -105,9 +101,7 @@ class ProximitySensorHandler(Handler):
     def radius(self, value: float) -> None:
         radius = self._validate_radius(value, "radius")
         if self._exit_radius < radius:
-            raise ValueError(
-                f"radius ({radius}) must be <= exit_radius ({self._exit_radius})"
-            )
+            raise ValueError(f"radius ({radius}) must be <= exit_radius ({self._exit_radius})")
         self._radius = radius
 
     @property
@@ -119,9 +113,7 @@ class ProximitySensorHandler(Handler):
     def exit_radius(self, value: float) -> None:
         exit_radius = self._validate_radius(value, "exit_radius")
         if exit_radius < self._radius:
-            raise ValueError(
-                f"exit_radius ({exit_radius}) must be >= radius ({self._radius})"
-            )
+            raise ValueError(f"exit_radius ({exit_radius}) must be >= radius ({self._radius})")
         self._exit_radius = exit_radius
 
     # ------------------------------------------------------------------
@@ -131,21 +123,13 @@ class ProximitySensorHandler(Handler):
     @property
     def sensed_entities(self) -> list[Entity]:
         """Currently sensed alive entities, nearest first."""
-        alive = [
-            (entity, distance)
-            for entity, distance in self._sensed.items()
-            if not entity.is_freed
-        ]
+        alive = [(entity, distance) for entity, distance in self._sensed.items() if not entity.is_freed]
         return [entity for entity, _distance in sorted(alive, key=lambda item: item[1])]
 
     @property
     def nearest(self) -> Entity | None:
         """Closest sensed alive entity, or ``None`` when nothing is in range."""
-        alive = [
-            (entity, distance)
-            for entity, distance in self._sensed.items()
-            if not entity.is_freed
-        ]
+        alive = [(entity, distance) for entity, distance in self._sensed.items() if not entity.is_freed]
         if not alive:
             return None
         return min(alive, key=lambda item: item[1])[0]

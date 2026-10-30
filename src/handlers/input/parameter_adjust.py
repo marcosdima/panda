@@ -62,11 +62,10 @@ class ParameterAdjustHandler(Handler):
             value = getattr(self._target, self._attr)
             return float(value)
         except Exception:
-            logger.error(
+            logger.exception(
                 "Failed to read attribute %s from %s",
                 self._attr,
                 self._target,
-                exc_info=True,
             )
             raise
 
@@ -79,11 +78,10 @@ class ParameterAdjustHandler(Handler):
             setattr(self._target, self._attr, new_value)
             logger.info("%s.%s set to %s", self._target, self._attr, new_value)
         except Exception:
-            logger.error(
+            logger.exception(
                 "Failed to set attribute %s on %s",
                 self._attr,
                 self._target,
-                exc_info=True,
             )
             raise
 
@@ -94,9 +92,7 @@ class ParameterAdjustHandler(Handler):
         """Bind '+' and '-' keys to increase/decrease the attribute."""
         base = getattr(builtins, "base", None)
         if base is None or not hasattr(base, "accept"):
-            logger.warning(
-                "Panda3D base not available; ParameterAdjustHandler will be inactive."
-            )
+            logger.warning("Panda3D base not available; ParameterAdjustHandler will be inactive.")
             return
         base.accept("+", self._increase)
         base.accept("-", self._decrease)

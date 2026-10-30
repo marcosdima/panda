@@ -65,9 +65,7 @@ class UIRow(UIComponent):
 
     def relayout(self) -> None:
         sizes = [self._size(child) for child in self._children]
-        total_width = sum(size[0] for size in sizes) + self._spacing * max(
-            len(sizes) - 1, 0
-        )
+        total_width = sum(size[0] for size in sizes) + self._spacing * max(len(sizes) - 1, 0)
         x = -total_width / 2.0
         for child, size in zip(self._children, sizes):
             node = self._node_of(child)

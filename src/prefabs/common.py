@@ -119,9 +119,7 @@ def create_patrol_npc(
         ai = FollowHandler(target=target, **_kwargs(ai_kwargs))
         builder.with_follow(handler=ai)
     elif waypoints:
-        ai = AIPatrolHandler(
-            waypoints=list(waypoints), target=target, **_kwargs(ai_kwargs)
-        )
+        ai = AIPatrolHandler(waypoints=list(waypoints), target=target, **_kwargs(ai_kwargs))
         builder.with_patrol(handler=ai)
     # else: no AI, plain NPC
 
@@ -156,9 +154,7 @@ def create_static_prop(
     if parent is not None:
         builder.parented_to(parent)
     builder.at(*position)
-    builder.with_model(
-        model_path=model_path, scale=scale, from_assets=from_assets, offset=offset
-    )
+    builder.with_model(model_path=model_path, scale=scale, from_assets=from_assets, offset=offset)
     if shape is not None:
         builder.with_rigid_body(shape=shape, mass=mass)
     return builder.build(scene)

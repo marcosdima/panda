@@ -33,26 +33,22 @@ class ModelHandler(Handler):
         self,
         model_path: str,
         scale: float = 1.0,
-        offset: Vec3 = Vec3(0.0, 0.0, 0.0),
-        hpr: Vec3 = Vec3(0.0, 0.0, 0.0),
+        offset: Vec3 | None = None,
+        hpr: Vec3 | None = None,
         from_assets: bool = True,
     ) -> None:
         super().__init__()
         self.model_path: str = model_path
         self.scale: float = float(scale)
-        self.offset: Vec3 = Vec3(offset)
-        self.hpr: Vec3 = Vec3(hpr)
+        self.offset: Vec3 = Vec3(offset) if offset is not None else Vec3(0.0, 0.0, 0.0)
+        self.hpr: Vec3 = Vec3(hpr) if hpr is not None else Vec3(0.0, 0.0, 0.0)
         self.from_assets: bool = from_assets
 
         self.model_np: NodePath | None = None
 
     def _resolve_path(self) -> str:
         """Resolve the model path to a full asset path (ASSETS_PATH-prefixed or absolute)."""
-        if (
-            not self.from_assets
-            or self.model_path.startswith("/")
-            or self.model_path.startswith(ASSETS_PATH)
-        ):
+        if not self.from_assets or self.model_path.startswith("/") or self.model_path.startswith(ASSETS_PATH):
             return self.model_path
         return ASSETS_PATH + self.model_path
 
@@ -76,12 +72,7 @@ class ModelHandler(Handler):
         from src.handlers.physics.rigid_body import RigidBodyHandler
 
         rigid = self.entity.get_handler(RigidBodyHandler)
-        if (
-            rigid is not None
-            and rigid.is_dynamic
-            and rigid.body_np is not None
-            and not rigid.body_np.isEmpty()
-        ):
+        if rigid is not None and rigid.is_dynamic and rigid.body_np is not None and not rigid.body_np.isEmpty():
             return rigid.body_np
         return self.entity.node
 

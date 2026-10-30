@@ -6,11 +6,11 @@ It tracks the remaining time and exposes a convenient ``ready`` property.
 
 Typical usage::
 
-    cd = Cooldown(2.5)   # 2.5 seconds cooldown
+    cd = Cooldown(2.5)  # 2.5 seconds cooldown
     if cd.ready:
-        cd.start()       # trigger the cooldown
+        cd.start()  # trigger the cooldown
         ...
-    cd.tick(dt)          # called each frame with the elapsed delta-time
+    cd.tick(dt)  # called each frame with the elapsed delta-time
 
 The implementation is deliberately lightweight and has no external
 dependencies, making it safe to include in the ``src/utils`` package.

@@ -29,7 +29,7 @@ class ThirdPersonCameraHandler(Handler):
         distance: float = 8.0,
         min_distance: float = 2.0,
         max_distance: float = 25.0,
-        target_offset: Vec3 = Vec3(0.0, 0.0, 1.5),
+        target_offset: Vec3 | None = None,
         pitch: float = -15.0,
         min_pitch: float = -75.0,
         max_pitch: float = 45.0,
@@ -43,19 +43,17 @@ class ThirdPersonCameraHandler(Handler):
         invert_pitch: bool = False,
         collision_enabled: bool = True,
         collision_margin: float = 0.3,
-        shoulder_offset: Vec3 = Vec3(0.0, 0.0, 0.0),
+        shoulder_offset: Vec3 | None = None,
         owner_min_distance: float = 1.0,
         preset: CameraPreset | str | None = None,
     ) -> None:
         super().__init__()
         self.min_distance: float = float(min_distance)
         self.max_distance: float = float(max_distance)
-        self._distance: float = clamp(
-            float(distance), self.min_distance, self.max_distance
-        )
+        self._distance: float = clamp(float(distance), self.min_distance, self.max_distance)
         self._target_distance: float = self._distance
 
-        self.target_offset: Vec3 = Vec3(target_offset)
+        self.target_offset: Vec3 = Vec3(target_offset) if target_offset is not None else Vec3(0.0, 0.0, 1.5)
 
         self.min_pitch: float = float(min_pitch)
         self.max_pitch: float = float(max_pitch)
@@ -72,7 +70,7 @@ class ThirdPersonCameraHandler(Handler):
         self.collision_enabled: bool = collision_enabled
         self.owner_min_distance: float = float(owner_min_distance)
         self.collision_margin: float = float(collision_margin)
-        self.shoulder_offset: Vec3 = Vec3(shoulder_offset)
+        self.shoulder_offset: Vec3 = Vec3(shoulder_offset) if shoulder_offset is not None else Vec3(0.0, 0.0, 0.0)
 
         if preset is not None:
             self.apply_preset(preset, snap=False)
@@ -110,9 +108,7 @@ class ThirdPersonCameraHandler(Handler):
     @target_distance.setter
     def target_distance(self, value: float) -> None:
         """Set target zoom distance, clamped between min_distance and max_distance."""
-        self._target_distance = clamp(
-            float(value), self.min_distance, self.max_distance
-        )
+        self._target_distance = clamp(float(value), self.min_distance, self.max_distance)
 
     @property
     def pitch(self) -> float:
@@ -314,12 +310,8 @@ class ThirdPersonCameraHandler(Handler):
         cz = target_pos.z + self.distance * math.sin(-pitch_rad)
 
         # Over-the-shoulder offset rotated into world space by yaw
-        so_x = self.shoulder_offset.x * math.cos(
-            yaw_rad
-        ) - self.shoulder_offset.y * math.sin(yaw_rad)
-        so_y = self.shoulder_offset.x * math.sin(
-            yaw_rad
-        ) + self.shoulder_offset.y * math.cos(yaw_rad)
+        so_x = self.shoulder_offset.x * math.cos(yaw_rad) - self.shoulder_offset.y * math.sin(yaw_rad)
+        so_y = self.shoulder_offset.x * math.sin(yaw_rad) + self.shoulder_offset.y * math.cos(yaw_rad)
         so_z = self.shoulder_offset.z
 
         return Vec3(cx + so_x, cy + so_y, cz + so_z)
@@ -348,9 +340,7 @@ class ThirdPersonCameraHandler(Handler):
                 else:
                     hit_pos, _ = hit
                     hit_distance = (target_pos - hit_pos).length()
-                    clamped_distance = max(
-                        self.min_distance, hit_distance - self.collision_margin
-                    )
+                    clamped_distance = max(self.min_distance, hit_distance - self.collision_margin)
                     if clamped_distance >= distance:
                         resolved = ideal_pos
                     else:
@@ -386,9 +376,7 @@ class ThirdPersonCameraHandler(Handler):
         if isinstance(preset, str):
             key = preset.lower()
             if key not in PRESETS_BY_NAME:
-                raise ValueError(
-                    f"Unknown camera preset: {preset}. Choose from {list(PRESETS_BY_NAME.keys())}"
-                )
+                raise ValueError(f"Unknown camera preset: {preset}. Choose from {list(PRESETS_BY_NAME.keys())}")
             resolved = PRESETS_BY_NAME[key]
         else:
             resolved = preset
@@ -434,19 +422,17 @@ class ThirdPersonCameraHandler(Handler):
         """Attach to entity, initialize camera reference, and save defaults."""
         super().on_attach(entity)
         cam = self.get_camera_node()
-        if cam is not None and not cam.isEmpty():
-            if self._saved_cam_pos is None:
-                self._saved_cam_pos = Vec3(cam.getPos())
-                self._saved_cam_hpr = Vec3(cam.getHpr())
+        if cam is not None and not cam.isEmpty() and self._saved_cam_pos is None:
+            self._saved_cam_pos = Vec3(cam.getPos())
+            self._saved_cam_hpr = Vec3(cam.getHpr())
 
     def on_start(self) -> None:
         """Register input listeners, enable pointer capture in graphical mode, and initialize defaults."""
         super().on_start()
         cam = self.get_camera_node()
-        if cam is not None and not cam.isEmpty():
-            if self._saved_cam_pos is None:
-                self._saved_cam_pos = Vec3(cam.getPos())
-                self._saved_cam_hpr = Vec3(cam.getHpr())
+        if cam is not None and not cam.isEmpty() and self._saved_cam_pos is None:
+            self._saved_cam_pos = Vec3(cam.getPos())
+            self._saved_cam_hpr = Vec3(cam.getHpr())
 
         base = getattr(builtins, "base", None)
         if base is not None and hasattr(base, "accept"):
@@ -466,11 +452,7 @@ class ThirdPersonCameraHandler(Handler):
     def on_update(self, dt: float) -> None:
         """Per-frame update: poll mouse input and update pitch/yaw/orbit/look."""
         super().on_update(dt)
-        if (
-            self.entity is None
-            or self.entity.node is None
-            or self.entity.node.isEmpty()
-        ):
+        if self.entity is None or self.entity.node is None or self.entity.node.isEmpty():
             return
 
         # Headless safety: check if base and base.win are available
@@ -518,18 +500,12 @@ class ThirdPersonCameraHandler(Handler):
         # Smoothly interpolate distance toward target_distance (zoom smoothing)
         if self._distance != self._target_distance:
             t = 1.0 if self.zoom_speed <= 0.0 else clamp(self.zoom_speed * dt, 0.0, 1.0)
-            self._distance = (
-                self._distance + (self._target_distance - self._distance) * t
-            )
+            self._distance = self._distance + (self._target_distance - self._distance) * t
 
     def on_post_update(self, dt: float) -> None:
         """Apply camera transform after physics step."""
         super().on_post_update(dt)
-        if (
-            self.entity is None
-            or self.entity.node is None
-            or self.entity.node.isEmpty()
-        ):
+        if self.entity is None or self.entity.node is None or self.entity.node.isEmpty():
             return
 
         target_pos = self.get_target_pos()
@@ -542,14 +518,8 @@ class ThirdPersonCameraHandler(Handler):
                 self._current_cam_pos = Vec3(ideal_pos)
                 self._has_updated = True
             else:
-                t = (
-                    1.0
-                    if self.smooth_speed <= 0.0
-                    else clamp(self.smooth_speed * dt, 0.0, 1.0)
-                )
-                self._current_cam_pos = (
-                    self._current_cam_pos + (ideal_pos - self._current_cam_pos) * t
-                )
+                t = 1.0 if self.smooth_speed <= 0.0 else clamp(self.smooth_speed * dt, 0.0, 1.0)
+                self._current_cam_pos = self._current_cam_pos + (ideal_pos - self._current_cam_pos) * t
 
             cam.setPos(self._current_cam_pos)
             cam.lookAt(target_pos)
